@@ -132,14 +132,6 @@ export function Onboarding() {
       case 'experience':
         setData((prev) => ({ ...prev, background: { ...prev.background, experience: response } }));
         setTimeout(() => {
-          addAssistantMessage("What languages do you speak? (This helps me tailor examples and explanations)");
-          setStep('languages');
-        }, 500);
-        break;
-
-      case 'languages':
-        setData((prev) => ({ ...prev, background: { ...prev.background, languages: response } }));
-        setTimeout(() => {
           addAssistantMessage("Any specific interests or goals that should shape this course?");
           setStep('interests');
         }, 500);

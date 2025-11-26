@@ -5,7 +5,6 @@ export interface OnboardingData {
   background: {
     degree?: string;
     experience?: string;
-    languages?: string;
     interests?: string;
   };
   level: 'beginner' | 'intermediate' | 'advanced' | 'expert' | null;
