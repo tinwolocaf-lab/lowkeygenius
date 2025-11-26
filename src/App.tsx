@@ -1,0 +1,90 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { Layout } from './components/Layout';
+import { Login } from './pages/Login';
+import { Signup } from './pages/Signup';
+import { Dashboard } from './pages/Dashboard';
+import { Courses } from './pages/Courses';
+import { Notes } from './pages/Notes';
+import { Settings } from './pages/Settings';
+import { Onboarding } from './pages/Onboarding';
+import { CourseOutline } from './pages/CourseOutline';
+import { GenerateLessons } from './pages/GenerateLessons';
+import { CourseView } from './pages/CourseView';
+import Pricing from './pages/Pricing';
+import CheckoutSuccess from './pages/CheckoutSuccess';
+import CheckoutCancel from './pages/CheckoutCancel';
+import { ErrorBoundary } from './components/ErrorBoundary';
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="courses" element={<Courses />} />
+            <Route path="notes" element={<Notes />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="pricing" element={<Pricing />} />
+          </Route>
+
+          <Route path="/checkout/success" element={<CheckoutSuccess />} />
+          <Route path="/checkout/cancel" element={<CheckoutCancel />} />
+
+          <Route
+            path="/onboarding"
+            element={
+              <ProtectedRoute>
+                <Onboarding />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/courses/:courseId/outline"
+            element={
+              <ProtectedRoute>
+                <CourseOutline />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/courses/:courseId/generate"
+            element={
+              <ProtectedRoute>
+                <GenerateLessons />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/courses/:courseId"
+            element={
+              <ProtectedRoute>
+                <CourseView />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+    </ErrorBoundary>
+  );
+}
+
+export default App;
