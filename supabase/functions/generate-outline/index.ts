@@ -112,7 +112,7 @@ IMPORTANT: Respond ONLY with valid JSON in this exact format (no markdown, no co
 Make the course comprehensive, practical, and tailored to the learner's background and level.`;
 
     const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: {
