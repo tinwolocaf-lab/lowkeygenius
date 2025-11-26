@@ -31,8 +31,15 @@ export async function generateCourseOutline(data: {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to generate outline');
+    let errorMessage = 'Failed to generate outline';
+    try {
+      const error = await response.json();
+      errorMessage = error.error || errorMessage;
+    } catch {
+      const text = await response.text();
+      errorMessage = text || `Server error (${response.status})`;
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -67,8 +74,19 @@ export async function generateLesson(data: {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to generate lesson');
+    let errorMessage = 'Failed to generate lesson';
+    try {
+      const error = await response.json();
+      errorMessage = error.error || errorMessage;
+    } catch {
+      try {
+        const text = await response.text();
+        errorMessage = text || `Server error (${response.status})`;
+      } catch {
+        errorMessage = `Network error (${response.status})`;
+      }
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();

@@ -48,6 +48,10 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    if (!GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY not configured');
+    }
+
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('No authorization header');
@@ -128,10 +132,28 @@ Make the course comprehensive, practical, and tailored to the learner's backgrou
 
     if (!geminiResponse.ok) {
       const errorText = await geminiResponse.text();
-      throw new Error(`Gemini API error: ${errorText}`);
+      let errorMessage = 'Gemini API error';
+
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.error?.code === 429) {
+          errorMessage = 'Rate limit exceeded. Please wait a moment and try again.';
+        } else if (errorData.error?.message) {
+          errorMessage = errorData.error.message.split('\n')[0];
+        }
+      } catch {
+        errorMessage = errorText.substring(0, 200);
+      }
+
+      throw new Error(errorMessage);
     }
 
     const geminiData = await geminiResponse.json();
+
+    if (!geminiData.candidates?.[0]?.content?.parts?.[0]?.text) {
+      throw new Error('Invalid response from AI service');
+    }
+
     const generatedText = geminiData.candidates[0].content.parts[0].text;
 
     let outline: OutlineResponse;
@@ -152,12 +174,19 @@ Make the course comprehensive, practical, and tailored to the learner's backgrou
         },
       }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating outline:', error);
+
+    const errorMessage = error?.message || 'Failed to generate course outline';
+    const statusCode = errorMessage.includes('Rate limit') ? 429 : 500;
+
     return new Response(
-      JSON.stringify({ error: error.message || 'Failed to generate course outline' }),
+      JSON.stringify({
+        error: errorMessage,
+        details: error?.stack?.substring(0, 500)
+      }),
       {
-        status: 500,
+        status: statusCode,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
