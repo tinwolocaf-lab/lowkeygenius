@@ -75,7 +75,7 @@ export function ThemeSelector({ collapsed = false }: ThemeSelectorProps) {
 
       {isOpen && (
         <div
-          className={`absolute ${collapsed ? 'left-full ml-2' : 'left-0'} bottom-0 z-50 bg-neutral-bg rounded-2xl shadow-tile border-2 border-neutral-border overflow-hidden animate-scale-in min-w-[240px]`}
+          className={`absolute ${collapsed ? 'left-full ml-2' : 'left-0'} top-full mt-2 z-50 bg-neutral-bg rounded-2xl shadow-tile border-2 border-neutral-border overflow-hidden animate-scale-in min-w-[240px]`}
         >
           <div className="p-2">
             {themeOptions.map((option) => (
