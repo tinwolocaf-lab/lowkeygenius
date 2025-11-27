@@ -339,7 +339,7 @@ export function Homepage() {
         </div>
       </section>
 
-      <footer className="bg-neutral-text text-white py-12">
+      <footer className="bg-neutral-bg border-t border-neutral-border py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
@@ -347,39 +347,39 @@ export function Homepage() {
                 <div className="bg-primary rounded-xl p-2">
                   <GraduationCap className="w-6 h-6 text-white" />
                 </div>
-                <span className="font-display text-xl font-bold">LearnSelfAI</span>
+                <span className="font-display text-xl font-bold text-neutral-text">LearnSelfAI</span>
               </div>
-              <p className="font-body text-white/70 text-sm">
+              <p className="font-body text-neutral-text-muted text-sm">
                 Personalized AI-powered learning for everyone.
               </p>
             </div>
 
             <div>
-              <h4 className="font-display font-bold mb-4">Product</h4>
-              <ul className="space-y-2 font-body text-sm text-white/70">
-                <li><button onClick={() => scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-white transition-colors">Features</button></li>
-                <li><button onClick={() => navigate('/pricing')} className="hover:text-white transition-colors">Pricing</button></li>
-                <li><button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-white transition-colors">How It Works</button></li>
+              <h4 className="font-display font-bold mb-4 text-neutral-text">Product</h4>
+              <ul className="space-y-2 font-body text-sm text-neutral-text-muted">
+                <li><button onClick={() => scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-neutral-text transition-colors">Features</button></li>
+                <li><button onClick={() => navigate('/pricing')} className="hover:text-neutral-text transition-colors">Pricing</button></li>
+                <li><button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-neutral-text transition-colors">How It Works</button></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-display font-bold mb-4">Support</h4>
-              <ul className="space-y-2 font-body text-sm text-white/70">
-                <li><button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-white transition-colors">FAQ</button></li>
+              <h4 className="font-display font-bold mb-4 text-neutral-text">Support</h4>
+              <ul className="space-y-2 font-body text-sm text-neutral-text-muted">
+                <li><button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-neutral-text transition-colors">FAQ</button></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-display font-bold mb-4">Legal</h4>
-              <ul className="space-y-2 font-body text-sm text-white/70">
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+              <h4 className="font-display font-bold mb-4 text-neutral-text">Legal</h4>
+              <ul className="space-y-2 font-body text-sm text-neutral-text-muted">
+                <li><a href="#" className="hover:text-neutral-text transition-colors">Privacy Policy</a></li>
+                <li><a href="#" className="hover:text-neutral-text transition-colors">Terms of Service</a></li>
               </ul>
             </div>
           </div>
 
-          <div className="border-t border-white/20 pt-8 text-center font-body text-sm text-white/70">
+          <div className="border-t border-neutral-border pt-8 text-center font-body text-sm text-neutral-text-muted">
             <p>&copy; {new Date().getFullYear()} LearnSelfAI. All rights reserved.</p>
           </div>
         </div>
