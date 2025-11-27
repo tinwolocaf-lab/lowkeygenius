@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Home, BookOpen, StickyNote, Settings, LogOut, GraduationCap, Plus, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { ThemeSelector } from './ThemeSelector';
 
 export function Layout() {
   const navigate = useNavigate();
@@ -68,6 +69,7 @@ export function Layout() {
                 <p className="font-display text-lg font-bold text-neutral-text">{profile?.plan_type || 'FREE'}</p>
               </div>
             )}
+            <ThemeSelector collapsed={sidebarCollapsed} />
             <button
               onClick={handleSignOut}
               className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-5 py-4 rounded-2xl font-body font-bold text-neutral-text hover:bg-accent-red/10 hover:text-accent-red transition-all hover:scale-[1.02]`}

@@ -1,34 +1,35 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#FF6DAA',
-          soft: '#FF9FC7',
-          light: '#FFD1E8',
-          dark: '#E94E92',
-          darker: '#D03578',
+          DEFAULT: 'var(--color-primary)',
+          soft: 'var(--color-primary-soft)',
+          light: 'var(--color-primary-light)',
+          dark: 'var(--color-primary-dark)',
+          darker: 'var(--color-primary-darker)',
         },
         secondary: {
-          DEFAULT: '#1CB0F6',
-          light: '#7DD8FF',
-          dark: '#0098DB',
+          DEFAULT: 'var(--color-secondary)',
+          light: 'var(--color-secondary-light)',
+          dark: 'var(--color-secondary-dark)',
         },
         accent: {
-          yellow: '#FFC800',
-          orange: '#FF9600',
-          green: '#58CC02',
-          red: '#FF4B4B',
+          yellow: 'var(--color-accent-yellow)',
+          orange: 'var(--color-accent-orange)',
+          green: 'var(--color-accent-green)',
+          red: 'var(--color-accent-red)',
         },
         neutral: {
-          text: '#3C3C3C',
-          'text-muted': '#777777',
-          bg: '#FFFFFF',
-          surface: '#F7F7F7',
-          'surface-dark': '#E5E5E5',
-          border: '#E5E5E5',
+          text: 'var(--color-neutral-text)',
+          'text-muted': 'var(--color-neutral-text-muted)',
+          bg: 'var(--color-neutral-bg)',
+          surface: 'var(--color-neutral-surface)',
+          'surface-dark': 'var(--color-neutral-surface-dark)',
+          border: 'var(--color-neutral-border)',
         },
       },
       borderRadius: {
@@ -41,11 +42,11 @@ export default {
         pill: '999px',
       },
       boxShadow: {
-        soft: '0 4px 12px rgba(0, 0, 0, 0.08)',
-        tile: '0 6px 16px rgba(0, 0, 0, 0.1)',
-        'tile-hover': '0 8px 20px rgba(0, 0, 0, 0.12)',
-        button: '0 4px 0 rgba(0, 0, 0, 0.12)',
-        'button-hover': '0 6px 0 rgba(0, 0, 0, 0.12)',
+        soft: 'var(--shadow-soft)',
+        tile: 'var(--shadow-tile)',
+        'tile-hover': 'var(--shadow-tile-hover)',
+        button: 'var(--shadow-button)',
+        'button-hover': 'var(--shadow-button-hover)',
       },
       fontFamily: {
         display: ['Fredoka', 'Quicksand', 'Nunito', 'system-ui', 'sans-serif'],

@@ -9,9 +9,9 @@ export function NotFound() {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-light via-white to-secondary-light/30 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-neutral-surface flex items-center justify-center p-4">
       <Card className="max-w-2xl w-full text-center p-12">
-        <div className="inline-flex items-center justify-center w-24 h-24 bg-primary/10 rounded-full mb-6">
+        <div className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-6" style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary) 10%, transparent)' }}>
           <Search className="w-12 h-12 text-primary" />
         </div>
 

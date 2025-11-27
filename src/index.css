@@ -1,3 +1,5 @@
+@import './styles/themes.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -67,7 +69,8 @@
   }
 
   .markdown-content code {
-    @apply bg-primary-light/30 px-3 py-1 rounded-xl text-sm font-mono text-primary-dark font-semibold;
+    @apply px-3 py-1 rounded-xl text-sm font-mono text-primary-dark font-semibold;
+    background-color: color-mix(in srgb, var(--color-primary-light) 30%, transparent);
   }
 
   .markdown-content pre {
@@ -79,7 +82,8 @@
   }
 
   .markdown-content blockquote {
-    @apply border-l-4 border-primary bg-primary-light/20 pl-6 py-4 mb-6 italic rounded-r-2xl;
+    @apply border-l-4 border-primary pl-6 py-4 mb-6 italic rounded-r-2xl;
+    background-color: color-mix(in srgb, var(--color-primary-light) 20%, transparent);
   }
 
   .markdown-content a {
@@ -91,7 +95,8 @@
   }
 
   .markdown-content th {
-    @apply bg-primary-light/30 font-display font-bold text-left p-4 border-2 border-neutral-border;
+    @apply font-display font-bold text-left p-4 border-2 border-neutral-border;
+    background-color: color-mix(in srgb, var(--color-primary-light) 30%, transparent);
   }
 
   .markdown-content td {

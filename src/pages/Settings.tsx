@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Card } from '../components/Card';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { ThemeSelector } from '../components/ThemeSelector';
 import { useSubscription } from '../hooks/useSubscription';
 import { openCustomerPortal, initiateCheckout } from '../lib/polar';
-import { Crown, Sparkles, Gift, Zap, Calendar, CreditCard } from 'lucide-react';
+import { Crown, Sparkles, Gift, Zap, Calendar, CreditCard, Palette } from 'lucide-react';
 
 export function Settings() {
   const { profile } = useAuth();
+  const { theme } = useTheme();
   const subscription = useSubscription();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -91,6 +94,27 @@ export function Settings() {
       <h1 className="font-display text-display-lg text-neutral-text mb-6">Settings</h1>
 
       <div className="space-y-6">
+        <Card>
+          <div className="flex items-center gap-3 mb-4">
+            <Palette className="w-6 h-6 text-primary" />
+            <h2 className="font-display text-display-sm text-neutral-text">Appearance</h2>
+          </div>
+          <p className="text-sm font-body text-neutral-text-muted mb-4">
+            Customize the look and feel of your workspace
+          </p>
+          <div className="flex items-center justify-between p-4 bg-neutral-surface rounded-2xl">
+            <div>
+              <p className="font-body font-bold text-neutral-text mb-1">Theme</p>
+              <p className="text-sm text-neutral-text-muted">
+                Current: {theme.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+              </p>
+            </div>
+            <div className="w-64">
+              <ThemeSelector />
+            </div>
+          </div>
+        </Card>
+
         <Card>
           <h2 className="font-display text-display-sm text-neutral-text mb-4">Profile</h2>
           <div className="space-y-4">

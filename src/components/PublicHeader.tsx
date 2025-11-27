@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GraduationCap, Menu, X } from 'lucide-react';
 import { Button } from './Button';
+import { ThemeSelector } from './ThemeSelector';
 
 export function PublicHeader() {
   const navigate = useNavigate();
@@ -46,6 +47,9 @@ export function PublicHeader() {
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
+            <div className="w-48">
+              <ThemeSelector />
+            </div>
             <Button
               variant="secondary"
               onClick={() => navigate('/login')}
@@ -82,6 +86,9 @@ export function PublicHeader() {
               </button>
             ))}
             <div className="pt-4 border-t-2 border-neutral-border space-y-2">
+              <div className="mb-4">
+                <ThemeSelector />
+              </div>
               <Button
                 variant="secondary"
                 className="w-full"

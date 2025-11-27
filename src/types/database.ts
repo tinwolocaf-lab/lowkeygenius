@@ -32,6 +32,7 @@ export interface Database {
           audio_addon_enabled: boolean;
           audio_addon_trial_used: boolean;
           billing_cycle: string | null;
+          theme_preference: string;
           created_at: string;
           updated_at: string;
         };
@@ -48,6 +49,7 @@ export interface Database {
           subscription_ends_at?: string | null;
           audio_addon_enabled?: boolean;
           audio_addon_trial_used?: boolean;
+          theme_preference?: string;
           billing_cycle?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -66,6 +68,7 @@ export interface Database {
           audio_addon_enabled?: boolean;
           audio_addon_trial_used?: boolean;
           billing_cycle?: string | null;
+          theme_preference?: string;
           created_at?: string;
           updated_at?: string;
         };
