@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GraduationCap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
@@ -8,11 +8,19 @@ import { Card } from '../components/Card';
 
 export function Login() {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { signIn, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const redirect = searchParams.get('redirect') || '/dashboard';
+      navigate(redirect);
+    }
+  }, [user, navigate, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +33,8 @@ export function Login() {
       setError(error.message);
       setLoading(false);
     } else {
-      navigate('/dashboard');
+      const redirect = searchParams.get('redirect') || '/dashboard';
+      navigate(redirect);
     }
   };
 

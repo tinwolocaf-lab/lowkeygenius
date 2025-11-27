@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Check, Sparkles, Zap, Crown, Gift } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { PublicHeader } from '../components/PublicHeader';
 import { initiateCheckout } from '../lib/polar';
 
 interface PricingTier {
@@ -104,7 +105,7 @@ export default function Pricing() {
 
   const handleSelectPlan = async (tier: PricingTier) => {
     if (!user) {
-      navigate('/login?redirect=/pricing');
+      navigate('/signup');
       return;
     }
 
@@ -139,8 +140,12 @@ export default function Pricing() {
 
   const isCurrentPlan = (tier: PricingTier) => profile?.plan_type === tier.planType;
 
+  const isPublicView = !user;
+
   return (
-    <div className="min-h-screen bg-primary-light/20 py-16 px-4">
+    <div className="min-h-screen bg-primary-light/20">
+      {isPublicView && <PublicHeader />}
+      <div className="py-16 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
@@ -327,6 +332,7 @@ export default function Pricing() {
             </Card>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

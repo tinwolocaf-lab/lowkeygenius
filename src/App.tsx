@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
+import { Homepage } from './pages/Homepage';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { Dashboard } from './pages/Dashboard';
@@ -16,6 +17,7 @@ import Pricing from './pages/Pricing';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import CheckoutCancel from './pages/CheckoutCancel';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { PublicRoute } from './components/PublicRoute';
 
 function App() {
   return (
@@ -23,11 +25,17 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
         <Routes>
+          <Route path="/" element={
+            <PublicRoute>
+              <Homepage />
+            </PublicRoute>
+          } />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/pricing" element={<Pricing />} />
 
           <Route
-            path="/"
+            path="/app"
             element={
               <ProtectedRoute>
                 <Layout />
@@ -39,7 +47,14 @@ function App() {
             <Route path="courses" element={<Courses />} />
             <Route path="notes" element={<Notes />} />
             <Route path="settings" element={<Settings />} />
-            <Route path="pricing" element={<Pricing />} />
+          </Route>
+
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Dashboard />} />
           </Route>
 
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
