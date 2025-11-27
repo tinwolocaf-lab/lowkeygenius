@@ -171,8 +171,8 @@ export function CourseOutline() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-light/20 via-secondary-light/10 to-accent-yellow/10">
-      <header className="bg-white shadow-soft p-4 md:p-6">
+    <div className="min-h-screen bg-neutral-surface">
+      <header className="bg-neutral-bg border-b border-neutral-border shadow-soft p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-4 mb-4">
             <button

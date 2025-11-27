@@ -171,7 +171,7 @@ export function CourseView() {
     <div className="min-h-screen bg-neutral-surface flex">
       {/* Sidebar */}
       <aside
-        className={`fixed md:sticky top-0 left-0 h-screen bg-white shadow-tile transition-transform z-20 ${
+        className={`fixed md:sticky top-0 left-0 h-screen bg-neutral-bg border-r border-neutral-border shadow-tile transition-transform z-20 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         } w-80 overflow-y-auto`}
       >
@@ -248,7 +248,7 @@ export function CourseView() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col">
         {/* Mobile Menu Button */}
-        <div className="md:hidden bg-white p-4 flex items-center justify-between border-b-2 border-neutral-border">
+        <div className="md:hidden bg-neutral-bg p-4 flex items-center justify-between border-b-2 border-neutral-border">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 hover:bg-neutral-surface rounded-lg"

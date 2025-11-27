@@ -155,7 +155,7 @@ export default function Pricing() {
             Start creating amazing courses with AI-powered tools
           </p>
 
-          <div className="inline-flex items-center bg-white rounded-full p-1 shadow-md">
+          <div className="inline-flex items-center bg-neutral-bg border border-neutral-border rounded-full p-1 shadow-md">
             <button
               onClick={() => setBillingCycle('monthly')}
               className={`px-6 py-2 rounded-full font-medium transition-all ${

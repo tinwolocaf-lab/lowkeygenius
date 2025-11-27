@@ -296,8 +296,8 @@ export function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-primary-light/20 flex flex-col">
-      <header className="bg-white shadow-soft p-4 flex items-center gap-4">
+    <div className="min-h-screen bg-neutral-surface flex flex-col">
+      <header className="bg-neutral-bg border-b border-neutral-border shadow-soft p-4 flex items-center gap-4">
         <button
           onClick={() => navigate('/dashboard')}
           className="p-3 hover:bg-neutral-surface rounded-2xl transition-all active:scale-95"
@@ -392,7 +392,7 @@ export function Onboarding() {
       </div>
 
       {!showQuickReplies && !showAttachments && step !== 'welcome' && (
-        <div className="bg-white border-t-2 border-neutral-border p-4 shadow-soft">
+        <div className="bg-neutral-bg border-t-2 border-neutral-border p-4 shadow-soft">
           <div className="max-w-4xl mx-auto flex gap-3">
             <button className="p-4 hover:bg-neutral-surface rounded-2xl transition-all active:scale-95">
               <Paperclip className="w-5 h-5 text-neutral-text-muted" />
@@ -403,7 +403,7 @@ export function Onboarding() {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               placeholder="Type your answer..."
-              className="flex-1 px-5 py-4 rounded-2xl border-2 border-neutral-border bg-neutral-surface font-body text-neutral-text placeholder:text-neutral-text-muted focus:outline-none focus:border-primary focus:bg-white focus:shadow-soft transition-all"
+              className="flex-1 px-5 py-4 rounded-2xl border-2 border-neutral-border bg-neutral-surface font-body text-neutral-text placeholder:text-neutral-text-muted focus:outline-none focus:border-primary focus:bg-neutral-bg focus:shadow-soft transition-all"
             />
             <button
               onClick={handleSendMessage}

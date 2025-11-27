@@ -198,7 +198,7 @@ export function Courses() {
                       <MoreVertical className="w-5 h-5 text-neutral-text-muted" />
                     </button>
                     {showMenu === course.id && (
-                      <div className="absolute right-0 top-full mt-1 bg-white shadow-soft rounded-2xl border-2 border-neutral-border z-10 py-2 w-40">
+                      <div className="absolute right-0 top-full mt-1 bg-neutral-bg shadow-soft rounded-2xl border-2 border-neutral-border z-10 py-2 w-40">
                         <button
                           onClick={(e) => openRenameModal(course, e)}
                           className="w-full px-4 py-2 text-left hover:bg-neutral-surface flex items-center gap-2 font-body text-sm"

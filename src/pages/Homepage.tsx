@@ -101,10 +101,10 @@ export function Homepage() {
     <div className="min-h-screen bg-neutral-surface">
       <PublicHeader />
 
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary-light via-white to-secondary-light/30 py-20 sm:py-32">
+      <section className="relative overflow-hidden bg-neutral-surface py-20 sm:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-soft mb-8">
+            <div className="inline-flex items-center gap-2 bg-neutral-bg backdrop-blur-sm px-6 py-3 rounded-full shadow-soft border border-neutral-border mb-8">
               <Sparkles className="w-5 h-5 text-primary" />
               <span className="font-body font-bold text-primary">AI-Powered Personalized Learning</span>
             </div>
@@ -331,7 +331,7 @@ export function Homepage() {
             variant="secondary"
             size="lg"
             onClick={() => navigate('/signup')}
-            className="bg-white text-primary hover:bg-white/90 flex items-center gap-2 mx-auto"
+            className="flex items-center gap-2 mx-auto"
           >
             Create Your Free Course
             <ArrowRight className="w-5 h-5" />
