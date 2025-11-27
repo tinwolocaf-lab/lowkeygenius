@@ -28,7 +28,7 @@ export function Layout() {
   return (
     <div className="min-h-screen bg-neutral-surface">
       <div className="hidden md:flex h-screen">
-        <aside className={`relative bg-white shadow-soft flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
+        <aside className={`relative bg-neutral-bg border-r border-neutral-border shadow-soft flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
           <div className={`p-6 border-b-2 border-neutral-border ${sidebarCollapsed ? 'flex justify-center' : ''}`}>
             <div className={`flex items-center gap-3 ${sidebarCollapsed ? 'flex-col' : ''}`}>
               <div className="bg-primary rounded-2xl p-3 shadow-soft">
@@ -82,7 +82,7 @@ export function Layout() {
 
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="absolute left-full top-6 -translate-x-1/2 bg-white border-2 border-neutral-border rounded-full p-2 shadow-soft hover:bg-primary-light/20 transition-all z-10"
+            className="absolute left-full top-6 -translate-x-1/2 bg-neutral-bg border-2 border-neutral-border rounded-full p-2 shadow-soft hover:bg-neutral-surface transition-all z-10"
             aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {sidebarCollapsed ? (
@@ -99,7 +99,7 @@ export function Layout() {
       </div>
 
       <div className="md:hidden flex flex-col h-screen">
-        <header className="bg-white shadow-soft p-4 flex items-center justify-between">
+        <header className="bg-neutral-bg border-b border-neutral-border shadow-soft p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="bg-primary rounded-xl p-2.5 shadow-soft">
               <GraduationCap className="w-6 h-6 text-white" />
@@ -118,7 +118,7 @@ export function Layout() {
           <Outlet />
         </main>
 
-        <nav className="bg-white shadow-soft border-t-2 border-neutral-border">
+        <nav className="bg-neutral-bg shadow-soft border-t-2 border-neutral-border">
           <div className="flex items-center justify-around p-2">
             {navItems.map((item) => {
               const Icon = item.icon;

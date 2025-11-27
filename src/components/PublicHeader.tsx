@@ -24,7 +24,7 @@ export function PublicHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-soft">
+    <header className="sticky top-0 z-50 bg-neutral-bg/95 backdrop-blur-sm shadow-soft border-b border-neutral-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
@@ -74,7 +74,7 @@ export function PublicHeader() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-t-2 border-neutral-border shadow-soft">
+        <div className="md:hidden bg-neutral-bg border-t-2 border-neutral-border shadow-soft">
           <div className="px-4 py-6 space-y-4">
             {navLinks.map((link) => (
               <button
