@@ -1,4 +1,4 @@
-import { Polar } from 'npm:@polar-sh/sdk@0.11.0';
+import { Polar } from 'npm:@polar-sh/sdk@0.41.5';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
 const corsHeaders = {
@@ -76,9 +76,9 @@ Deno.serve(async (req: Request) => {
         .eq('id', user.id);
     }
 
-    const checkout = await polar.checkouts.custom.create({
+    const checkout = await polar.checkouts.create({
       paymentProcessor: 'stripe',
-      productId: productId,
+      products: [productId],
       customerId: customerId,
       successUrl: `${appUrl}/checkout/success?session_id={CHECKOUT_ID}`,
       metadata: {
