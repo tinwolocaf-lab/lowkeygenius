@@ -34,27 +34,36 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/pricing" element={<Pricing />} />
 
-          <Route
-            path="/app"
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="courses" element={<Courses />} />
-            <Route path="notes" element={<Notes />} />
-            <Route path="settings" element={<Settings />} />
-          </Route>
-
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Layout />
             </ProtectedRoute>
           }>
             <Route index element={<Dashboard />} />
+          </Route>
+
+          <Route path="/courses" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Courses />} />
+          </Route>
+
+          <Route path="/notes" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Notes />} />
+          </Route>
+
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Settings />} />
           </Route>
 
           <Route path="/checkout/success" element={<CheckoutSuccess />} />

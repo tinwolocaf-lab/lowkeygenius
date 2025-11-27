@@ -35,7 +35,7 @@ export function useSubscription(): SubscriptionData {
         let query = supabase
           .from('courses')
           .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id);
+          .eq('owner_id', user.id);
 
         if (isMonthlyLimit) {
           const startOfMonth = new Date();
