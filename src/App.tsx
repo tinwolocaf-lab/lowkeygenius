@@ -13,6 +13,7 @@ import { Onboarding } from './pages/Onboarding';
 import { CourseOutline } from './pages/CourseOutline';
 import { GenerateLessons } from './pages/GenerateLessons';
 import { CourseView } from './pages/CourseView';
+import { NotFound } from './pages/NotFound';
 import Pricing from './pages/Pricing';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import CheckoutCancel from './pages/CheckoutCancel';
@@ -104,6 +105,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
