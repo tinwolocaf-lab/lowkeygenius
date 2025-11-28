@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { ArrowLeft, Volume2, CheckCircle, XCircle, Loader, Sparkles, Play } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/Button';
@@ -165,7 +166,7 @@ export function GenerateAudio() {
       await loadData();
     } catch (error: any) {
       console.error('Error starting generation:', error);
-      alert(error.message || 'Failed to start audio generation');
+      toast.error(error.message || 'Failed to start audio generation');
       setGenerating(false);
     }
   };

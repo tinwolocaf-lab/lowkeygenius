@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Check, Sparkles, Zap, Crown, Gift } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -117,7 +118,7 @@ export default function Pricing() {
     const productId = billingCycle === 'monthly' ? tier.productIdMonthly : tier.productIdYearly;
 
     if (!productId) {
-      alert('Product not configured. Please contact support.');
+      toast.error('Product not configured. Please contact support.');
       return;
     }
 
@@ -126,7 +127,7 @@ export default function Pricing() {
       await initiateCheckout(productId, billingCycle);
     } catch (error) {
       console.error('Checkout error:', error);
-      alert('Failed to start checkout. Please try again.');
+      toast.error('Failed to start checkout. Please try again.');
     } finally {
       setLoading(null);
     }
@@ -139,7 +140,7 @@ export default function Pricing() {
     }
 
     if (!productId) {
-      alert('Product not configured. Please contact support.');
+      toast.error('Product not configured. Please contact support.');
       return;
     }
 
@@ -148,7 +149,7 @@ export default function Pricing() {
       await initiateCheckout(productId, billingCycle, isAudioAddon);
     } catch (error) {
       console.error('Checkout error:', error);
-      alert('Failed to start checkout. Please try again.');
+      toast.error('Failed to start checkout. Please try again.');
     } finally {
       setLoading(null);
     }

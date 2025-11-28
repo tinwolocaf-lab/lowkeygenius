@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Card } from '../components/Card';
@@ -23,7 +24,7 @@ export function Settings() {
       await openCustomerPortal();
     } catch (error) {
       console.error('Error opening customer portal:', error);
-      alert('Failed to open subscription management. Please try again.');
+      toast.error('Failed to open subscription management. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -32,7 +33,7 @@ export function Settings() {
   const handleAddAudioAddon = async () => {
     const audioAddonId = import.meta.env.VITE_POLAR_PRODUCT_AUDIO_ADDON;
     if (!audioAddonId) {
-      alert('Audio add-on not configured. Please contact support.');
+      toast.error('Audio add-on not configured. Please contact support.');
       return;
     }
 
@@ -41,7 +42,7 @@ export function Settings() {
       await initiateCheckout(audioAddonId, 'monthly', true);
     } catch (error) {
       console.error('Error starting audio add-on checkout:', error);
-      alert('Failed to start checkout. Please try again.');
+      toast.error('Failed to start checkout. Please try again.');
     } finally {
       setLoading(false);
     }

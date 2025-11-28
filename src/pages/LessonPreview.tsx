@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { ArrowLeft, Check, CheckCircle, Circle, Edit2, Sparkles, Eye, Save, X, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -113,7 +114,7 @@ export function LessonPreview() {
       setEditMode(false);
     } catch (error) {
       console.error('Error saving lesson:', error);
-      alert('Failed to save lesson. Please try again.');
+      toast.error('Failed to save lesson. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -151,7 +152,7 @@ export function LessonPreview() {
       await loadData();
     } catch (error: any) {
       console.error('Error regenerating lesson:', error);
-      alert(error.message || 'Failed to regenerate lesson. Please try again.');
+      toast.error(error.message || 'Failed to regenerate lesson. Please try again.');
     } finally {
       setRegenerating(false);
     }
@@ -190,7 +191,7 @@ export function LessonPreview() {
       setLessons((prev) => prev.map((l) => ({ ...l, lesson_status: 'approved' })));
     } catch (error) {
       console.error('Error approving all lessons:', error);
-      alert('Failed to approve all lessons. Please try again.');
+      toast.error('Failed to approve all lessons. Please try again.');
     }
   };
 
@@ -210,11 +211,11 @@ export function LessonPreview() {
 
       if (error) throw error;
 
-      alert('Course published successfully!');
+      toast.success('Course published successfully!');
       navigate(`/courses/${courseId}`);
     } catch (error) {
       console.error('Error publishing course:', error);
-      alert('Failed to publish course. Please try again.');
+      toast.error('Failed to publish course. Please try again.');
     } finally {
       setPublishing(false);
     }

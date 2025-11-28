@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { ArrowLeft, ChevronDown, ChevronRight, Plus, Trash2, Edit2, Sparkles, Play, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { updateCourseOutline } from '../lib/api';
@@ -105,7 +106,7 @@ export function CourseOutline() {
       setCourse(prev => prev ? { ...prev, outline_json: newOutline } : null);
     } catch (error) {
       console.error('Error saving outline:', error);
-      alert('Failed to save changes. Please try again.');
+      toast.error('Failed to save changes. Please try again.');
     } finally {
       setSaving(false);
     }

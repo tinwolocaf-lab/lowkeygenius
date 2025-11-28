@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -42,6 +43,33 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <ThemeProvider>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: 'var(--color-neutral-bg)',
+                color: 'var(--color-neutral-text)',
+                border: '1px solid var(--color-neutral-border)',
+                borderRadius: '0.75rem',
+                padding: '1rem',
+                fontSize: '0.875rem',
+                fontFamily: 'var(--font-body)',
+              },
+              success: {
+                iconTheme: {
+                  primary: 'var(--color-accent-green)',
+                  secondary: 'white',
+                },
+              },
+              error: {
+                iconTheme: {
+                  primary: 'var(--color-accent-red)',
+                  secondary: 'white',
+                },
+              },
+            }}
+          />
           <BrowserRouter>
         <Routes>
           <Route path="/" element={
