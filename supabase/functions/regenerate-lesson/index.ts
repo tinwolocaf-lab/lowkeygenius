@@ -8,21 +8,18 @@ const corsHeaders = {
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
-interface LessonRequest {
-  courseId: string;
+interface RegenerateRequest {
   lessonId: string;
-  moduleTitle: string;
-  lessonTitle: string;
-  objectives: string[];
+  instructions?: string;
+  sectionToRegenerate?: string;
   courseContext: {
     topic: string;
     level: string;
-    background?: string;
   };
-  materials?: Array<{
-    title: string;
-    content?: string;
-  }>;
+  moduleTitle: string;
+  lessonTitle: string;
+  objectives: string[];
+  currentContent?: string;
 }
 
 Deno.serve(async (req: Request) => {
@@ -54,14 +51,42 @@ Deno.serve(async (req: Request) => {
       throw new Error('Invalid user token');
     }
 
-    const requestData: LessonRequest = await req.json();
-    const { lessonId, moduleTitle, lessonTitle, objectives, courseContext, materials } = requestData;
+    const requestData: RegenerateRequest = await req.json();
+    const { 
+      lessonId, 
+      instructions, 
+      sectionToRegenerate,
+      courseContext, 
+      moduleTitle, 
+      lessonTitle, 
+      objectives,
+      currentContent 
+    } = requestData;
 
-    const materialsContext = materials && materials.length > 0
-      ? `\n\nRelevant course materials:\n${materials.map(m => `- ${m.title}${m.content ? '\n  ' + m.content.substring(0, 500) + '...' : ''}`).join('\n\n')}`
+    const { data: lesson, error: lessonError } = await supabase
+      .from('lessons')
+      .select('*, course:courses!inner(owner_id)')
+      .eq('id', lessonId)
+      .single();
+
+    if (lessonError || !lesson) {
+      throw new Error('Lesson not found');
+    }
+
+    if (lesson.course.owner_id !== user.id) {
+      throw new Error('Unauthorized');
+    }
+
+    const existingContent = currentContent || lesson.markdown_content || '';
+    const regenerationContext = sectionToRegenerate 
+      ? `Focus on regenerating this specific section:\n${sectionToRegenerate}\n\nKeep the rest of the lesson intact.`
+      : 'Regenerate the entire lesson with improvements.';
+
+    const userInstructions = instructions 
+      ? `\n\nUser's specific instructions for regeneration:\n${instructions}`
       : '';
 
-    const prompt = `You are an expert instructor creating a comprehensive lesson. Create detailed lesson content for:
+    const prompt = `You are an expert instructor improving lesson content. ${regenerationContext}
 
 Course: ${courseContext.topic}
 Level: ${courseContext.level}
@@ -69,28 +94,17 @@ Module: ${moduleTitle}
 Lesson: ${lessonTitle}
 
 Learning Objectives:
-${objectives.map(obj => `- ${obj}`).join('\n')}${materialsContext}
+${objectives.map(obj => `- ${obj}`).join('\n')}${userInstructions}
 
-Create a complete lesson in GitHub-flavored Markdown format with:
-1. An engaging introduction
-2. Clear explanations with examples
-3. Code snippets or diagrams where appropriate (use markdown code blocks)
-4. Practical exercises or questions
-5. Key takeaways summary
-6. Further reading suggestions
+Current lesson content:
+${existingContent}
 
-Use proper markdown formatting:
-- # for main title
-- ## for major sections
-- ### for subsections
-- **bold** for emphasis
-- \`code\` for inline code
-- \`\`\`language for code blocks
-- > for callouts/notes
-- - for bullet lists
-- 1. for numbered lists
+${sectionToRegenerate 
+  ? 'Regenerate only the specified section while maintaining consistency with the rest of the lesson. Return the improved section.'
+  : 'Regenerate the entire lesson with the following improvements:\n- Make explanations clearer and more engaging\n- Add or improve examples\n- Ensure proper flow and structure\n- Maintain the appropriate difficulty level\n- Use proper markdown formatting'
+}
 
-Make it engaging, practical, and appropriate for ${courseContext.level} level learners.`;
+Return the ${sectionToRegenerate ? 'improved section' : 'complete improved lesson'} in GitHub-flavored Markdown format.`;
 
     const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
@@ -135,14 +149,27 @@ Make it engaging, practical, and appropriate for ${courseContext.level} level le
       throw new Error('Invalid response from AI service');
     }
 
-    const markdown = geminiData.candidates[0].content.parts[0].text;
+    const regeneratedContent = geminiData.candidates[0].content.parts[0].text;
+
+    const editEntry = {
+      timestamp: new Date().toISOString(),
+      type: sectionToRegenerate ? 'section_regeneration' : 'full_regeneration',
+      instructions: instructions || null,
+      previousContent: existingContent.substring(0, 1000),
+    };
+
+    const currentHistory = lesson.edit_history || [];
+    const updatedHistory = [...currentHistory, editEntry];
 
     const { error: updateError } = await supabase
       .from('lessons')
       .update({
-        markdown_content: markdown,
-        lesson_status: 'generated',
-        original_content: markdown,
+        markdown_content: sectionToRegenerate ? existingContent : regeneratedContent,
+        regeneration_count: (lesson.regeneration_count || 0) + 1,
+        custom_instructions: instructions || lesson.custom_instructions,
+        edit_history: updatedHistory,
+        lesson_status: 'edited',
+        original_content: lesson.original_content || existingContent,
         updated_at: new Date().toISOString(),
       })
       .eq('id', lessonId);
@@ -152,7 +179,11 @@ Make it engaging, practical, and appropriate for ${courseContext.level} level le
     }
 
     return new Response(
-      JSON.stringify({ markdown, lessonId }),
+      JSON.stringify({ 
+        content: regeneratedContent,
+        lessonId,
+        regenerationCount: (lesson.regeneration_count || 0) + 1
+      }),
       {
         headers: {
           ...corsHeaders,
@@ -161,9 +192,9 @@ Make it engaging, practical, and appropriate for ${courseContext.level} level le
       }
     );
   } catch (error: any) {
-    console.error('Error generating lesson:', error);
+    console.error('Error regenerating lesson:', error);
 
-    const errorMessage = error?.message || 'Failed to generate lesson content';
+    const errorMessage = error?.message || 'Failed to regenerate lesson content';
     const statusCode = errorMessage.includes('Rate limit') ? 429 : 500;
 
     return new Response(

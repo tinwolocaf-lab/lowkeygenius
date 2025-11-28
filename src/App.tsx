@@ -18,6 +18,7 @@ import { NotFound } from './pages/NotFound';
 import Pricing from './pages/Pricing';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import CheckoutCancel from './pages/CheckoutCancel';
+import { LessonPreview } from './pages/LessonPreview';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PublicRoute } from './components/PublicRoute';
 
@@ -112,6 +113,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <GenerateLessons />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/courses/:courseId/preview"
+            element={
+              <ProtectedRoute>
+                <LessonPreview />
               </ProtectedRoute>
             }
           />

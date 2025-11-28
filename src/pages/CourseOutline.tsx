@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, ChevronRight, Plus, Trash2, Edit2, Sparkles, Play, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { updateCourseOutline } from '../lib/api';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
+import { EditModuleModal } from '../components/EditModuleModal';
+import { EditLessonModal } from '../components/EditLessonModal';
 
 interface Lesson {
   title: string;
@@ -40,6 +43,9 @@ export function CourseOutline() {
   const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set([0]));
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editingModule, setEditingModule] = useState<{ index: number; module: Module } | null>(null);
+  const [editingLesson, setEditingLesson] = useState<{ moduleIndex: number; lessonIndex: number; lesson: Lesson } | null>(null);
 
   useEffect(() => {
     loadCourse();
@@ -84,6 +90,86 @@ export function CourseOutline() {
       newExpanded.add(index);
     }
     setExpandedModules(newExpanded);
+  };
+
+  const saveOutline = async (newOutline: CourseOutline) => {
+    if (!courseId) return;
+
+    setSaving(true);
+    try {
+      await updateCourseOutline({
+        courseId,
+        outline: newOutline,
+      });
+
+      setCourse(prev => prev ? { ...prev, outline_json: newOutline } : null);
+    } catch (error) {
+      console.error('Error saving outline:', error);
+      alert('Failed to save changes. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateModule = (moduleIndex: number, updatedModule: Module) => {
+    if (!course) return;
+
+    const newOutline = { ...course.outline_json };
+    newOutline.modules[moduleIndex] = updatedModule;
+    saveOutline(newOutline);
+  };
+
+  const handleUpdateLesson = (moduleIndex: number, lessonIndex: number, updatedLesson: Lesson) => {
+    if (!course) return;
+
+    const newOutline = { ...course.outline_json };
+    newOutline.modules[moduleIndex].lessons[lessonIndex] = updatedLesson;
+    saveOutline(newOutline);
+  };
+
+  const handleDeleteModule = async (moduleIndex: number) => {
+    if (!course) return;
+    if (!confirm('Are you sure you want to delete this module? This action cannot be undone.')) return;
+
+    const newOutline = { ...course.outline_json };
+    newOutline.modules.splice(moduleIndex, 1);
+    await saveOutline(newOutline);
+  };
+
+  const handleDeleteLesson = async (moduleIndex: number, lessonIndex: number) => {
+    if (!course) return;
+    if (!confirm('Are you sure you want to delete this lesson?')) return;
+
+    const newOutline = { ...course.outline_json };
+    newOutline.modules[moduleIndex].lessons.splice(lessonIndex, 1);
+    await saveOutline(newOutline);
+  };
+
+  const handleAddModule = () => {
+    if (!course) return;
+
+    const newModule: Module = {
+      title: 'New Module',
+      description: 'Module description',
+      lessons: [],
+    };
+
+    const newOutline = { ...course.outline_json };
+    newOutline.modules.push(newModule);
+    saveOutline(newOutline);
+  };
+
+  const handleAddLesson = (moduleIndex: number) => {
+    if (!course) return;
+
+    const newLesson: Lesson = {
+      title: 'New Lesson',
+      objectives: [],
+    };
+
+    const newOutline = { ...course.outline_json };
+    newOutline.modules[moduleIndex].lessons.push(newLesson);
+    saveOutline(newOutline);
   };
 
   const handleGenerateLessons = async () => {
@@ -211,42 +297,53 @@ export function CourseOutline() {
       </header>
 
       <div className="max-w-7xl mx-auto p-4 md:p-8">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
           <h2 className="font-display text-display-sm text-neutral-text">Course Outline</h2>
-          <Button
-            onClick={handleGenerateLessons}
-            disabled={generating}
-            className="flex items-center gap-2"
-          >
-            {generating ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                Generating...
-              </>
-            ) : (
-              <>
-                <Play className="w-5 h-5" />
-                Generate Lessons
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="secondary"
+              onClick={handleAddModule}
+              disabled={saving}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Module
+            </Button>
+            <Button
+              onClick={handleGenerateLessons}
+              disabled={generating || saving}
+              className="flex items-center gap-2"
+            >
+              {generating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Play className="w-5 h-5" />
+                  Generate Lessons
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-4">
           {outline.modules.map((module, moduleIndex) => (
             <Card key={moduleIndex} className="overflow-hidden">
-              <button
-                onClick={() => toggleModule(moduleIndex)}
-                className="w-full flex items-start gap-4 text-left"
-              >
-                <div className="flex-shrink-0 mt-1">
+              <div className="flex items-start gap-4">
+                <button
+                  onClick={() => toggleModule(moduleIndex)}
+                  className="flex-shrink-0 mt-1 p-2 hover:bg-neutral-surface rounded-lg transition-colors"
+                >
                   {expandedModules.has(moduleIndex) ? (
                     <ChevronDown className="w-5 h-5 text-primary" />
                   ) : (
                     <ChevronRight className="w-5 h-5 text-neutral-text-muted" />
                   )}
-                </div>
-                <div className="flex-1">
+                </button>
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="px-4 py-2 bg-primary rounded-pill text-white font-body font-bold text-sm shadow-soft">
                       Module {moduleIndex + 1}
@@ -257,21 +354,37 @@ export function CourseOutline() {
                   </h3>
                   <p className="font-body text-neutral-text-muted">{module.description}</p>
                 </div>
-              </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => setEditingModule({ index: moduleIndex, module })}
+                    className="p-2 hover:bg-primary-light/20 text-primary rounded-lg transition-colors"
+                    title="Edit module"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteModule(moduleIndex)}
+                    className="p-2 hover:bg-accent-red/10 text-accent-red rounded-lg transition-colors"
+                    title="Delete module"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
 
               {expandedModules.has(moduleIndex) && (
                 <div className="mt-4 pt-4 border-t-2 border-neutral-border space-y-3">
                   {module.lessons.map((lesson, lessonIndex) => (
                     <div
                       key={lessonIndex}
-                      className="flex items-start gap-3 p-4 bg-neutral-surface rounded-lg hover:bg-primary-light/10 transition-colors"
+                      className="flex items-start gap-3 p-4 bg-neutral-surface rounded-lg transition-colors"
                     >
                       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-light flex items-center justify-center">
                         <span className="font-body font-bold text-sm text-primary">
                           {lessonIndex + 1}
                         </span>
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <h4 className="font-body font-semibold text-neutral-text mb-2">
                           {lesson.title}
                         </h4>
@@ -286,8 +399,31 @@ export function CourseOutline() {
                           </ul>
                         )}
                       </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => setEditingLesson({ moduleIndex, lessonIndex, lesson })}
+                          className="p-2 hover:bg-primary-light/20 text-primary rounded-lg transition-colors"
+                          title="Edit lesson"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteLesson(moduleIndex, lessonIndex)}
+                          className="p-2 hover:bg-accent-red/10 text-accent-red rounded-lg transition-colors"
+                          title="Delete lesson"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
                   ))}
+                  <button
+                    onClick={() => handleAddLesson(moduleIndex)}
+                    className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-neutral-border hover:border-primary hover:bg-primary-light/10 rounded-lg transition-colors text-neutral-text-muted hover:text-primary font-body font-semibold"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Lesson
+                  </button>
                 </div>
               )}
             </Card>
@@ -323,6 +459,30 @@ export function CourseOutline() {
           </div>
         </Card>
       </div>
+
+      {editingModule && (
+        <EditModuleModal
+          isOpen={true}
+          onClose={() => setEditingModule(null)}
+          module={editingModule.module}
+          onSave={(updatedModule) => {
+            handleUpdateModule(editingModule.index, updatedModule);
+            setEditingModule(null);
+          }}
+        />
+      )}
+
+      {editingLesson && (
+        <EditLessonModal
+          isOpen={true}
+          onClose={() => setEditingLesson(null)}
+          lesson={editingLesson.lesson}
+          onSave={(updatedLesson) => {
+            handleUpdateLesson(editingLesson.moduleIndex, editingLesson.lessonIndex, updatedLesson);
+            setEditingLesson(null);
+          }}
+        />
+      )}
     </div>
   );
 }

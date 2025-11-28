@@ -33,6 +33,7 @@ export function GenerateLessons() {
   const [generating, setGenerating] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     loadCourseAndLessons();
@@ -131,7 +132,7 @@ export function GenerateLessons() {
 
     const { error: updateError } = await supabase
       .from('courses')
-      .update({ status: 'published' })
+      .update({ status: 'ready' })
       .eq('id', courseId);
 
     if (updateError) {
@@ -140,6 +141,10 @@ export function GenerateLessons() {
 
     setGenerating(false);
     setCompleted(true);
+  };
+
+  const handleContinueToPreview = () => {
+    navigate(`/courses/${courseId}/preview`);
   };
 
   const getModuleTitle = (moduleIndex: number) => {
@@ -211,9 +216,17 @@ export function GenerateLessons() {
                 <p className="font-display text-xl font-bold text-neutral-text">
                   All lessons generated successfully!
                 </p>
-                <Button onClick={() => navigate(`/courses/${courseId}`)} size="lg">
-                  View Course
-                </Button>
+                <p className="font-body text-neutral-text-muted mb-4">
+                  Continue to preview and edit your lessons before publishing.
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <Button onClick={handleContinueToPreview} size="lg">
+                    Preview & Edit Lessons
+                  </Button>
+                  <Button variant="secondary" onClick={() => navigate(`/courses/${courseId}`)} size="lg">
+                    View Course
+                  </Button>
+                </div>
               </div>
             )}
           </div>
