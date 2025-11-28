@@ -17,12 +17,16 @@ interface Course {
   status: string;
   estimated_duration_hours: number | null;
   created_at: string;
+  owner_id?: string;
+  total_lessons?: number;
+  completed_lessons?: number;
 }
 
 export function Courses() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { hasAudioAccess } = useSubscription();
+  const { isAudioEnabled } = useSubscription();
+  const [activeTab, setActiveTab] = useState<'created' | 'learning'>('created');
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState<string | null>(null);
@@ -32,24 +36,76 @@ export function Courses() {
 
   useEffect(() => {
     loadCourses();
-  }, [user]);
+  }, [user, activeTab]);
 
   const loadCourses = async () => {
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from('courses')
-      .select('*')
-      .eq('owner_id', user.id)
-      .order('created_at', { ascending: false });
+    try {
+      if (activeTab === 'created') {
+        const { data, error } = await supabase
+          .from('courses')
+          .select('*')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: false });
 
-    if (error) {
+        if (error) throw error;
+        setCourses(data || []);
+      } else {
+        const { data: progressData, error: progressError } = await supabase
+          .from('user_progress')
+          .select('course_id')
+          .eq('user_id', user.id);
+
+        if (progressError) throw progressError;
+
+        const courseIds = [...new Set(progressData?.map(p => p.course_id) || [])];
+
+        if (courseIds.length === 0) {
+          setCourses([]);
+          setLoading(false);
+          return;
+        }
+
+        const { data: coursesData, error: coursesError } = await supabase
+          .from('courses')
+          .select('*')
+          .in('id', courseIds)
+          .eq('status', 'published')
+          .order('created_at', { ascending: false });
+
+        if (coursesError) throw coursesError;
+
+        const coursesWithProgress = await Promise.all(
+          (coursesData || []).map(async (course) => {
+            const { data: lessons } = await supabase
+              .from('lessons')
+              .select('id')
+              .eq('course_id', course.id);
+
+            const { data: completedProgress } = await supabase
+              .from('user_progress')
+              .select('lesson_id')
+              .eq('course_id', course.id)
+              .eq('user_id', user.id)
+              .eq('completed', true);
+
+            return {
+              ...course,
+              total_lessons: lessons?.length || 0,
+              completed_lessons: completedProgress?.length || 0,
+            };
+          })
+        );
+
+        setCourses(coursesWithProgress);
+      }
+    } catch (error) {
       console.error('Error loading courses:', error);
-    } else {
-      setCourses(data || []);
+      setCourses([]);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const getStatusBadge = (status: string) => {
@@ -148,10 +204,24 @@ export function Courses() {
 
       <div className="mb-6">
         <div className="flex gap-4 border-b-2 border-neutral-border">
-          <button className="px-4 py-3 font-body font-bold text-primary border-b-4 border-primary">
+          <button
+            onClick={() => setActiveTab('created')}
+            className={`px-4 py-3 font-body font-bold transition-colors ${
+              activeTab === 'created'
+                ? 'text-primary border-b-4 border-primary'
+                : 'text-neutral-text-muted hover:text-neutral-text'
+            }`}
+          >
             Created by Me
           </button>
-          <button className="px-4 py-3 font-body font-semibold text-neutral-text-muted hover:text-neutral-text">
+          <button
+            onClick={() => setActiveTab('learning')}
+            className={`px-4 py-3 font-body font-bold transition-colors ${
+              activeTab === 'learning'
+                ? 'text-primary border-b-4 border-primary'
+                : 'text-neutral-text-muted hover:text-neutral-text'
+            }`}
+          >
             I'm Learning
           </button>
         </div>
@@ -164,11 +234,15 @@ export function Courses() {
               <BookOpen className="w-8 h-8 text-neutral-text-muted" />
             </div>
             <p className="font-body text-body-md text-neutral-text-muted mb-4">
-              No courses yet. Create your first course to get started!
+              {activeTab === 'created'
+                ? 'No courses yet. Create your first course to get started!'
+                : 'No courses in progress. Start learning by exploring available courses!'}
             </p>
-            <Button onClick={() => navigate('/onboarding')}>
-              Create Your First Course
-            </Button>
+            {activeTab === 'created' && (
+              <Button onClick={() => navigate('/onboarding')}>
+                Create Your First Course
+              </Button>
+            )}
           </div>
         </Card>
       ) : (
@@ -189,6 +263,7 @@ export function Courses() {
                       {course.estimated_duration_hours || '?'}h
                     </span>
                   </div>
+                  {activeTab === 'created' && (
                   <div className="relative">
                     <button
                       onClick={(e) => {
@@ -201,7 +276,7 @@ export function Courses() {
                     </button>
                     {showMenu === course.id && (
                       <div className="absolute right-0 top-full mt-1 bg-neutral-bg shadow-soft rounded-2xl border-2 border-neutral-border z-10 py-2 w-48">
-                        {hasAudioAccess && course.status === 'published' && (
+                        {isAudioEnabled && course.status === 'published' && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -231,6 +306,7 @@ export function Courses() {
                       </div>
                     )}
                   </div>
+                  )}
                 </div>
               </div>
 
@@ -240,6 +316,25 @@ export function Courses() {
               <p className="font-body text-sm text-neutral-text-muted mb-4 line-clamp-2">
                 {course.description}
               </p>
+
+              {activeTab === 'learning' && course.total_lessons && (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="font-body text-neutral-text-muted">Progress</span>
+                    <span className="font-body font-semibold text-neutral-text">
+                      {course.completed_lessons || 0} / {course.total_lessons} lessons
+                    </span>
+                  </div>
+                  <div className="w-full bg-neutral-surface rounded-full h-2">
+                    <div
+                      className="bg-primary h-full rounded-full transition-all duration-300"
+                      style={{
+                        width: `${((course.completed_lessons || 0) / course.total_lessons) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 bg-primary-light text-primary rounded-full font-body font-semibold text-xs">
