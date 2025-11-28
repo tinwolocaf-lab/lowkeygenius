@@ -25,7 +25,7 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const polarAccessToken = Deno.env.get('POLAR_ACCESS_TOKEN')!;
-    const appUrl = Deno.env.get('VITE_APP_URL') || 'http://localhost:5173';
+    const appUrl = (Deno.env.get('VITE_APP_URL') || 'http://localhost:5173').replace(/\/$/, '');
 
     const authHeader = req.headers.get('Authorization')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
