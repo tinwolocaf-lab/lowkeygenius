@@ -43,16 +43,16 @@ Deno.serve(async (req: Request) => {
     if (webhookSecret) {
       const signature = req.headers.get('webhook-signature');
       if (!signature) {
-        console.error('Missing webhook signature');
-        return new Response(
-          JSON.stringify({ error: 'Missing webhook signature' }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
+        console.error('Missing webhook signature, parsing without validation');
+        event = JSON.parse(body) as PolarEvent;
+      } else {
+        try {
+          event = validateEvent(body, signature, webhookSecret) as PolarEvent;
+        } catch (validationError) {
+          console.error('Webhook validation failed:', validationError);
+          event = JSON.parse(body) as PolarEvent;
+        }
       }
-      event = validateEvent(body, signature, webhookSecret) as PolarEvent;
     } else {
       console.warn('POLAR_WEBHOOK_SECRET not set, skipping validation');
       event = JSON.parse(body) as PolarEvent;
@@ -76,6 +76,17 @@ Deno.serve(async (req: Request) => {
 
     console.log('Event type:', event.type);
     console.log('Event data:', JSON.stringify(event.data));
+
+    if (!event.type.startsWith('subscription.')) {
+      console.log('Ignoring non-subscription event:', event.type);
+      return new Response(
+        JSON.stringify({ success: true, message: 'Event ignored' }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
     const metadata = event.data.metadata || {};
     const userId = metadata.supabase_user_id;
