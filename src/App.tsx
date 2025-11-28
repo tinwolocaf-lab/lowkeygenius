@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
@@ -21,6 +21,20 @@ import CheckoutCancel from './pages/CheckoutCancel';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PublicRoute } from './components/PublicRoute';
 
+function PricingWrapper() {
+  const { user } = useAuth();
+
+  if (user) {
+    return (
+      <ProtectedRoute>
+        <Layout />
+      </ProtectedRoute>
+    );
+  }
+
+  return <Pricing />;
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -35,7 +49,6 @@ function App() {
           } />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/pricing" element={<Pricing />} />
 
           <Route path="/dashboard" element={
             <ProtectedRoute>
@@ -67,6 +80,10 @@ function App() {
             </ProtectedRoute>
           }>
             <Route index element={<Settings />} />
+          </Route>
+
+          <Route path="/pricing" element={<PricingWrapper />}>
+            <Route index element={<Pricing />} />
           </Route>
 
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
