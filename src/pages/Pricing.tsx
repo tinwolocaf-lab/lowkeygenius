@@ -310,7 +310,7 @@ export default function Pricing() {
                   </div>
                 ) : (
                   <Button
-                    onClick={() => handleSubscribe(import.meta.env.VITE_POLAR_PRODUCT_AUDIO_MONTHLY!, true)}
+                    onClick={() => handleSubscribe(import.meta.env.VITE_POLAR_PRODUCT_AUDIO_ADDON!, true)}
                     disabled={loading === 'audio'}
                     className="flex items-center gap-2"
                   >
