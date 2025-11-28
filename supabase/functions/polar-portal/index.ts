@@ -1,4 +1,4 @@
-import { Polar } from 'npm:@polar-sh/sdk@0.11.0';
+import { Polar } from 'npm:@polar-sh/sdk@0.41.5';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
 const corsHeaders = {
@@ -55,7 +55,6 @@ Deno.serve(async (req: Request) => {
 
     const polar = new Polar({
       accessToken: polarAccessToken,
-      server: 'sandbox',
     });
 
     const session = await polar.customerSessions.create({

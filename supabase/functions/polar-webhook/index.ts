@@ -1,4 +1,4 @@
-import { validateEvent } from 'npm:@polar-sh/sdk@0.11.0/webhooks';
+import { validateEvent } from 'npm:@polar-sh/sdk@0.41.5/webhooks';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
 const corsHeaders = {

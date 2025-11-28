@@ -54,7 +54,6 @@ Deno.serve(async (req: Request) => {
 
     const polar = new Polar({
       accessToken: polarAccessToken,
-      server: 'sandbox',
     });
 
     let customerId = profile?.polar_customer_id;
