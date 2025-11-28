@@ -114,12 +114,7 @@ Deno.serve(async (req: Request) => {
         const isAudioAddon = metadata.is_audio_addon === 'true';
         const billingCycle = metadata.billing_cycle || 'monthly';
 
-        const updates: any = {
-          polar_subscription_id: subscription.id,
-          subscription_status: subscription.status,
-          subscription_ends_at: subscription.current_period_end,
-          billing_cycle: billingCycle,
-        };
+        const updates: any = {};
 
         if (isAudioAddon) {
           updates.audio_addon_enabled = true;
@@ -129,6 +124,11 @@ Deno.serve(async (req: Request) => {
             updates.audio_addon_trial_used = true;
           }
         } else {
+          updates.polar_subscription_id = subscription.id;
+          updates.subscription_status = subscription.status;
+          updates.subscription_ends_at = subscription.current_period_end;
+          updates.billing_cycle = billingCycle;
+
           const planType = PRODUCT_TO_PLAN_MAP[productId];
           if (planType) {
             updates.plan_type = planType;
@@ -148,31 +148,40 @@ Deno.serve(async (req: Request) => {
 
       case 'subscription.canceled': {
         const subscription = event.data;
-        await supabase
-          .from('profiles')
-          .update({
-            subscription_status: 'canceled',
-          })
-          .eq('id', userId);
+        const isAudioAddon = metadata.is_audio_addon === 'true';
+
+        if (isAudioAddon) {
+          await supabase
+            .from('profiles')
+            .update({
+              audio_addon_enabled: false,
+            })
+            .eq('id', userId);
+        } else {
+          await supabase
+            .from('profiles')
+            .update({
+              subscription_status: 'canceled',
+            })
+            .eq('id', userId);
+        }
         break;
       }
 
       case 'subscription.revoked': {
         const isAudioAddon = metadata.is_audio_addon === 'true';
-        const updates: any = {
-          polar_subscription_id: null,
-          subscription_status: null,
-          subscription_ends_at: null,
-          billing_cycle: null,
-        };
+        const updates: any = {};
 
         if (isAudioAddon) {
           updates.audio_addon_enabled = false;
           updates.audio_addon_subscription_id = null;
           updates.audio_addon_expires_at = null;
         } else {
+          updates.polar_subscription_id = null;
+          updates.subscription_status = null;
+          updates.subscription_ends_at = null;
+          updates.billing_cycle = null;
           updates.plan_type = 'FREE';
-          updates.audio_addon_enabled = false;
         }
 
         await supabase

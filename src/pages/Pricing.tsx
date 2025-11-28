@@ -132,6 +132,28 @@ export default function Pricing() {
     }
   };
 
+  const handleSubscribe = async (productId: string, isAudioAddon = false) => {
+    if (!user) {
+      navigate('/signup');
+      return;
+    }
+
+    if (!productId) {
+      alert('Product not configured. Please contact support.');
+      return;
+    }
+
+    try {
+      setLoading('audio');
+      await initiateCheckout(productId, billingCycle, isAudioAddon);
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to start checkout. Please try again.');
+    } finally {
+      setLoading(null);
+    }
+  };
+
   const getButtonText = (tier: PricingTier) => {
     if (loading === tier.planType) return 'Loading...';
     if (profile?.plan_type === tier.planType) return 'Current Plan';
@@ -267,22 +289,46 @@ export default function Pricing() {
             </div>
             <div>
               <h3 className="text-2xl font-bold text-neutral-text">Audio Add-on</h3>
-              <p className="text-neutral-text-muted">Available for Plus and Pro plans</p>
+              <p className="text-neutral-text-muted">Available as separate subscription</p>
             </div>
           </div>
-          <p className="text-neutral-text mb-4">
+          <p className="text-neutral-text mb-6">
             Transform your written lessons into engaging audio content with AI-powered text-to-speech.
-            Perfect for learning on the go!
+            Perfect for learning on the go! Works with any plan, including Free.
           </p>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <p className="text-3xl font-bold text-neutral-text">$10/month</p>
               <p className="text-sm text-accent-green font-medium">Try free for 7 days</p>
             </div>
-            <p className="text-sm text-neutral-text-muted max-w-md">
-              Add audio generation to any Plus or Pro subscription. Pro Max includes unlimited audio at no extra cost.
-            </p>
+            {user && profile && (
+              <div className="flex items-center gap-3">
+                {profile.audio_addon_enabled || profile.plan_type === 'PRO_MAX' ? (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 rounded-lg">
+                    <Check className="w-5 h-5 text-green-600" />
+                    <span className="font-body font-semibold text-green-600">Active</span>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => handleSubscribe(import.meta.env.VITE_POLAR_PRODUCT_AUDIO_MONTHLY!, true)}
+                    disabled={loading === 'audio'}
+                    className="flex items-center gap-2"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    {loading === 'audio' ? 'Processing...' : 'Add Audio Generation'}
+                  </Button>
+                )}
+              </div>
+            )}
+            {!user && (
+              <Button onClick={() => navigate('/signup')} className="flex items-center gap-2">
+                Get Started
+              </Button>
+            )}
           </div>
+          <p className="text-sm text-neutral-text-muted mt-4">
+            Subscribe separately to add audio generation to any plan. Pro Max includes unlimited audio at no extra cost.
+          </p>
         </Card>
 
         <div className="max-w-3xl mx-auto">
