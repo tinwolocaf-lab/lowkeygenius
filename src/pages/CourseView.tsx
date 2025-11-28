@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronRight, ChevronLeft, CheckCircle, Circle, BookOpen, Menu, X } from 'lucide-react';
+import { SimpleAudioPlayer } from '../components/SimpleAudioPlayer';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -17,6 +18,7 @@ interface Lesson {
   markdown_content: string | null;
   module_index: number;
   lesson_index: number;
+  audio_url: string | null;
 }
 
 interface Course {
@@ -275,6 +277,11 @@ export function CourseView() {
               <h1 className="font-display text-display-lg text-neutral-text mb-4">
                 {currentLesson.title}
               </h1>
+              {currentLesson.audio_url && (
+                <div className="mb-6">
+                  <SimpleAudioPlayer audioUrl={currentLesson.audio_url} />
+                </div>
+              )}
               {currentLesson.objectives && currentLesson.objectives.length > 0 && (
                 <Card className="bg-primary-light/10 border-l-4 border-primary">
                   <h3 className="font-display font-bold text-neutral-text mb-2">

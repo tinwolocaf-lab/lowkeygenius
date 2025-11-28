@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, Plus, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { BookOpen, Clock, Plus, MoreVertical, Edit2, Trash2, Volume2 } from 'lucide-react';
+import { useSubscription } from '../hooks/useSubscription';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Card } from '../components/Card';
@@ -21,6 +22,7 @@ interface Course {
 export function Courses() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { hasAudioAccess } = useSubscription();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState<string | null>(null);
@@ -198,7 +200,20 @@ export function Courses() {
                       <MoreVertical className="w-5 h-5 text-neutral-text-muted" />
                     </button>
                     {showMenu === course.id && (
-                      <div className="absolute right-0 top-full mt-1 bg-neutral-bg shadow-soft rounded-2xl border-2 border-neutral-border z-10 py-2 w-40">
+                      <div className="absolute right-0 top-full mt-1 bg-neutral-bg shadow-soft rounded-2xl border-2 border-neutral-border z-10 py-2 w-48">
+                        {hasAudioAccess && course.status === 'published' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/courses/${course.id}/generate-audio`);
+                              setShowMenu(null);
+                            }}
+                            className="w-full px-4 py-2 text-left hover:bg-neutral-surface flex items-center gap-2 font-body text-sm"
+                          >
+                            <Volume2 className="w-4 h-4" />
+                            Generate Audio
+                          </button>
+                        )}
                         <button
                           onClick={(e) => openRenameModal(course, e)}
                           className="w-full px-4 py-2 text-left hover:bg-neutral-surface flex items-center gap-2 font-body text-sm"
