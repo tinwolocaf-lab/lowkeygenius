@@ -19,6 +19,7 @@ import Pricing from './pages/Pricing';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import CheckoutCancel from './pages/CheckoutCancel';
 import { LessonPreview } from './pages/LessonPreview';
+import { GenerateAudio } from './pages/GenerateAudio';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PublicRoute } from './components/PublicRoute';
 
@@ -122,6 +123,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <LessonPreview />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/courses/:courseId/generate-audio"
+            element={
+              <ProtectedRoute>
+                <GenerateAudio />
               </ProtectedRoute>
             }
           />

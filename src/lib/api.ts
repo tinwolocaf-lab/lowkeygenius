@@ -183,3 +183,71 @@ export async function updateCourseOutline(data: {
 
   return response.json();
 }
+
+export async function generateLessonAudio(data: {
+  lessonId: string;
+  voiceType: 'male' | 'female';
+}) {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-audio`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    let errorMessage = 'Failed to generate audio';
+    try {
+      const error = await response.json();
+      errorMessage = error.error || errorMessage;
+    } catch {
+      const text = await response.text();
+      errorMessage = text || `Server error (${response.status})`;
+    }
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+export async function generateCourseAudio(data: {
+  courseId: string;
+  voiceType: 'male' | 'female';
+}) {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-course-audio`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    let errorMessage = 'Failed to generate course audio';
+    try {
+      const error = await response.json();
+      errorMessage = error.error || errorMessage;
+    } catch {
+      const text = await response.text();
+      errorMessage = text || `Server error (${response.status})`;
+    }
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}

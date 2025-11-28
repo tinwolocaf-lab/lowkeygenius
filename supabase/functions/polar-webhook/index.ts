@@ -123,6 +123,8 @@ Deno.serve(async (req: Request) => {
 
         if (isAudioAddon) {
           updates.audio_addon_enabled = true;
+          updates.audio_addon_subscription_id = subscription.id;
+          updates.audio_addon_expires_at = subscription.current_period_end;
           if (!metadata.trial_used) {
             updates.audio_addon_trial_used = true;
           }
@@ -166,6 +168,8 @@ Deno.serve(async (req: Request) => {
 
         if (isAudioAddon) {
           updates.audio_addon_enabled = false;
+          updates.audio_addon_subscription_id = null;
+          updates.audio_addon_expires_at = null;
         } else {
           updates.plan_type = 'FREE';
           updates.audio_addon_enabled = false;
