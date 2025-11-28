@@ -31,24 +31,32 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const webhookSecret = Deno.env.get('POLAR_WEBHOOK_SECRET')!;
+    const webhookSecret = Deno.env.get('POLAR_WEBHOOK_SECRET');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    const signature = req.headers.get('webhook-signature');
-    if (!signature) {
-      return new Response(
-        JSON.stringify({ error: 'Missing webhook signature' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
     const body = await req.text();
+    console.log('Received webhook:', body);
 
-    const event = validateEvent(body, signature, webhookSecret) as PolarEvent;
+    let event: PolarEvent;
+
+    if (webhookSecret) {
+      const signature = req.headers.get('webhook-signature');
+      if (!signature) {
+        console.error('Missing webhook signature');
+        return new Response(
+          JSON.stringify({ error: 'Missing webhook signature' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      event = validateEvent(body, signature, webhookSecret) as PolarEvent;
+    } else {
+      console.warn('POLAR_WEBHOOK_SECRET not set, skipping validation');
+      event = JSON.parse(body) as PolarEvent;
+    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -66,8 +74,14 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    console.log('Event type:', event.type);
+    console.log('Event data:', JSON.stringify(event.data));
+
     const metadata = event.data.metadata || {};
     const userId = metadata.supabase_user_id;
+
+    console.log('Metadata:', JSON.stringify(metadata));
+    console.log('User ID:', userId);
 
     if (!userId) {
       console.error('No user ID in webhook metadata');
@@ -171,8 +185,12 @@ Deno.serve(async (req: Request) => {
     );
   } catch (error) {
     console.error('Webhook error:', error);
+    console.error('Error stack:', error.stack);
     return new Response(
-      JSON.stringify({ error: error.message || 'Webhook processing failed' }),
+      JSON.stringify({
+        error: error.message || 'Webhook processing failed',
+        details: error.stack
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
