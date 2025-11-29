@@ -10,6 +10,8 @@ const MURF_API_KEY = Deno.env.get('MURF_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
+const MAX_CHUNK_SIZE = 2800; // Leave buffer under 3000 limit
+
 const VOICE_CONFIGS = {
   female: {
     voiceId: 'en-US-natalie',
@@ -26,6 +28,104 @@ const VOICE_CONFIGS = {
 interface GenerateCourseAudioRequest {
   courseId: string;
   voiceType: 'male' | 'female';
+}
+
+/**
+ * Strip markdown formatting to get plain text for TTS
+ */
+function stripMarkdown(text: string): string {
+  return text
+    // Remove code blocks
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`[^`]+`/g, '')
+    // Remove headers
+    .replace(/^#{1,6}\s+/gm, '')
+    // Remove bold/italic
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    // Remove links but keep text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove images
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+    // Remove blockquotes
+    .replace(/^>\s+/gm, '')
+    // Remove horizontal rules
+    .replace(/^[-*_]{3,}$/gm, '')
+    // Remove list markers
+    .replace(/^[\s]*[-*+]\s+/gm, '')
+    .replace(/^[\s]*\d+\.\s+/gm, '')
+    // Remove HTML tags
+    .replace(/<[^>]+>/g, '')
+    // Clean up extra whitespace
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
+ * Split text into chunks respecting sentence boundaries
+ */
+function splitTextIntoChunks(text: string, maxChunkSize: number): string[] {
+  const plainText = stripMarkdown(text);
+  
+  if (plainText.length <= maxChunkSize) {
+    return [plainText];
+  }
+
+  const chunks: string[] = [];
+  const sentences = plainText.split(/(?<=[.!?])\s+/);
+  let currentChunk = '';
+
+  for (const sentence of sentences) {
+    // If single sentence is too long, split by commas or force split
+    if (sentence.length > maxChunkSize) {
+      if (currentChunk) {
+        chunks.push(currentChunk.trim());
+        currentChunk = '';
+      }
+      
+      // Try splitting by commas first
+      const parts = sentence.split(/,\s*/);
+      let partChunk = '';
+      
+      for (const part of parts) {
+        if (part.length > maxChunkSize) {
+          // Force split very long parts
+          if (partChunk) {
+            chunks.push(partChunk.trim());
+            partChunk = '';
+          }
+          for (let i = 0; i < part.length; i += maxChunkSize) {
+            chunks.push(part.slice(i, i + maxChunkSize).trim());
+          }
+        } else if ((partChunk + ', ' + part).length > maxChunkSize) {
+          chunks.push(partChunk.trim());
+          partChunk = part;
+        } else {
+          partChunk = partChunk ? partChunk + ', ' + part : part;
+        }
+      }
+      
+      if (partChunk) {
+        currentChunk = partChunk;
+      }
+      continue;
+    }
+
+    if ((currentChunk + ' ' + sentence).length > maxChunkSize) {
+      chunks.push(currentChunk.trim());
+      currentChunk = sentence;
+    } else {
+      currentChunk = currentChunk ? currentChunk + ' ' + sentence : sentence;
+    }
+  }
+
+  if (currentChunk.trim()) {
+    chunks.push(currentChunk.trim());
+  }
+
+  return chunks.filter(chunk => chunk.length > 0);
 }
 
 async function checkAudioAccess(supabase: any, userId: string): Promise<{ hasAccess: boolean; reason?: string }> {
@@ -57,26 +157,85 @@ async function checkAudioAccess(supabase: any, userId: string): Promise<{ hasAcc
   return { hasAccess: false, reason: 'Audio add-on required for bulk generation' };
 }
 
-async function downloadAndUploadAudio(
-  audioUrl: string,
+async function generateAudioForChunk(
+  text: string,
+  voiceType: 'male' | 'female'
+): Promise<{ audioUrl: string; duration: number }> {
+  const voiceConfig = VOICE_CONFIGS[voiceType];
+  
+  const response = await fetch('https://api.murf.ai/v1/speech/generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'api-key': MURF_API_KEY!,
+    },
+    body: JSON.stringify({
+      text,
+      voiceId: voiceConfig.voiceId,
+      style: voiceConfig.style,
+      multiNativeLocale: voiceConfig.multiNativeLocale,
+      format: 'MP3',
+      sampleRate: 44100,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText);
+  }
+
+  const data = await response.json();
+  
+  if (!data.audioFile) {
+    throw new Error('No audio file URL in response');
+  }
+
+  return {
+    audioUrl: data.audioFile,
+    duration: data.audioLengthInSeconds || 0,
+  };
+}
+
+async function downloadAudioAsBuffer(audioUrl: string): Promise<Uint8Array> {
+  const response = await fetch(audioUrl);
+  if (!response.ok) {
+    throw new Error('Failed to download audio');
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  return new Uint8Array(arrayBuffer);
+}
+
+async function concatenateAndUploadAudio(
+  audioUrls: string[],
   supabase: any,
   courseId: string,
   lessonId: string,
   voiceType: string
 ): Promise<string> {
-  const audioResponse = await fetch(audioUrl);
-  if (!audioResponse.ok) {
-    throw new Error('Failed to download audio from Murf AI');
+  // Download all audio chunks
+  const audioBuffers: Uint8Array[] = [];
+  
+  for (const url of audioUrls) {
+    const buffer = await downloadAudioAsBuffer(url);
+    audioBuffers.push(buffer);
   }
 
-  const audioBlob = await audioResponse.blob();
-  const arrayBuffer = await audioBlob.arrayBuffer();
-  const uint8Array = new Uint8Array(arrayBuffer);
+  // Simple concatenation - combine all MP3 buffers
+  // Note: This works for MP3 files but may have minor glitches at boundaries
+  // For production, consider using a proper audio processing library
+  const totalLength = audioBuffers.reduce((sum, buf) => sum + buf.length, 0);
+  const concatenated = new Uint8Array(totalLength);
+  
+  let offset = 0;
+  for (const buffer of audioBuffers) {
+    concatenated.set(buffer, offset);
+    offset += buffer.length;
+  }
 
   const fileName = `${courseId}/${lessonId}-${voiceType}.mp3`;
-  const { data: uploadData, error: uploadError } = await supabase.storage
+  const { error: uploadError } = await supabase.storage
     .from('lesson-audio')
-    .upload(fileName, uint8Array, {
+    .upload(fileName, concatenated, {
       contentType: 'audio/mpeg',
       upsert: true,
     });
@@ -108,44 +267,36 @@ async function generateLessonAudio(
       .update({ audio_status: 'generating' })
       .eq('id', lesson.id);
 
-    const voiceConfig = VOICE_CONFIGS[voiceType];
-    const murfResponse = await fetch('https://api.murf.ai/v1/speech/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': MURF_API_KEY!,
-      },
-      body: JSON.stringify({
-        text: lesson.markdown_content,
-        voiceId: voiceConfig.voiceId,
-        style: voiceConfig.style,
-        multiNativeLocale: voiceConfig.multiNativeLocale,
-        format: 'MP3',
-        sampleRate: 44100,
-      }),
-    });
+    // Split content into chunks
+    const chunks = splitTextIntoChunks(lesson.markdown_content, MAX_CHUNK_SIZE);
+    console.log(`Lesson "${lesson.title}": ${chunks.length} chunks to process`);
 
-    if (!murfResponse.ok) {
-      const errorText = await murfResponse.text();
-      await supabase
-        .from('lessons')
-        .update({ audio_status: 'failed' })
-        .eq('id', lesson.id);
-      return { success: false, error: errorText.substring(0, 100) };
+    const audioUrls: string[] = [];
+    let totalDuration = 0;
+
+    // Generate audio for each chunk
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      console.log(`Processing chunk ${i + 1}/${chunks.length} (${chunk.length} chars)`);
+      
+      try {
+        const result = await generateAudioForChunk(chunk, voiceType);
+        audioUrls.push(result.audioUrl);
+        totalDuration += result.duration;
+      } catch (chunkError: any) {
+        console.error(`Chunk ${i + 1} failed:`, chunkError.message);
+        throw new Error(`Chunk ${i + 1} failed: ${chunkError.message}`);
+      }
+      
+      // Small delay between API calls to avoid rate limiting
+      if (i < chunks.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
 
-    const murfData = await murfResponse.json();
-
-    if (!murfData.audioFile) {
-      await supabase
-        .from('lessons')
-        .update({ audio_status: 'failed' })
-        .eq('id', lesson.id);
-      return { success: false, error: 'No audio file URL' };
-    }
-
-    const publicAudioUrl = await downloadAndUploadAudio(
-      murfData.audioFile,
+    // Concatenate all audio chunks and upload
+    const publicAudioUrl = await concatenateAndUploadAudio(
+      audioUrls,
       supabase,
       courseId,
       lesson.id,
@@ -156,7 +307,7 @@ async function generateLessonAudio(
       .from('lessons')
       .update({
         audio_url: publicAudioUrl,
-        audio_duration_seconds: Math.round(murfData.audioLengthInSeconds || 0),
+        audio_duration_seconds: Math.round(totalDuration),
         audio_status: 'ready',
         audio_voice_type: voiceType,
         audio_generated_at: new Date().toISOString(),
@@ -165,6 +316,7 @@ async function generateLessonAudio(
 
     return { success: true };
   } catch (error: any) {
+    console.error(`Lesson "${lesson.title}" failed:`, error.message);
     await supabase
       .from('lessons')
       .update({ audio_status: 'failed' })
@@ -278,7 +430,7 @@ Deno.serve(async (req: Request) => {
       } else {
         failed++;
         if (result.error) {
-          errors.push(`Lesson ${lesson.title}: ${result.error}`);
+          errors.push(`Lesson ${lesson.title}: ${result.error.substring(0, 100)}`);
         }
       }
 

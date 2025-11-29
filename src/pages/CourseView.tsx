@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronRight, ChevronLeft, CheckCircle, Circle, BookOpen, Menu, X } from 'lucide-react';
-import { SimpleAudioPlayer } from '../components/SimpleAudioPlayer';
+import { ArrowLeft, ChevronRight, ChevronLeft, CheckCircle, Circle, BookOpen, Menu, X, Headphones } from 'lucide-react';
+import { CourseAudioPlayer } from '../components/CourseAudioPlayer';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -43,6 +43,7 @@ export function CourseView() {
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [showAudioPlayer, setShowAudioPlayer] = useState(false);
 
   useEffect(() => {
     loadCourseData();
@@ -237,6 +238,9 @@ export function CourseView() {
                             {lesson.title}
                           </p>
                         </div>
+                        {lesson.audio_url && (
+                          <Headphones className="w-4 h-4 text-neutral-text-muted flex-shrink-0" />
+                        )}
                       </button>
                     );
                   })}
@@ -277,9 +281,15 @@ export function CourseView() {
               <h1 className="font-display text-display-lg text-neutral-text mb-4">
                 {currentLesson.title}
               </h1>
-              {currentLesson.audio_url && (
+              {currentLesson.audio_url && !showAudioPlayer && (
                 <div className="mb-6">
-                  <SimpleAudioPlayer audioUrl={currentLesson.audio_url} />
+                  <button
+                    onClick={() => setShowAudioPlayer(true)}
+                    className="flex items-center gap-3 px-4 py-3 bg-primary-light/20 hover:bg-primary-light/30 border-2 border-primary rounded-xl transition-colors"
+                  >
+                    <Headphones className="w-5 h-5 text-primary" />
+                    <span className="font-body font-semibold text-primary">Listen to Audio Version</span>
+                  </button>
                 </div>
               )}
               {currentLesson.objectives && currentLesson.objectives.length > 0 && (
@@ -300,11 +310,10 @@ export function CourseView() {
             </div>
 
             {currentLesson.markdown_content ? (
-              <div className="prose prose-lg max-w-none">
+              <div className="prose prose-lg max-w-none markdown-content">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeHighlight]}
-                  className="markdown-content"
                 >
                   {currentLesson.markdown_content}
                 </ReactMarkdown>
@@ -375,6 +384,19 @@ export function CourseView() {
           onClick={() => setSidebarOpen(false)}
         />
       )}
+
+      {/* Audio Player */}
+      {showAudioPlayer && lessons.some(l => l.audio_url) && (
+        <CourseAudioPlayer
+          lessons={lessons}
+          currentLessonIndex={currentLessonIndex}
+          onLessonChange={setCurrentLessonIndex}
+          onClose={() => setShowAudioPlayer(false)}
+        />
+      )}
+
+      {/* Spacer for fixed audio player */}
+      {showAudioPlayer && <div className="h-28" />}
     </div>
   );
 }
