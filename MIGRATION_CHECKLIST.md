@@ -39,7 +39,7 @@ Use this checklist to track your progress migrating to the new Supabase instance
 - [ ] Add `MURF_API_KEY`: `ap2_003bc8a8-0278-49e8-9049-31d5b5996d6c`
 - [ ] Add `POLAR_ACCESS_TOKEN`: `polar_oat_WLskrsu0WnvSXEOhZpUeXxrtshEFkhyBbQYCJ0DifLp`
 - [ ] Add `POLAR_WEBHOOK_SECRET`: `polar_whs_z2uaj4ahImQ2DIpDzym7BB4FoZAHc19rC7NIJ3rQXR7`
-- [ ] Add `OPENAI_API_KEY` (your key)
+- [ ] Add `GEMINI_API_KEY` (your Google Gemini API key from https://makersuite.google.com/app/apikey)
 
 ## ✅ Deploy Edge Functions
 - [ ] `generate-outline`

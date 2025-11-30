@@ -230,9 +230,11 @@ Go to **Edge Functions** > **Settings** and add these secrets:
    - Value: `polar_whs_z2uaj4ahImQ2DIpDzym7BB4FoZAHc19rC7NIJ3rQXR7`
    - Used by: `polar-webhook`
 
-4. **OPENAI_API_KEY** (if you're using OpenAI for course generation)
-   - Value: Your OpenAI API key
+4. **GEMINI_API_KEY** (required for course generation)
+   - Value: Your Google Gemini API key
    - Used by: `generate-outline`, `generate-lesson`, `regenerate-lesson`, `update-outline`
+   - Get your key from: https://makersuite.google.com/app/apikey
+   - Models used: `gemini-2.0-flash-exp` (outline) and `gemini-2.5-flash-lite` (lessons)
 
 **Note:** These secrets are automatically available to all Edge Functions. You don't need to configure them per function.
 
