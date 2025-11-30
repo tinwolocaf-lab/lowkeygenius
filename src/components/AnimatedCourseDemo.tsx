@@ -64,13 +64,11 @@ export function AnimatedCourseDemo() {
   const [messageIndex, setMessageIndex] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  // useEffect(() => {
+  //   messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // }, [messages]);
 
   useEffect(() => {
-    console.log('Animation phase:', phase, 'Message index:', messageIndex);
-
     if (phase === 'intro') {
       const timer = setTimeout(() => {
         setPhase('chat-conversation');
