@@ -2,20 +2,17 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Check, CheckCircle, Circle, Edit2, Sparkles, Save, X, AlertCircle } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeHighlight from 'rehype-highlight';
 import { supabase } from '../lib/supabase';
 import { regenerateLesson } from '../lib/api';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Modal } from '../components/Modal';
-import 'highlight.js/styles/github-dark.css';
+import { MarkdownRenderer } from '../components/MarkdownRenderer';
 
 interface Lesson {
   id: string;
   title: string;
-  objectives: string[];
+  objectives: string[] | null;
   markdown_content: string | null;
   lesson_status: string;
   module_index: number;
@@ -138,7 +135,7 @@ export function LessonPreview() {
         },
         moduleTitle: module.title,
         lessonTitle: currentLesson.title,
-        objectives: currentLesson.objectives,
+        objectives: currentLesson.objectives || [],
         currentContent: currentLesson.markdown_content || undefined,
       });
 
@@ -150,7 +147,7 @@ export function LessonPreview() {
 
       setRegenerateInstructions('');
       await loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error regenerating lesson:', error);
       toast.error(error.message || 'Failed to regenerate lesson. Please try again.');
     } finally {
@@ -181,6 +178,7 @@ export function LessonPreview() {
     if (!confirm('Approve all lessons? This will mark all lessons as ready for publishing.')) return;
 
     try {
+      if (!courseId) return;
       const { error } = await supabase
         .from('lessons')
         .update({ lesson_status: 'approved' })
@@ -204,6 +202,7 @@ export function LessonPreview() {
 
     setPublishing(true);
     try {
+      if (!courseId) return;
       const { error } = await supabase
         .from('courses')
         .update({ status: 'published' })
@@ -296,7 +295,7 @@ export function LessonPreview() {
                   Module {moduleIndex + 1}: {getModuleTitle(moduleIndex)}
                 </h3>
                 <div className="space-y-1">
-                  {moduleLessons.map((lesson, idx) => {
+                  {moduleLessons.map((lesson) => {
                     const globalIndex = lessons.findIndex((l) => l.id === lesson.id);
                     const isActive = globalIndex === currentLessonIndex;
                     const isApproved = lesson.lesson_status === 'approved';
@@ -422,10 +421,16 @@ export function LessonPreview() {
               />
             </div>
           ) : (
-            <Card className="prose prose-lg max-w-none">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]} className="markdown-content">
-                {currentLesson.markdown_content || '*No content available*'}
-              </ReactMarkdown>
+            <Card>
+              <MarkdownRenderer
+                content={currentLesson.markdown_content || '*No content available*'}
+                courseId={courseId}
+                lessonId={currentLesson.id}
+                lessonTitle={currentLesson.title}
+                courseTitle={course.title}
+                isOwner={true}
+                enableSelection={true}
+              />
             </Card>
           )}
 

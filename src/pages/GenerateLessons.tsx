@@ -10,7 +10,7 @@ import { LoadingAnimation } from '../components/LoadingAnimation';
 interface Lesson {
   id: string;
   title: string;
-  objectives: string[];
+  objectives: string[] | null;
   module_index: number;
   lesson_index: number;
   markdown_content: string | null;
@@ -103,7 +103,7 @@ export function GenerateLessons() {
           lessonId: lesson.id,
           moduleTitle: module.title,
           lessonTitle: lesson.title,
-          objectives: lesson.objectives,
+          objectives: lesson.objectives || [],
           courseContext: {
             topic: course.topic,
             level: course.level,
@@ -130,13 +130,15 @@ export function GenerateLessons() {
       }
     }
 
-    const { error: updateError } = await supabase
-      .from('courses')
-      .update({ status: 'ready' })
-      .eq('id', courseId);
+    if (courseId) {
+      const { error: updateError } = await supabase
+        .from('courses')
+        .update({ status: 'ready' })
+        .eq('id', courseId);
 
-    if (updateError) {
-      console.error('Error updating course status:', updateError);
+      if (updateError) {
+        console.error('Error updating course status:', updateError);
+      }
     }
 
     setGenerating(false);

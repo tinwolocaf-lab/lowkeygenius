@@ -11,7 +11,7 @@ import { Input } from '../components/Input';
 interface Course {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   topic: string;
   level: string;
   status: string;

@@ -14,6 +14,7 @@
     "@polar-sh/sdk": "^0.41.5",
     "@supabase/supabase-js": "^2.57.4",
     "lucide-react": "^0.344.0",
+    "mermaid": "^11.12.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.6.0",

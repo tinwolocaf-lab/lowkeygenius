@@ -6,7 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { PublicHeader } from '../components/PublicHeader';
-import { Layout } from '../components/Layout';
 import { initiateCheckout } from '../lib/polar';
 
 interface PricingTier {

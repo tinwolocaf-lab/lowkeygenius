@@ -10,7 +10,7 @@ import { useSubscription } from '../hooks/useSubscription';
 interface Course {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   level: string;
   status: string;
   estimated_duration_hours: number | null;

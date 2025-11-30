@@ -1,32 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronRight, ChevronLeft, CheckCircle, Circle, BookOpen, Menu, X, Headphones, Volume2 } from 'lucide-react';
 import { CourseAudioPlayer } from '../components/CourseAudioPlayer';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeHighlight from 'rehype-highlight';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
-import 'highlight.js/styles/github-dark.css';
+import { MarkdownRenderer } from '../components/MarkdownRenderer';
 
 interface Lesson {
   id: string;
   title: string;
-  objectives: string[];
+  objectives: string[] | null;
   markdown_content: string | null;
   module_index: number;
   lesson_index: number;
   audio_url: string | null;
 }
 
+interface CourseOutlineJson {
+  modules: Array<{
+    title: string;
+    description: string;
+    lessons: Array<{ title: string; objectives: string[] }>;
+  }>;
+}
+
 interface Course {
   id: string;
   title: string;
-  description: string;
-  outline_json: any;
+  description: string | null;
+  outline_json: CourseOutlineJson | null;
   status: string;
+  owner_id: string;
 }
 
 interface Progress {
@@ -46,17 +52,10 @@ export function CourseView() {
   const [loading, setLoading] = useState(true);
   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
 
-  useEffect(() => {
-    loadCourseData();
-  }, [courseId]);
+  // Derive currentLesson from state
+  const currentLesson = lessons[currentLessonIndex];
 
-  useEffect(() => {
-    if (currentLesson) {
-      markAsViewed();
-    }
-  }, [currentLessonIndex]);
-
-  const loadCourseData = async () => {
+  const loadCourseData = useCallback(async () => {
     if (!courseId || !user) return;
 
     try {
@@ -72,7 +71,10 @@ export function CourseView() {
         return;
       }
 
-      setCourse(courseResult.data);
+      setCourse({
+        ...courseResult.data,
+        outline_json: courseResult.data.outline_json as CourseOutlineJson | null,
+      });
       setLessons(lessonsResult.data || []);
       setProgress(progressResult.data || []);
     } catch (error) {
@@ -81,14 +83,14 @@ export function CourseView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId, user, navigate]);
 
-  const markAsViewed = async () => {
-    if (!currentLesson || !user || !courseId) return;
+  const markAsViewed = useCallback(async (lesson: Lesson | undefined) => {
+    if (!lesson || !user || !courseId) return;
 
     const { error } = await supabase.from('user_progress').upsert({
       user_id: user.id,
-      lesson_id: currentLesson.id,
+      lesson_id: lesson.id,
       course_id: courseId,
       completed: false,
       last_viewed_at: new Date().toISOString(),
@@ -99,7 +101,17 @@ export function CourseView() {
     if (error) {
       console.error('Error marking lesson as viewed:', error);
     }
-  };
+  }, [user, courseId]);
+
+  useEffect(() => {
+    loadCourseData();
+  }, [loadCourseData]);
+
+  useEffect(() => {
+    if (currentLesson) {
+      markAsViewed(currentLesson);
+    }
+  }, [currentLesson, markAsViewed]);
 
   const markAsComplete = async () => {
     if (!currentLesson || !user || !courseId) return;
@@ -126,7 +138,6 @@ export function CourseView() {
     return progress.some(p => p.lesson_id === lessonId && p.completed);
   };
 
-  const currentLesson = lessons[currentLessonIndex];
   const canGoNext = currentLessonIndex < lessons.length - 1;
   const canGoPrev = currentLessonIndex > 0;
 
@@ -321,14 +332,15 @@ export function CourseView() {
             </div>
 
             {currentLesson.markdown_content ? (
-              <div className="prose prose-lg max-w-none markdown-content">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeHighlight]}
-                >
-                  {currentLesson.markdown_content}
-                </ReactMarkdown>
-              </div>
+              <MarkdownRenderer
+                content={currentLesson.markdown_content}
+                courseId={courseId}
+                lessonId={currentLesson.id}
+                lessonTitle={currentLesson.title}
+                courseTitle={course.title}
+                isOwner={user?.id === course.owner_id}
+                enableSelection={true}
+              />
             ) : (
               <Card className="text-center py-12">
                 <p className="font-body text-neutral-text-muted">

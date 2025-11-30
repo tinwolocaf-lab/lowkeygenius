@@ -29,11 +29,11 @@ interface CourseOutline {
 interface Course {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   topic: string;
   level: string;
   intensity: string;
-  outline_json: CourseOutline;
+  outline_json: CourseOutline | null;
   status: string;
 }
 
@@ -74,7 +74,10 @@ export function CourseOutline() {
         return;
       }
 
-      setCourse(data);
+      setCourse({
+        ...data,
+        outline_json: data.outline_json as CourseOutline | null,
+      } as Course);
     } catch (error) {
       console.error('Unexpected error loading course:', error);
       navigate('/courses');
@@ -113,41 +116,57 @@ export function CourseOutline() {
   };
 
   const handleUpdateModule = (moduleIndex: number, updatedModule: Module) => {
-    if (!course) return;
+    if (!course?.outline_json) return;
 
-    const newOutline = { ...course.outline_json };
+    const newOutline: CourseOutline = {
+      ...course.outline_json,
+      modules: [...course.outline_json.modules],
+    };
     newOutline.modules[moduleIndex] = updatedModule;
     saveOutline(newOutline);
   };
 
   const handleUpdateLesson = (moduleIndex: number, lessonIndex: number, updatedLesson: Lesson) => {
-    if (!course) return;
+    if (!course?.outline_json) return;
 
-    const newOutline = { ...course.outline_json };
+    const newOutline: CourseOutline = {
+      ...course.outline_json,
+      modules: course.outline_json.modules.map((m, i) =>
+        i === moduleIndex ? { ...m, lessons: [...m.lessons] } : m
+      ),
+    };
     newOutline.modules[moduleIndex].lessons[lessonIndex] = updatedLesson;
     saveOutline(newOutline);
   };
 
   const handleDeleteModule = async (moduleIndex: number) => {
-    if (!course) return;
+    if (!course?.outline_json) return;
     if (!confirm('Are you sure you want to delete this module? This action cannot be undone.')) return;
 
-    const newOutline = { ...course.outline_json };
+    const newOutline: CourseOutline = {
+      ...course.outline_json,
+      modules: [...course.outline_json.modules],
+    };
     newOutline.modules.splice(moduleIndex, 1);
     await saveOutline(newOutline);
   };
 
   const handleDeleteLesson = async (moduleIndex: number, lessonIndex: number) => {
-    if (!course) return;
+    if (!course?.outline_json) return;
     if (!confirm('Are you sure you want to delete this lesson?')) return;
 
-    const newOutline = { ...course.outline_json };
+    const newOutline: CourseOutline = {
+      ...course.outline_json,
+      modules: course.outline_json.modules.map((m, i) =>
+        i === moduleIndex ? { ...m, lessons: [...m.lessons] } : m
+      ),
+    };
     newOutline.modules[moduleIndex].lessons.splice(lessonIndex, 1);
     await saveOutline(newOutline);
   };
 
   const handleAddModule = () => {
-    if (!course) return;
+    if (!course?.outline_json) return;
 
     const newModule: Module = {
       title: 'New Module',
@@ -155,32 +174,37 @@ export function CourseOutline() {
       lessons: [],
     };
 
-    const newOutline = { ...course.outline_json };
-    newOutline.modules.push(newModule);
+    const newOutline: CourseOutline = {
+      ...course.outline_json,
+      modules: [...course.outline_json.modules, newModule],
+    };
     saveOutline(newOutline);
   };
 
   const handleAddLesson = (moduleIndex: number) => {
-    if (!course) return;
+    if (!course?.outline_json) return;
 
     const newLesson: Lesson = {
       title: 'New Lesson',
       objectives: [],
     };
 
-    const newOutline = { ...course.outline_json };
-    newOutline.modules[moduleIndex].lessons.push(newLesson);
+    const newOutline: CourseOutline = {
+      ...course.outline_json,
+      modules: course.outline_json.modules.map((m, i) =>
+        i === moduleIndex ? { ...m, lessons: [...m.lessons, newLesson] } : m
+      ),
+    };
     saveOutline(newOutline);
   };
 
   const handleGenerateLessons = async () => {
-    if (!course || !courseId) return;
+    if (!course?.outline_json || !courseId) return;
 
     setGenerating(true);
 
     try {
       const outline = course.outline_json;
-      let lessonIndex = 0;
 
       for (let moduleIndex = 0; moduleIndex < outline.modules.length; moduleIndex++) {
         const module = outline.modules[moduleIndex];
@@ -202,8 +226,6 @@ export function CourseOutline() {
           if (insertError) {
             console.error('Error creating lesson:', insertError);
           }
-
-          lessonIndex++;
         }
       }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Send, Paperclip, ArrowLeft } from 'lucide-react';
 import { ChatMessage } from '../components/ChatMessage';
