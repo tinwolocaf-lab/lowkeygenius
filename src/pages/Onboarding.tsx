@@ -43,6 +43,17 @@ export function Onboarding() {
     intensity: null,
   });
 
+  const addMessage = useCallback((type: 'assistant' | 'user' | 'system', content: string) => {
+    setMessages((prev) => [
+      ...prev,
+      { id: `${Date.now()}-${Math.random()}`, type, content, timestamp: new Date() },
+    ]);
+  }, []);
+
+  const addAssistantMessage = useCallback((content: string) => addMessage('assistant', content), [addMessage]);
+  const addUserMessage = useCallback((content: string) => addMessage('user', content), [addMessage]);
+  const addSystemMessage = useCallback((content: string) => addMessage('system', content), [addMessage]);
+
   useEffect(() => {
     if (!initializedRef.current) {
       initializedRef.current = true;
@@ -57,17 +68,6 @@ export function Onboarding() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const addMessage = useCallback((type: 'assistant' | 'user' | 'system', content: string) => {
-    setMessages((prev) => [
-      ...prev,
-      { id: `${Date.now()}-${Math.random()}`, type, content, timestamp: new Date() },
-    ]);
-  }, []);
-
-  const addAssistantMessage = useCallback((content: string) => addMessage('assistant', content), [addMessage]);
-  const addUserMessage = useCallback((content: string) => addMessage('user', content), [addMessage]);
-  const addSystemMessage = useCallback((content: string) => addMessage('system', content), [addMessage]);
 
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
