@@ -3,6 +3,7 @@ import { GraduationCap, Sparkles, BookOpen, FileText, Headphones, ArrowRight, Ch
 import { PublicHeader } from '../components/PublicHeader';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { AnimatedCourseDemo } from '../components/AnimatedCourseDemo';
 
 export function Homepage() {
   const navigate = useNavigate();
@@ -101,56 +102,67 @@ export function Homepage() {
     <div className="min-h-screen bg-neutral-surface">
       <PublicHeader />
 
-      <section className="relative overflow-hidden bg-neutral-surface py-20 sm:py-32">
+      <section className="relative overflow-hidden bg-neutral-surface py-12 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 bg-neutral-bg backdrop-blur-sm px-6 py-3 rounded-full shadow-soft border border-neutral-border mb-8">
-              <Sparkles className="w-5 h-5 text-primary" />
-              <span className="font-body font-bold text-primary">AI-Powered Personalized Learning</span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div className="text-center lg:text-left order-2 lg:order-1">
+              <div className="inline-flex items-center gap-2 bg-neutral-bg backdrop-blur-sm px-6 py-3 rounded-full shadow-soft border border-neutral-border mb-6">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <span className="font-body font-bold text-primary">AI-Powered Personalized Learning</span>
+              </div>
+
+              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-text mb-6 leading-tight">
+                Learn Anything,
+                <br />
+                <span className="text-primary">Your Way</span>
+              </h1>
+
+              <p className="font-body text-lg sm:text-xl text-neutral-text-muted mb-8 max-w-xl mx-auto lg:mx-0">
+                Create personalized AI-generated courses on any topic in minutes. Tailored to your background, goals, and learning style.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 mb-8">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={() => navigate('/signup')}
+                  className="flex items-center gap-2 text-lg px-8 py-4 shadow-lg hover:shadow-xl transition-all"
+                >
+                  Start Learning Free
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="text-lg px-8 py-4"
+                >
+                  See How It Works
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-neutral-text-muted">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-accent-green" />
+                  <span className="font-body text-sm">No credit card required</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-accent-green" />
+                  <span className="font-body text-sm">Free course included</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-accent-green" />
+                  <span className="font-body text-sm">Cancel anytime</span>
+                </div>
+              </div>
             </div>
 
-            <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-bold text-neutral-text mb-6 leading-tight">
-              Learn Anything,
-              <br />
-              <span className="text-primary">Your Way</span>
-            </h1>
-
-            <p className="font-body text-xl sm:text-2xl text-neutral-text-muted mb-10 max-w-2xl mx-auto">
-              Create personalized AI-generated courses on any topic in minutes. Tailored to your background, goals, and learning style.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={() => navigate('/signup')}
-                className="flex items-center gap-2 text-lg px-8 py-4 shadow-lg hover:shadow-xl transition-all"
-              >
-                Start Learning Free
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="secondary"
-                size="lg"
-                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-                className="text-lg px-8 py-4"
-              >
-                See How It Works
-              </Button>
-            </div>
-
-            <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-neutral-text-muted">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-accent-green" />
-                <span className="font-body">No credit card required</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-accent-green" />
-                <span className="font-body">Free course included</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-accent-green" />
-                <span className="font-body">Cancel anytime</span>
+            <div className="order-1 lg:order-2">
+              <div className="relative">
+                <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-3xl blur-2xl" />
+                <div className="relative">
+                  <AnimatedCourseDemo />
+                </div>
               </div>
             </div>
           </div>
