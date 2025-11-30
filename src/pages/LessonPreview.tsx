@@ -446,8 +446,20 @@ export function LessonPreview() {
                 lessonId={currentLesson.id}
                 lessonTitle={currentLesson.title}
                 courseTitle={course.title}
+                courseTopic={course.topic}
+                courseLevel={course.level}
                 isOwner={true}
                 enableSelection={true}
+                onContentUpdate={(newContent) => {
+                  // Update local state immediately (Requirement 1.3)
+                  setLessons((prev) =>
+                    prev.map((l) =>
+                      l.id === currentLesson.id
+                        ? { ...l, markdown_content: newContent, is_manually_edited: true }
+                        : l
+                    )
+                  );
+                }}
               />
             </Card>
           )}

@@ -7,8 +7,11 @@ import toast from 'react-hot-toast';
 import { MermaidDiagram } from './MermaidDiagram';
 import { SelectionOverlayMenu } from './SelectionOverlayMenu';
 import { InlineEditor } from './InlineEditor';
+import { InlineWikiTerm } from './InlineWikiTerm';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { generateDefinition } from '../lib/api';
+import type { InlineWikiEntry } from '../types/database';
 
 interface MarkdownRendererProps {
   content: string;
@@ -19,6 +22,8 @@ interface MarkdownRendererProps {
   lessonId?: string;
   lessonTitle?: string;
   courseTitle?: string;
+  courseTopic?: string;
+  courseLevel?: string;
   isOwner?: boolean;
   onContentUpdate?: (newContent: string) => void;
 }
@@ -28,6 +33,14 @@ interface TextSelection {
   startOffset: number;
   endOffset: number;
   rect: DOMRect;
+}
+
+/**
+ * Escape special regex characters in a string.
+ */
+function escapeRegExp(str: string): string {
+  // Escape special regex characters by prepending backslash
+  return str.replace(/[.*+?^${}()|[\]\\]/g, (match) => '\\' + match);
 }
 
 /**
@@ -94,9 +107,10 @@ function Paragraph({ children, ...props }: { children?: React.ReactNode }) {
 
 /**
  * Unified MarkdownRenderer component that handles all markdown rendering
- * with Mermaid diagram support, syntax highlighting, and consistent styling.
+ * with Mermaid diagram support, syntax highlighting, consistent styling,
+ * and InlineWiki term definitions.
  * 
- * Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 4.1, 5.1
+ * Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 4.1, 4.2, 4.3, 5.1, 5.3, 6.1, 6.3
  */
 export const MarkdownRenderer = memo(function MarkdownRenderer({
   content,
@@ -105,14 +119,14 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   onTextSelect,
   courseId,
   lessonId,
-  lessonTitle: _lessonTitle,
+  lessonTitle,
   courseTitle: _courseTitle,
+  courseTopic,
+  courseLevel,
   isOwner = false,
   onContentUpdate,
 }: MarkdownRendererProps) {
-  // Note: lessonTitle and courseTitle are available via props for future use
-  // but note saving only requires IDs (titles are joined from DB in Notes page)
-  void _lessonTitle;
+  // Note: courseTitle is available via props for future use
   void _courseTitle;
   const containerRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<TextSelection | null>(null);
@@ -121,20 +135,197 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   const [showInlineEditor, setShowInlineEditor] = useState(false);
   const [editorPosition, setEditorPosition] = useState<{ x: number; y: number } | null>(null);
   const [currentContent, setCurrentContent] = useState(content);
+  const [isGeneratingDefinition, setIsGeneratingDefinition] = useState(false);
   const { user } = useAuth();
+
+  // InlineWiki state - Requirements: 4.2, 5.1, 6.1
+  const [wikiEntries, setWikiEntries] = useState<InlineWikiEntry[]>([]);
+  const [isLoadingEntries, setIsLoadingEntries] = useState(false);
+  const [entriesError, setEntriesError] = useState<string | null>(null);
 
   // Keep currentContent in sync with content prop
   useEffect(() => {
     setCurrentContent(content);
   }, [content]);
 
+  /**
+   * Load InlineWiki entries for the lesson on mount.
+   * Requirements: 4.2 - Retrieve all InlineWiki_Entries associated with the lesson
+   */
+  useEffect(() => {
+    async function loadWikiEntries() {
+      if (!lessonId) return;
+
+      setIsLoadingEntries(true);
+      setEntriesError(null);
+
+      try {
+        const { data, error } = await supabase
+          .from('inline_wiki_entries')
+          .select('*')
+          .eq('lesson_id', lessonId)
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          throw error;
+        }
+
+        setWikiEntries(data || []);
+      } catch (error) {
+        console.error('Error loading InlineWiki entries:', error);
+        setEntriesError('Failed to load definitions');
+      } finally {
+        setIsLoadingEntries(false);
+      }
+    }
+
+    loadWikiEntries();
+  }, [lessonId]);
+
+
+  /**
+   * Extract surrounding paragraph context for a selection.
+   * Requirements: 3.1 - Send the selected term and surrounding paragraph to the AI service
+   */
+  const extractSurroundingContext = useCallback((selectedText: string): string => {
+    // Find the paragraph containing the selected text
+    const paragraphs = currentContent.split(/\n\n+/);
+    for (const paragraph of paragraphs) {
+      if (paragraph.includes(selectedText)) {
+        // Return the paragraph, limited to reasonable length
+        return paragraph.slice(0, 500);
+      }
+    }
+    // Fallback: return text around the selection
+    const index = currentContent.indexOf(selectedText);
+    if (index !== -1) {
+      const start = Math.max(0, index - 200);
+      const end = Math.min(currentContent.length, index + selectedText.length + 200);
+      return currentContent.slice(start, end);
+    }
+    return selectedText;
+  }, [currentContent]);
+
+  /**
+   * Handle deleting an InlineWiki entry.
+   * Requirements: 4.3 - Remove entry from database and update display immediately
+   */
+  const handleDeleteEntry = useCallback(async (entryId: string) => {
+    try {
+      const { error } = await supabase
+        .from('inline_wiki_entries')
+        .delete()
+        .eq('id', entryId);
+
+      if (error) {
+        throw error;
+      }
+
+      // Remove from local state immediately
+      setWikiEntries(prev => prev.filter(entry => entry.id !== entryId));
+      toast.success('Definition deleted');
+    } catch (error) {
+      console.error('Error deleting InlineWiki entry:', error);
+      toast.error('Failed to delete definition');
+    }
+  }, []);
+
+  /**
+   * Render content with InlineWiki terms wrapped.
+   * Requirements: 5.1, 5.3 - Match InlineWiki terms in content and apply styling
+   */
+  const renderContentWithWikiTerms = useCallback((text: string): React.ReactNode => {
+    if (wikiEntries.length === 0 || isLoadingEntries) {
+      return text;
+    }
+
+    // Sort entries by term length (longest first) to handle overlapping terms
+    const sortedEntries = [...wikiEntries].sort((a, b) => b.term.length - a.term.length);
+    
+    // Build a map of term positions to avoid overlapping matches
+    const matches: Array<{ start: number; end: number; entry: InlineWikiEntry }> = [];
+    
+    for (const entry of sortedEntries) {
+      // Case-insensitive search for the term
+      const regex = new RegExp(`\\b${escapeRegExp(entry.term)}\\b`, 'gi');
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+        const start = match.index;
+        const end = start + match[0].length;
+        
+        // Check if this position overlaps with existing matches
+        const overlaps = matches.some(
+          m => (start >= m.start && start < m.end) || (end > m.start && end <= m.end)
+        );
+        
+        if (!overlaps) {
+          matches.push({ start, end, entry });
+        }
+      }
+    }
+
+    if (matches.length === 0) {
+      return text;
+    }
+
+    // Sort matches by position
+    matches.sort((a, b) => a.start - b.start);
+
+    // Build the result with InlineWikiTerm components
+    const result: React.ReactNode[] = [];
+    let lastIndex = 0;
+
+    for (const match of matches) {
+      // Add text before this match
+      if (match.start > lastIndex) {
+        result.push(text.slice(lastIndex, match.start));
+      }
+
+      // Add the InlineWikiTerm component
+      const matchedText = text.slice(match.start, match.end);
+      result.push(
+        <InlineWikiTerm
+          key={`${match.entry.id}-${match.start}`}
+          term={matchedText}
+          definition={match.entry.definition}
+          entryId={match.entry.id}
+          isOwner={isOwner}
+          onDelete={handleDeleteEntry}
+        />
+      );
+
+      lastIndex = match.end;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      result.push(text.slice(lastIndex));
+    }
+
+    return result;
+  }, [wikiEntries, isLoadingEntries, isOwner, handleDeleteEntry]);
+
+
+  /**
+   * Custom text renderer that wraps InlineWiki terms.
+   * Requirements: 5.1, 5.3 - Match InlineWiki terms and apply styling
+   */
+  const TextRenderer = useCallback(({ children }: { children?: React.ReactNode }) => {
+    if (typeof children === 'string') {
+      return <>{renderContentWithWikiTerms(children)}</>;
+    }
+    return <>{children}</>;
+  }, [renderContentWithWikiTerms]);
+
   // Memoize the components configuration to prevent unnecessary re-renders
   const components: Components = useMemo(
     () => ({
       code: CodeBlock as Components['code'],
       p: Paragraph as Components['p'],
+      // Use custom text renderer to wrap InlineWiki terms
+      text: TextRenderer as unknown as Components['text'],
     }),
-    []
+    [TextRenderer]
   );
 
   /**
@@ -194,6 +385,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
     setShowInlineEditor(false);
     setEditorPosition(null);
   }, []);
+
 
   /**
    * Handle save note action from the selection menu.
@@ -265,8 +457,142 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   }, [selection, isOwner, handleCloseMenu]);
 
   /**
+   * Find the position of selected text in markdown content.
+   * Handles edge cases where the same text appears multiple times.
+   * Requirements: 1.1 - Ensure selected text is correctly replaced in markdown content
+   */
+  const findTextPositionInContent = useCallback((
+    content: string,
+    selectedText: string,
+    selectionRect: DOMRect
+  ): { start: number; end: number } | null => {
+    // Find all occurrences of the selected text in the content
+    const occurrences: number[] = [];
+    let searchIndex = 0;
+    
+    while (searchIndex < content.length) {
+      const foundIndex = content.indexOf(selectedText, searchIndex);
+      if (foundIndex === -1) break;
+      occurrences.push(foundIndex);
+      searchIndex = foundIndex + 1;
+    }
+
+    if (occurrences.length === 0) {
+      return null;
+    }
+
+    // If only one occurrence, use it directly
+    if (occurrences.length === 1) {
+      return {
+        start: occurrences[0],
+        end: occurrences[0] + selectedText.length,
+      };
+    }
+
+    // Multiple occurrences: try to find the best match based on context
+    // Use the selection's vertical position to help disambiguate
+    // The selection closer to the top of the document is likely earlier in the content
+    
+    // Get all text nodes in the container and their positions
+    if (containerRef.current) {
+      const walker = document.createTreeWalker(
+        containerRef.current,
+        NodeFilter.SHOW_TEXT,
+        null
+      );
+      
+      let node: Text | null;
+      let charCount = 0;
+      const textNodePositions: Array<{ start: number; end: number; rect: DOMRect | null }> = [];
+      
+      while ((node = walker.nextNode() as Text | null)) {
+        const nodeText = node.textContent || '';
+        const nodeStart = charCount;
+        charCount += nodeText.length;
+        
+        // Check if this node contains our selected text
+        const indexInNode = nodeText.indexOf(selectedText);
+        if (indexInNode !== -1) {
+          // Get the bounding rect for this text node
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          const rect = range.getBoundingClientRect();
+          
+          textNodePositions.push({
+            start: nodeStart + indexInNode,
+            end: nodeStart + indexInNode + selectedText.length,
+            rect,
+          });
+        }
+      }
+      
+      // Find the text node position closest to the selection rect
+      if (textNodePositions.length > 0) {
+        let bestMatch = textNodePositions[0];
+        let bestDistance = Math.abs((bestMatch.rect?.top || 0) - selectionRect.top);
+        
+        for (const pos of textNodePositions) {
+          if (pos.rect) {
+            const distance = Math.abs(pos.rect.top - selectionRect.top);
+            if (distance < bestDistance) {
+              bestDistance = distance;
+              bestMatch = pos;
+            }
+          }
+        }
+        
+        // Map the DOM position back to markdown content position
+        // Since rendered text may differ from markdown, find the closest occurrence
+        let closestOccurrence = occurrences[0];
+        let minDiff = Infinity;
+        
+        for (const occurrence of occurrences) {
+          // Estimate position ratio in content
+          const ratio = occurrence / content.length;
+          const estimatedDomPos = ratio * charCount;
+          const diff = Math.abs(estimatedDomPos - bestMatch.start);
+          
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestOccurrence = occurrence;
+          }
+        }
+        
+        return {
+          start: closestOccurrence,
+          end: closestOccurrence + selectedText.length,
+        };
+      }
+    }
+
+    // Fallback: use the first occurrence
+    return {
+      start: occurrences[0],
+      end: occurrences[0] + selectedText.length,
+    };
+  }, []);
+
+  /**
+   * Replace text at a specific position in the content.
+   * Requirements: 1.1 - Handle edge cases for text at start/end of content
+   */
+  const replaceTextAtPosition = useCallback((
+    content: string,
+    start: number,
+    end: number,
+    replacement: string
+  ): string => {
+    // Handle edge case: start at beginning of content
+    const before = start > 0 ? content.slice(0, start) : '';
+    // Handle edge case: end at end of content
+    const after = end < content.length ? content.slice(end) : '';
+    
+    return before + replacement + after;
+  }, []);
+
+  /**
    * Handle inline edit save.
-   * Requirements: 3.3 - Save modified content to database and update display immediately
+   * Requirements: 1.1, 1.2, 1.3 - Save modified content to database and update display immediately
    */
   const handleInlineEditSave = useCallback(async (newText: string) => {
     if (!selection || !lessonId) {
@@ -275,12 +601,27 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
       return;
     }
 
-    // Calculate new markdown content by replacing the selected text
     const originalText = selection.text;
-    const newContent = currentContent.replace(originalText, newText);
+    
+    // Find the exact position of the selected text in the markdown content
+    const position = findTextPositionInContent(currentContent, originalText, selection.rect);
+    
+    if (!position) {
+      toast.error('Could not find the selected text in the content');
+      handleCloseMenu();
+      return;
+    }
+
+    // Replace the text at the specific position
+    const newContent = replaceTextAtPosition(
+      currentContent,
+      position.start,
+      position.end,
+      newText
+    );
 
     try {
-      // Update the lesson in the database
+      // Update the lesson in the database (Requirement 1.2)
       const { error } = await supabase
         .from('lessons')
         .update({ 
@@ -294,7 +635,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
         throw error;
       }
 
-      // Update local state
+      // Update local state immediately (Requirement 1.3)
       setCurrentContent(newContent);
       
       // Notify parent component of the content update
@@ -304,11 +645,11 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
       handleCloseMenu();
     } catch (error) {
       console.error('Error saving edit:', error);
-      // Requirement 3.5: Display error notification and preserve original content
+      // Requirement 1.4: Display error notification and preserve original content
       toast.error('Failed to save edit. Please try again.');
       // Don't close editor on error to allow retry
     }
-  }, [selection, lessonId, currentContent, onContentUpdate, handleCloseMenu]);
+  }, [selection, lessonId, currentContent, onContentUpdate, handleCloseMenu, findTextPositionInContent, replaceTextAtPosition]);
 
   /**
    * Handle inline editor cancel
@@ -316,6 +657,67 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   const handleInlineEditCancel = useCallback(() => {
     handleCloseMenu();
   }, [handleCloseMenu]);
+
+
+  /**
+   * Handle add definition action from the selection menu.
+   * Requirements: 2.1, 2.2, 2.3, 3.1, 3.5 - Initiate definition generation for selected text
+   */
+  const handleAddDefinition = useCallback(async () => {
+    if (!selection || !lessonId) {
+      toast.error('Cannot add definition: missing required context');
+      return;
+    }
+
+    // Check if term already has a definition
+    const existingEntry = wikiEntries.find(
+      entry => entry.term.toLowerCase() === selection.text.toLowerCase()
+    );
+    if (existingEntry) {
+      toast.error('This term already has a definition');
+      handleCloseMenu();
+      return;
+    }
+
+    setIsGeneratingDefinition(true);
+    
+    try {
+      // Extract surrounding context for the AI
+      const surroundingContext = extractSurroundingContext(selection.text);
+
+      // Call the generateDefinition API
+      const result = await generateDefinition({
+        lessonId,
+        term: selection.text,
+        surroundingContext,
+        courseContext: {
+          topic: courseTopic || 'General',
+          level: courseLevel || 'intermediate',
+          lessonTitle: lessonTitle || 'Lesson',
+        },
+      });
+
+      // Add the new entry to local state
+      const newEntry: InlineWikiEntry = {
+        id: result.entryId,
+        lesson_id: lessonId,
+        user_id: user?.id || '',
+        term: result.term,
+        definition: result.definition,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      setWikiEntries(prev => [...prev, newEntry]);
+      toast.success('Definition added!');
+      handleCloseMenu();
+    } catch (error) {
+      console.error('Error generating definition:', error);
+      toast.error('Failed to generate definition. Please try again.');
+    } finally {
+      setIsGeneratingDefinition(false);
+    }
+  }, [selection, lessonId, wikiEntries, extractSurroundingContext, courseTopic, courseLevel, lessonTitle, user?.id, handleCloseMenu]);
 
   // Clean up selection when component unmounts or content changes
   useEffect(() => {
@@ -333,6 +735,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
     );
   }
 
+
   return (
     <>
       <div 
@@ -340,6 +743,12 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
         className={`prose prose-lg max-w-none markdown-content ${className}`}
         onMouseUp={handleMouseUp}
       >
+        {/* Show subtle error indicator if entries failed to load */}
+        {entriesError && (
+          <div className="text-xs text-accent-red/70 mb-2">
+            {entriesError}
+          </div>
+        )}
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeHighlight]}
@@ -349,7 +758,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
         </ReactMarkdown>
       </div>
 
-      {/* Selection Overlay Menu - Requirements: 3.1, 4.1, 5.1 */}
+      {/* Selection Overlay Menu - Requirements: 2.1, 2.2, 2.3, 3.1, 4.1, 5.1 */}
       {selection && menuPosition && !showInlineEditor && (
         <SelectionOverlayMenu
           selection={selection}
@@ -357,7 +766,9 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
           isOwner={isOwner}
           onSaveNote={handleSaveNote}
           onEdit={handleEdit}
+          onAddDefinition={handleAddDefinition}
           onClose={handleCloseMenu}
+          isGeneratingDefinition={isGeneratingDefinition}
         />
       )}
 

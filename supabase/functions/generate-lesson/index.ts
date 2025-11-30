@@ -169,16 +169,17 @@ Make it engaging, practical, and appropriate for ${courseContext.level} level le
         },
       }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating lesson:', error);
 
-    const errorMessage = error?.message || 'Failed to generate lesson content';
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate lesson content';
+    const errorStack = error instanceof Error ? error.stack?.substring(0, 500) : undefined;
     const statusCode = errorMessage.includes('Rate limit') ? 429 : 500;
 
     return new Response(
       JSON.stringify({
         error: errorMessage,
-        details: error?.stack?.substring(0, 500)
+        details: errorStack
       }),
       {
         status: statusCode,

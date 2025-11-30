@@ -250,3 +250,57 @@ export async function generateCourseAudio(data: {
 
   return response.json();
 }
+
+export interface GenerateDefinitionParams {
+  lessonId: string;
+  term: string;
+  surroundingContext: string;
+  courseContext: {
+    topic: string;
+    level: string;
+    lessonTitle: string;
+  };
+}
+
+export interface GenerateDefinitionResponse {
+  entryId: string;
+  term: string;
+  definition: string;
+}
+
+export async function generateDefinition(
+  data: GenerateDefinitionParams
+): Promise<GenerateDefinitionResponse> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-definition`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    let errorMessage = 'Failed to generate definition';
+    try {
+      const error = await response.json();
+      errorMessage = error.error || errorMessage;
+    } catch {
+      try {
+        const text = await response.text();
+        errorMessage = text || `Server error (${response.status})`;
+      } catch {
+        errorMessage = `Network error (${response.status})`;
+      }
+    }
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}

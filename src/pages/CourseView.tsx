@@ -150,7 +150,8 @@ export function CourseView() {
       navigate(location.pathname, { replace: true, state: null });
     }
     setInitialNavigationHandled(true);
-  }, [loading, lessons, location.state, location.pathname, navigate, initialNavigationHandled]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, lessons, location.pathname, navigate, initialNavigationHandled]);
 
   // Mark lesson as viewed when current lesson changes
   useEffect(() => {

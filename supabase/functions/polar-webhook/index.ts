@@ -7,9 +7,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, webhook-signature',
 };
 
+interface PolarSubscriptionData {
+  id: string;
+  product_id: string;
+  status: string;
+  current_period_end: string;
+  metadata?: Record<string, string>;
+}
+
 interface PolarEvent {
   type: string;
-  data: any;
+  data: PolarSubscriptionData;
   id: string;
 }
 
@@ -109,24 +117,24 @@ Deno.serve(async (req: Request) => {
       case 'subscription.created':
       case 'subscription.updated':
       case 'subscription.active': {
-        const subscription = event.data;
-        const productId = subscription.product_id;
+        const subscriptionData = event.data;
+        const productId = subscriptionData.product_id;
         const isAudioAddon = metadata.is_audio_addon === 'true';
         const billingCycle = metadata.billing_cycle || 'monthly';
 
-        const updates: any = {};
+        const updates: Record<string, string | boolean | null> = {};
 
         if (isAudioAddon) {
           updates.audio_addon_enabled = true;
-          updates.audio_addon_subscription_id = subscription.id;
-          updates.audio_addon_expires_at = subscription.current_period_end;
+          updates.audio_addon_subscription_id = subscriptionData.id;
+          updates.audio_addon_expires_at = subscriptionData.current_period_end;
           if (!metadata.trial_used) {
             updates.audio_addon_trial_used = true;
           }
         } else {
-          updates.polar_subscription_id = subscription.id;
-          updates.subscription_status = subscription.status;
-          updates.subscription_ends_at = subscription.current_period_end;
+          updates.polar_subscription_id = subscriptionData.id;
+          updates.subscription_status = subscriptionData.status;
+          updates.subscription_ends_at = subscriptionData.current_period_end;
           updates.billing_cycle = billingCycle;
 
           const planType = PRODUCT_TO_PLAN_MAP[productId];
@@ -147,7 +155,6 @@ Deno.serve(async (req: Request) => {
       }
 
       case 'subscription.canceled': {
-        const subscription = event.data;
         const isAudioAddon = metadata.is_audio_addon === 'true';
 
         if (isAudioAddon) {
@@ -170,7 +177,7 @@ Deno.serve(async (req: Request) => {
 
       case 'subscription.revoked': {
         const isAudioAddon = metadata.is_audio_addon === 'true';
-        const updates: any = {};
+        const updates: Record<string, string | boolean | null> = {};
 
         if (isAudioAddon) {
           updates.audio_addon_enabled = false;
@@ -207,13 +214,15 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Webhook error:', error);
-    console.error('Error stack:', error.stack);
+    const errorMessage = error instanceof Error ? error.message : 'Webhook processing failed';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('Error stack:', errorStack);
     return new Response(
       JSON.stringify({
-        error: error.message || 'Webhook processing failed',
-        details: error.stack
+        error: errorMessage,
+        details: errorStack
       }),
       {
         status: 500,

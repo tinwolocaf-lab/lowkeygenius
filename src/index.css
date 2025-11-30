@@ -234,4 +234,25 @@
   .markdown-content em {
     @apply italic;
   }
+
+  /* InlineWiki term styling - Requirements 5.1, 5.2 */
+  .inline-wiki-term {
+    @apply cursor-pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: var(--color-primary);
+    text-underline-offset: 3px;
+    transition: text-decoration-color 0.2s ease;
+  }
+
+  .inline-wiki-term:hover {
+    text-decoration-color: var(--color-primary-dark);
+    background-color: color-mix(in srgb, var(--color-primary-light) 20%, transparent);
+  }
+
+  .inline-wiki-term:focus {
+    @apply outline-none;
+    background-color: color-mix(in srgb, var(--color-primary-light) 30%, transparent);
+    border-radius: 2px;
+  }
 }

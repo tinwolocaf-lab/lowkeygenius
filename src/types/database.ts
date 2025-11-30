@@ -436,6 +436,36 @@ export type Database = {
         }
         Relationships: []
       }
+      inline_wiki_entries: {
+        Row: {
+          id: string
+          lesson_id: string
+          user_id: string
+          term: string
+          definition: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          lesson_id: string
+          user_id: string
+          term: string
+          definition: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          lesson_id?: string
+          user_id?: string
+          term?: string
+          definition?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -459,3 +489,4 @@ export type Lesson = Database['public']['Tables']['lessons']['Row']
 export type UserProgress = Database['public']['Tables']['user_progress']['Row']
 export type Note = Database['public']['Tables']['notes']['Row']
 export type AudioGenerationJob = Database['public']['Tables']['audio_generation_jobs']['Row']
+export type InlineWikiEntry = Database['public']['Tables']['inline_wiki_entries']['Row']

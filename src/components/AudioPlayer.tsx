@@ -49,6 +49,22 @@ export function AudioPlayer({ lessons, currentLessonId, onLessonChange }: AudioP
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentLessonId, currentLesson?.audio_url]);
 
+  const handleNext = useCallback(() => {
+    const nextLesson = lessonsWithAudio[lessonsWithAudio.findIndex((l) => l.id === currentLessonId) + 1];
+    if (nextLesson) {
+      onLessonChange(nextLesson.id);
+      setIsPlaying(true);
+    }
+  }, [lessonsWithAudio, currentLessonId, onLessonChange]);
+
+  const handlePause = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      setIsPlaying(false);
+    }
+  }, []);
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -105,7 +121,7 @@ export function AudioPlayer({ lessons, currentLessonId, onLessonChange }: AudioP
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [sleepTimer]);
+  }, [sleepTimer, handlePause]);
 
   const handlePlayPause = () => {
     const audio = audioRef.current;
@@ -118,22 +134,6 @@ export function AudioPlayer({ lessons, currentLessonId, onLessonChange }: AudioP
     }
     setIsPlaying(!isPlaying);
   };
-
-  const handlePause = () => {
-    const audio = audioRef.current;
-    if (audio) {
-      audio.pause();
-      setIsPlaying(false);
-    }
-  };
-
-  const handleNext = useCallback(() => {
-    const nextLesson = lessonsWithAudio[lessonsWithAudio.findIndex((l) => l.id === currentLessonId) + 1];
-    if (nextLesson) {
-      onLessonChange(nextLesson.id);
-      setIsPlaying(true);
-    }
-  }, [lessonsWithAudio, currentLessonId, onLessonChange]);
 
   const handlePrevious = () => {
     const audio = audioRef.current;

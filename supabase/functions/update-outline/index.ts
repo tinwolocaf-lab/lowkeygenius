@@ -100,13 +100,16 @@ Deno.serve(async (req: Request) => {
         },
       }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating outline:', error);
+
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update outline';
+    const errorStack = error instanceof Error ? error.stack?.substring(0, 500) : undefined;
 
     return new Response(
       JSON.stringify({
-        error: error?.message || 'Failed to update outline',
-        details: error?.stack?.substring(0, 500)
+        error: errorMessage,
+        details: errorStack
       }),
       {
         status: 500,

@@ -158,7 +158,7 @@ Make the course comprehensive, practical, and tailored to the learner's backgrou
     try {
       const cleanedText = generatedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       outline = JSON.parse(cleanedText);
-    } catch (parseError) {
+    } catch {
       console.error('Failed to parse Gemini response:', generatedText);
       throw new Error('Failed to parse course outline from AI response');
     }
@@ -172,16 +172,17 @@ Make the course comprehensive, practical, and tailored to the learner's backgrou
         },
       }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating outline:', error);
 
-    const errorMessage = error?.message || 'Failed to generate course outline';
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate course outline';
+    const errorStack = error instanceof Error ? error.stack?.substring(0, 500) : undefined;
     const statusCode = errorMessage.includes('Rate limit') ? 429 : 500;
 
     return new Response(
       JSON.stringify({
         error: errorMessage,
-        details: error?.stack?.substring(0, 500)
+        details: errorStack
       }),
       {
         status: statusCode,

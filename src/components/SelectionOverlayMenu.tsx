@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { Bookmark, Edit3 } from 'lucide-react';
+import { Bookmark, Edit3, BookOpen, Loader2 } from 'lucide-react';
 
 interface TextSelection {
   text: string;
@@ -14,7 +14,9 @@ interface SelectionOverlayMenuProps {
   isOwner: boolean;
   onSaveNote: () => void;
   onEdit: () => void;
+  onAddDefinition: () => void;
   onClose: () => void;
+  isGeneratingDefinition?: boolean;
 }
 
 /**
@@ -69,13 +71,18 @@ function calculateMenuPosition(
  * - 5.3: Position to avoid overlapping with viewport edges
  * - 5.4: Close on scroll
  */
+/** Maximum character length for text that can have a definition added */
+const MAX_DEFINITION_SELECTION_LENGTH = 100;
+
 export function SelectionOverlayMenu({
   selection,
   position,
   isOwner,
   onSaveNote,
   onEdit,
+  onAddDefinition,
   onClose,
+  isGeneratingDefinition = false,
 }: SelectionOverlayMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const adjustedPositionRef = useRef<{ x: number; y: number }>(position);
@@ -140,6 +147,9 @@ export function SelectionOverlayMenu({
     return null;
   }
 
+  // Check if selection exceeds maximum length for definition (Requirement 2.4)
+  const isSelectionTooLong = selection.text.length > MAX_DEFINITION_SELECTION_LENGTH;
+
   return (
     <div
       ref={menuRef}
@@ -158,7 +168,8 @@ export function SelectionOverlayMenu({
             e.stopPropagation();
             onSaveNote();
           }}
-          className="flex items-center gap-2 px-4 py-3 hover:bg-primary-light/20 transition-colors text-neutral-text font-body text-sm font-semibold"
+          disabled={isGeneratingDefinition}
+          className="flex items-center gap-2 px-4 py-3 hover:bg-primary-light/20 transition-colors text-neutral-text font-body text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           role="menuitem"
           aria-label="Save as Note"
         >
@@ -175,7 +186,8 @@ export function SelectionOverlayMenu({
                 e.stopPropagation();
                 onEdit();
               }}
-              className="flex items-center gap-2 px-4 py-3 hover:bg-primary-light/20 transition-colors text-neutral-text font-body text-sm font-semibold"
+              disabled={isGeneratingDefinition}
+              className="flex items-center gap-2 px-4 py-3 hover:bg-primary-light/20 transition-colors text-neutral-text font-body text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               role="menuitem"
               aria-label="Edit"
             >
@@ -184,6 +196,38 @@ export function SelectionOverlayMenu({
             </button>
           </>
         )}
+
+        {/* Add Definition button - shown for all users (Requirements 2.1, 2.2, 2.3, 2.4) */}
+        <div className="w-px bg-neutral-border" />
+        <div className="relative group">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isSelectionTooLong && !isGeneratingDefinition) {
+                onAddDefinition();
+              }
+            }}
+            disabled={isSelectionTooLong || isGeneratingDefinition}
+            className="flex items-center gap-2 px-4 py-3 hover:bg-primary-light/20 transition-colors text-neutral-text font-body text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            role="menuitem"
+            aria-label={isSelectionTooLong ? 'Selection too long for definition' : 'Add Definition'}
+            aria-disabled={isSelectionTooLong || isGeneratingDefinition}
+          >
+            {isGeneratingDefinition ? (
+              <Loader2 className="w-4 h-4 text-primary animate-spin" />
+            ) : (
+              <BookOpen className="w-4 h-4 text-primary" />
+            )}
+            <span>{isGeneratingDefinition ? 'Generating...' : 'Add Definition'}</span>
+          </button>
+          {/* Tooltip for disabled state when selection is too long (Requirement 2.4) */}
+          {isSelectionTooLong && !isGeneratingDefinition && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-neutral-text text-neutral-bg text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Selection must be {MAX_DEFINITION_SELECTION_LENGTH} characters or less
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-neutral-text" />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
