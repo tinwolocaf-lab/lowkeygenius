@@ -1,13 +1,32 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Home, BookOpen, StickyNote, GraduationCap, Plus, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { Home, BookOpen, StickyNote, GraduationCap, ChevronLeft, ChevronRight, User, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
+        setShowAccountMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   const navItems = [
     { icon: Home, label: 'Dashboard', path: '/dashboard' },
@@ -108,12 +127,51 @@ export function Layout() {
             </div>
             <h1 className="font-display text-xl font-bold text-primary">LearnSelfAI</h1>
           </div>
-          <button
-            onClick={() => navigate('/onboarding')}
-            className="bg-accent-green text-white p-3 rounded-xl active:scale-95 active:translate-y-1 transition-all shadow-button"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
+          <div className="relative" ref={accountMenuRef}>
+            <button
+              onClick={() => setShowAccountMenu(!showAccountMenu)}
+              className={`w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-all ${
+                location.pathname === '/settings' || showAccountMenu ? 'bg-primary' : 'bg-primary-light'
+              }`}
+            >
+              {profile?.full_name ? (
+                <span className={`text-sm font-bold ${location.pathname === '/settings' || showAccountMenu ? 'text-white' : 'text-primary'}`}>
+                  {profile.full_name.charAt(0).toUpperCase()}
+                </span>
+              ) : (
+                <User className={`w-5 h-5 ${location.pathname === '/settings' || showAccountMenu ? 'text-white' : 'text-primary'}`} />
+              )}
+            </button>
+            
+            {showAccountMenu && (
+              <div className="absolute right-0 top-12 w-48 bg-neutral-bg border border-neutral-border rounded-xl shadow-tile z-50 overflow-hidden">
+                <div className="p-3 border-b border-neutral-border">
+                  <p className="font-body font-semibold text-neutral-text text-sm truncate">{profile?.full_name || 'User'}</p>
+                  <p className="font-body text-xs text-neutral-text-muted truncate">{profile?.email}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowAccountMenu(false);
+                    navigate('/settings');
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-neutral-text hover:bg-neutral-surface transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span className="font-body text-sm">Settings</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAccountMenu(false);
+                    setShowLogoutConfirm(true);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-accent-red hover:bg-accent-red/10 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="font-body text-sm">Log Out</span>
+                </button>
+              </div>
+            )}
+          </div>
         </header>
 
         <main className="flex-1 overflow-y-auto">
@@ -138,26 +196,40 @@ export function Layout() {
                 </button>
               );
             })}
-            <button
-              onClick={() => navigate('/settings')}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all active:scale-95 ${
-                location.pathname === '/settings' ? 'text-primary bg-primary-light/30' : 'text-neutral-text-muted hover:bg-neutral-surface'
-              }`}
-            >
-              <div className="w-6 h-6 rounded-full bg-primary-light flex items-center justify-center">
-                {profile?.full_name ? (
-                  <span className="text-xs font-bold text-primary">
-                    {profile.full_name.charAt(0).toUpperCase()}
-                  </span>
-                ) : (
-                  <User className="w-4 h-4 text-primary" />
-                )}
-              </div>
-              <span className="text-xs font-body font-bold">Account</span>
-            </button>
           </div>
         </nav>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-neutral-bg rounded-2xl shadow-tile max-w-sm w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-accent-red/10 flex items-center justify-center">
+                <LogOut className="w-6 h-6 text-accent-red" />
+              </div>
+              <div>
+                <h3 className="font-display text-lg font-bold text-neutral-text">Log Out</h3>
+                <p className="font-body text-sm text-neutral-text-muted">Are you sure you want to log out?</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 px-4 py-3 rounded-xl border-2 border-neutral-border font-body font-bold text-neutral-text hover:bg-neutral-surface transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 px-4 py-3 rounded-xl bg-accent-red font-body font-bold text-white hover:brightness-110 transition-all"
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
