@@ -64,10 +64,6 @@ export function AnimatedCourseDemo() {
   const [messageIndex, setMessageIndex] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // useEffect(() => {
-  //   messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  // }, [messages]);
-
   useEffect(() => {
     if (phase === 'intro') {
       const timer = setTimeout(() => {
