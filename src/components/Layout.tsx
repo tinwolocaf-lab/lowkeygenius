@@ -47,7 +47,7 @@ export function Layout() {
                   }`}
                   title={sidebarCollapsed ? item.label : undefined}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon style={{ width: '20px', height: '20px', flexShrink: 0 }} />
                   {!sidebarCollapsed && item.label}
                 </button>
               );
@@ -64,13 +64,13 @@ export function Layout() {
               }`}
               title={sidebarCollapsed ? 'Account' : undefined}
             >
-              <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+              <div style={{ width: '40px', height: '40px', flexShrink: 0 }} className="rounded-full bg-primary-light flex items-center justify-center">
                 {profile?.full_name ? (
                   <span className="text-base font-bold text-primary">
                     {profile.full_name.charAt(0).toUpperCase()}
                   </span>
                 ) : (
-                  <User className="w-5 h-5 text-primary" />
+                  <User style={{ width: '20px', height: '20px' }} className="text-primary" />
                 )}
               </div>
               {!sidebarCollapsed && (
