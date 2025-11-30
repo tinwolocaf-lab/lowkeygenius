@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useState, useCallback, useEffect } from 'react';
+import React, { memo, useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -72,6 +72,31 @@ function CodeBlock({
   );
 }
 
+/**
+ * Custom paragraph component that avoids invalid DOM nesting.
+ * If children contain block-level elements (pre, div, etc.), render as div instead of p.
+ */
+function Paragraph({ children, ...props }: { children?: React.ReactNode }) {
+  const hasBlockElement = (nodes: React.ReactNode): boolean => {
+    return React.Children.toArray(nodes).some((child) => {
+      if (!React.isValidElement(child)) return false;
+      const type = child.type;
+      if (typeof type === 'string') {
+        return ['pre', 'div', 'table', 'ul', 'ol', 'blockquote', 'figure'].includes(type);
+      }
+      // Check for our custom CodeBlock which renders pre
+      if (type === CodeBlock) return true;
+      return false;
+    });
+  };
+
+  if (hasBlockElement(children)) {
+    return <div {...props}>{children}</div>;
+  }
+
+  return <p {...props}>{children}</p>;
+}
+
 
 /**
  * Unified MarkdownRenderer component that handles all markdown rendering
@@ -113,6 +138,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   const components: Components = useMemo(
     () => ({
       code: CodeBlock as Components['code'],
+      p: Paragraph as Components['p'],
     }),
     []
   );

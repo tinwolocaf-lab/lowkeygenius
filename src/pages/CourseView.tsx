@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ChevronRight, ChevronLeft, CheckCircle, Circle, BookOpen, Menu, X, Headphones, Volume2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ChevronLeft, CheckCircle, Circle, BookOpen, Menu, X, Headphones, Volume2, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { CourseAudioPlayer } from '../components/CourseAudioPlayer';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -38,6 +38,7 @@ interface Course {
 interface Progress {
   lesson_id: string;
   completed: boolean;
+  last_viewed_at: string | null;
 }
 
 interface LocationState {
@@ -54,7 +55,7 @@ export function CourseView() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [progress, setProgress] = useState<Progress[]>([]);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Collapsed by default
   const [loading, setLoading] = useState(true);
   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
   const [initialNavigationHandled, setInitialNavigationHandled] = useState(false);
@@ -69,7 +70,7 @@ export function CourseView() {
       const [courseResult, lessonsResult, progressResult] = await Promise.all([
         supabase.from('courses').select('*').eq('id', courseId).maybeSingle(),
         supabase.from('lessons').select('*').eq('course_id', courseId).order('module_index').order('lesson_index'),
-        supabase.from('user_progress').select('*').eq('course_id', courseId).eq('user_id', user.id),
+        supabase.from('user_progress').select('lesson_id, completed, last_viewed_at').eq('course_id', courseId).eq('user_id', user.id),
       ]);
 
       if (courseResult.error || !courseResult.data) {
@@ -82,8 +83,25 @@ export function CourseView() {
         ...courseResult.data,
         outline_json: courseResult.data.outline_json as CourseOutlineJson | null,
       });
-      setLessons(lessonsResult.data || []);
-      setProgress(progressResult.data || []);
+      const loadedLessons = lessonsResult.data || [];
+      setLessons(loadedLessons);
+      const loadedProgress = progressResult.data || [];
+      setProgress(loadedProgress);
+
+      // Restore last viewed lesson position (only if no navigation state)
+      const state = location.state as LocationState | null;
+      if (!state?.lessonId && loadedProgress.length > 0 && loadedLessons.length > 0) {
+        const lastViewed = loadedProgress
+          .filter(p => p.last_viewed_at)
+          .sort((a, b) => new Date(b.last_viewed_at!).getTime() - new Date(a.last_viewed_at!).getTime())[0];
+        
+        if (lastViewed) {
+          const lastViewedIndex = loadedLessons.findIndex(l => l.id === lastViewed.lesson_id);
+          if (lastViewedIndex !== -1) {
+            setCurrentLessonIndex(lastViewedIndex);
+          }
+        }
+      }
     } catch (error) {
       console.error('Unexpected error loading course:', error);
       navigate('/courses');
@@ -175,7 +193,7 @@ export function CourseView() {
     if (!error) {
       setProgress(prev => {
         const updated = prev.filter(p => p.lesson_id !== currentLesson.id);
-        return [...updated, { lesson_id: currentLesson.id, completed: true }];
+        return [...updated, { lesson_id: currentLesson.id, completed: true, last_viewed_at: new Date().toISOString() }];
       });
     }
   };
@@ -232,9 +250,9 @@ export function CourseView() {
     <div className="min-h-screen bg-neutral-surface flex">
       {/* Sidebar */}
       <aside
-        className={`fixed md:sticky top-0 left-0 h-screen bg-neutral-bg border-r border-neutral-border shadow-tile transition-transform z-20 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        } w-80 overflow-y-auto`}
+        className={`fixed md:sticky top-0 left-0 h-screen bg-neutral-bg border-r border-neutral-border shadow-tile transition-all duration-300 z-20 ${
+          sidebarOpen ? 'translate-x-0 w-80' : '-translate-x-full md:translate-x-0 md:w-0 md:overflow-hidden'
+        } overflow-y-auto`}
       >
         <div className="p-4 border-b-2 border-neutral-border">
           <button
@@ -320,23 +338,35 @@ export function CourseView() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col">
-        {/* Mobile Menu Button */}
-        <div className="md:hidden bg-neutral-bg p-4 flex items-center justify-between border-b-2 border-neutral-border">
+      <main className="flex-1 flex flex-col min-w-0">
+        {/* Header with Menu Button */}
+        <div className="bg-neutral-bg p-4 flex items-center justify-between border-b-2 border-neutral-border">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 hover:bg-neutral-surface rounded-lg"
+            title={sidebarOpen ? 'Hide lesson list' : 'Show lesson list'}
           >
-            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {sidebarOpen ? (
+              <>
+                <X className="w-5 h-5 md:hidden" />
+                <PanelLeftClose className="w-5 h-5 hidden md:block" />
+              </>
+            ) : (
+              <>
+                <Menu className="w-5 h-5 md:hidden" />
+                <PanelLeft className="w-5 h-5 hidden md:block" />
+              </>
+            )}
           </button>
           <span className="font-body text-sm font-semibold text-neutral-text">
             Lesson {currentLessonIndex + 1} of {lessons.length}
           </span>
+          <div className="w-9" /> {/* Spacer for centering */}
         </div>
 
         {/* Lesson Content */}
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto p-6 md:p-12">
+          <div className="w-full max-w-4xl mx-auto px-4 py-6 md:p-12">
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
                 <span className="px-3 py-1 bg-primary-light text-primary rounded-full font-body font-semibold text-sm">
