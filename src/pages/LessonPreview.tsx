@@ -8,6 +8,7 @@ import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Modal } from '../components/Modal';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 interface Lesson {
   id: string;
@@ -49,6 +50,8 @@ export function LessonPreview() {
   const [showRegenerateModal, setShowRegenerateModal] = useState(false);
   const [regenerateInstructions, setRegenerateInstructions] = useState('');
   const [publishing, setPublishing] = useState(false);
+  const [showApproveAllConfirm, setShowApproveAllConfirm] = useState(false);
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!courseId) return;
@@ -187,8 +190,6 @@ export function LessonPreview() {
   };
 
   const handleApproveAll = async () => {
-    if (!confirm('Approve all lessons? This will mark all lessons as ready for publishing.')) return;
-
     try {
       if (!courseId) return;
       const { error } = await supabase
@@ -199,6 +200,7 @@ export function LessonPreview() {
       if (error) throw error;
 
       setLessons((prev) => prev.map((l) => ({ ...l, lesson_status: 'approved' })));
+      setShowApproveAllConfirm(false);
     } catch (error) {
       console.error('Error approving all lessons:', error);
       toast.error('Failed to approve all lessons. Please try again.');
@@ -206,13 +208,8 @@ export function LessonPreview() {
   };
 
   const handlePublishCourse = async () => {
-    const unapprovedCount = lessons.filter((l) => l.lesson_status !== 'approved').length;
-
-    if (unapprovedCount > 0) {
-      if (!confirm(`${unapprovedCount} lesson(s) are not approved yet. Publish anyway?`)) return;
-    }
-
     setPublishing(true);
+    setShowPublishConfirm(false);
     try {
       if (!courseId) return;
       const { error } = await supabase
@@ -229,6 +226,15 @@ export function LessonPreview() {
       toast.error('Failed to publish course. Please try again.');
     } finally {
       setPublishing(false);
+    }
+  };
+
+  const handlePublishClick = () => {
+    const unapprovedCount = lessons.filter((l) => l.lesson_status !== 'approved').length;
+    if (unapprovedCount > 0) {
+      setShowPublishConfirm(true);
+    } else {
+      handlePublishCourse();
     }
   };
 
@@ -346,10 +352,10 @@ export function LessonPreview() {
         </div>
 
         <div className="p-4 border-t-2 border-neutral-border sticky bottom-0 bg-neutral-bg">
-          <Button onClick={handleApproveAll} variant="secondary" className="w-full mb-2">
+          <Button onClick={() => setShowApproveAllConfirm(true)} variant="secondary" className="w-full mb-2">
             Approve All Lessons
           </Button>
-          <Button onClick={handlePublishCourse} className="w-full" disabled={publishing}>
+          <Button onClick={handlePublishClick} className="w-full" disabled={publishing}>
             {publishing ? 'Publishing...' : 'Publish Course'}
           </Button>
         </div>
@@ -501,6 +507,26 @@ export function LessonPreview() {
           </div>
         </Modal>
       )}
+
+      <ConfirmDialog
+        isOpen={showApproveAllConfirm}
+        title="Approve All Lessons"
+        message="This will mark all lessons as ready for publishing. Continue?"
+        confirmLabel="Approve All"
+        variant="success"
+        onConfirm={handleApproveAll}
+        onCancel={() => setShowApproveAllConfirm(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={showPublishConfirm}
+        title="Publish Course"
+        message={`${lessons.filter((l) => l.lesson_status !== 'approved').length} lesson(s) are not approved yet. Publish anyway?`}
+        confirmLabel="Publish"
+        variant="warning"
+        onConfirm={handlePublishCourse}
+        onCancel={() => setShowPublishConfirm(false)}
+      />
     </div>
   );
 }

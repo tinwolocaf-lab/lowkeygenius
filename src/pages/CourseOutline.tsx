@@ -8,6 +8,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { EditModuleModal } from '../components/EditModuleModal';
 import { EditLessonModal } from '../components/EditLessonModal';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 interface Lesson {
   title: string;
@@ -47,6 +48,8 @@ export function CourseOutline() {
   const [saving, setSaving] = useState(false);
   const [editingModule, setEditingModule] = useState<{ index: number; module: Module } | null>(null);
   const [editingLesson, setEditingLesson] = useState<{ moduleIndex: number; lessonIndex: number; lesson: Lesson } | null>(null);
+  const [deleteModuleConfirm, setDeleteModuleConfirm] = useState<number | null>(null);
+  const [deleteLessonConfirm, setDeleteLessonConfirm] = useState<{ moduleIndex: number; lessonIndex: number } | null>(null);
 
   const loadCourse = useCallback(async () => {
     if (!courseId) return;
@@ -141,7 +144,6 @@ export function CourseOutline() {
 
   const handleDeleteModule = async (moduleIndex: number) => {
     if (!course?.outline_json) return;
-    if (!confirm('Are you sure you want to delete this module? This action cannot be undone.')) return;
 
     const newOutline: CourseOutline = {
       ...course.outline_json,
@@ -149,11 +151,11 @@ export function CourseOutline() {
     };
     newOutline.modules.splice(moduleIndex, 1);
     await saveOutline(newOutline);
+    setDeleteModuleConfirm(null);
   };
 
   const handleDeleteLesson = async (moduleIndex: number, lessonIndex: number) => {
     if (!course?.outline_json) return;
-    if (!confirm('Are you sure you want to delete this lesson?')) return;
 
     const newOutline: CourseOutline = {
       ...course.outline_json,
@@ -163,6 +165,7 @@ export function CourseOutline() {
     };
     newOutline.modules[moduleIndex].lessons.splice(lessonIndex, 1);
     await saveOutline(newOutline);
+    setDeleteLessonConfirm(null);
   };
 
   const handleAddModule = () => {
@@ -386,7 +389,7 @@ export function CourseOutline() {
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDeleteModule(moduleIndex)}
+                    onClick={() => setDeleteModuleConfirm(moduleIndex)}
                     className="p-2 hover:bg-accent-red/10 text-accent-red rounded-lg transition-colors"
                     title="Delete module"
                   >
@@ -431,7 +434,7 @@ export function CourseOutline() {
                           <Edit2 className="w-3 h-3" />
                         </button>
                         <button
-                          onClick={() => handleDeleteLesson(moduleIndex, lessonIndex)}
+                          onClick={() => setDeleteLessonConfirm({ moduleIndex, lessonIndex })}
                           className="p-2 hover:bg-accent-red/10 text-accent-red rounded-lg transition-colors"
                           title="Delete lesson"
                         >
@@ -506,6 +509,26 @@ export function CourseOutline() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={deleteModuleConfirm !== null}
+        title="Delete Module"
+        message="Are you sure you want to delete this module? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => deleteModuleConfirm !== null && handleDeleteModule(deleteModuleConfirm)}
+        onCancel={() => setDeleteModuleConfirm(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={deleteLessonConfirm !== null}
+        title="Delete Lesson"
+        message="Are you sure you want to delete this lesson?"
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => deleteLessonConfirm && handleDeleteLesson(deleteLessonConfirm.moduleIndex, deleteLessonConfirm.lessonIndex)}
+        onCancel={() => setDeleteLessonConfirm(null)}
+      />
     </div>
   );
 }
