@@ -6,7 +6,7 @@ interface AnimatedBrowserWindowProps {
   url?: string;
 }
 
-export function AnimatedBrowserWindow({ children, url = 'learnself.ai/create' }: AnimatedBrowserWindowProps) {
+export function AnimatedBrowserWindow({ children, url = 'progent.study//onboarding' }: AnimatedBrowserWindowProps) {
   return (
     <div className="w-full h-full bg-neutral-surface rounded-2xl shadow-2xl overflow-hidden border border-neutral-border">
       <div className="bg-neutral-bg border-b border-neutral-border px-4 py-3 flex items-center gap-3">
