@@ -23,8 +23,8 @@ export function Layout() {
         <aside className={`relative bg-neutral-bg border-r border-neutral-border shadow-soft flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
           <div className={`p-6 border-b-2 border-neutral-border ${sidebarCollapsed ? 'flex justify-center' : ''}`}>
             <div className={`flex items-center gap-3 ${sidebarCollapsed ? 'flex-col' : ''}`}>
-              <div className="bg-primary rounded-2xl p-3 shadow-soft">
-                <GraduationCap className="w-7 h-7 text-white" />
+              <div className="bg-primary rounded-2xl shadow-soft" style={{ padding: '12px' }}>
+                <GraduationCap className="text-white" style={{ width: '28px', height: '28px' }} />
               </div>
               {!sidebarCollapsed && (
                 <h1 className="font-display text-2xl font-bold text-primary">LearnSelfAI</h1>
@@ -47,7 +47,7 @@ export function Layout() {
                   }`}
                   title={sidebarCollapsed ? item.label : undefined}
                 >
-                  <Icon className={sidebarCollapsed ? 'w-7 h-7' : 'w-5 h-5'} />
+                  <Icon className="w-5 h-5" />
                   {!sidebarCollapsed && item.label}
                 </button>
               );
@@ -64,13 +64,13 @@ export function Layout() {
               }`}
               title={sidebarCollapsed ? 'Account' : undefined}
             >
-              <div className={`${sidebarCollapsed ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-primary-light flex items-center justify-center flex-shrink-0`}>
+              <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
                 {profile?.full_name ? (
-                  <span className={`${sidebarCollapsed ? 'text-base' : 'text-sm'} font-bold text-primary`}>
+                  <span className="text-base font-bold text-primary">
                     {profile.full_name.charAt(0).toUpperCase()}
                   </span>
                 ) : (
-                  <User className={`${sidebarCollapsed ? 'w-5 h-5' : 'w-4 h-4'} text-primary`} />
+                  <User className="w-5 h-5 text-primary" />
                 )}
               </div>
               {!sidebarCollapsed && (
