@@ -170,10 +170,6 @@ export function AnimatedCourseDemo() {
     <div className="w-full relative h-[600px] md:h-[650px] lg:h-[700px]">
       <AnimatedBrowserWindow>
         <div className="overflow-y-auto p-4 md:p-6 relative h-[552px] md:h-[602px] lg:h-[652px]">
-          {/* Debug indicator - remove in production */}
-          <div className="absolute top-2 right-2 bg-neutral-bg/90 px-3 py-1 rounded-full text-xs font-mono text-neutral-text-muted z-50">
-            {phase} | msg: {messageIndex}/{conversationMessages.length}
-          </div>
           {(phase === 'chat-conversation' || phase === 'intro') && (
             <div className="max-w-2xl mx-auto min-h-[500px] md:min-h-[550px] lg:min-h-[600px]">
               {messages.map((message) => (
