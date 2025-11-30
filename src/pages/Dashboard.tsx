@@ -174,7 +174,7 @@ export function Dashboard() {
         </Card>
       )}
 
-      <Card className="mb-10 bg-primary-light border-3 border-primary/30">
+      <Card className="mb-10 bg-neutral-bg border-2 border-neutral-border">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
             <h2 className="font-display text-display-md text-neutral-text mb-3">
@@ -185,7 +185,7 @@ export function Dashboard() {
             </p>
           </div>
           <Button
-            variant="success"
+            variant="primary"
             size="lg"
             onClick={handleNewCourse}
             className="flex items-center gap-2 whitespace-nowrap"

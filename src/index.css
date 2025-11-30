@@ -68,17 +68,62 @@
     @apply font-body text-lg text-neutral-text;
   }
 
-  .markdown-content code {
-    @apply px-3 py-1 rounded-xl text-sm font-mono text-primary-dark font-semibold;
+  .markdown-content .inline-code {
+    @apply px-2 py-0.5 rounded text-sm font-mono text-primary-dark font-semibold;
     background-color: color-mix(in srgb, var(--color-primary-light) 30%, transparent);
   }
 
-  .markdown-content pre {
-    @apply bg-neutral-text text-white p-6 rounded-2xl mb-6 overflow-x-auto shadow-soft;
+  .markdown-content .code-block {
+    @apply p-6 mb-6 overflow-x-auto rounded-none;
+    background-color: var(--color-code-bg);
+    color: var(--color-code-text);
   }
 
-  .markdown-content pre code {
-    @apply bg-transparent text-white p-0;
+  .markdown-content .code-block code {
+    @apply bg-transparent p-0 font-mono text-sm;
+    color: inherit;
+  }
+
+  /* Syntax highlighting using theme variables */
+  .markdown-content .code-block .hljs {
+    background: transparent;
+    color: inherit;
+  }
+
+  .markdown-content .code-block .hljs-keyword,
+  .markdown-content .code-block .hljs-selector-tag,
+  .markdown-content .code-block .hljs-built_in,
+  .markdown-content .code-block .hljs-name,
+  .markdown-content .code-block .hljs-tag {
+    color: var(--color-code-keyword);
+  }
+
+  .markdown-content .code-block .hljs-string,
+  .markdown-content .code-block .hljs-attr,
+  .markdown-content .code-block .hljs-symbol,
+  .markdown-content .code-block .hljs-bullet,
+  .markdown-content .code-block .hljs-addition {
+    color: var(--color-code-string);
+  }
+
+  .markdown-content .code-block .hljs-comment,
+  .markdown-content .code-block .hljs-quote,
+  .markdown-content .code-block .hljs-deletion,
+  .markdown-content .code-block .hljs-meta {
+    color: var(--color-code-comment);
+  }
+
+  .markdown-content .code-block .hljs-title,
+  .markdown-content .code-block .hljs-section,
+  .markdown-content .code-block .hljs-title\.function {
+    color: var(--color-code-function);
+  }
+
+  .markdown-content .code-block .hljs-number,
+  .markdown-content .code-block .hljs-literal,
+  .markdown-content .code-block .hljs-variable,
+  .markdown-content .code-block .hljs-template-variable {
+    color: var(--color-code-number);
   }
 
   .markdown-content blockquote {

@@ -9,7 +9,6 @@ import { SelectionOverlayMenu } from './SelectionOverlayMenu';
 import { InlineEditor } from './InlineEditor';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import 'highlight.js/styles/github-dark.css';
 
 interface MarkdownRendererProps {
   content: string;
@@ -33,13 +32,13 @@ interface TextSelection {
 
 /**
  * Custom code block component that detects mermaid language
- * and routes to MermaidDiagram component
+ * and routes to MermaidDiagram component.
+ * For regular code blocks, renders a simple pre > code structure.
  */
 function CodeBlock({
   inline,
   className,
   children,
-  ...props
 }: {
   inline?: boolean;
   className?: string;
@@ -54,20 +53,15 @@ function CodeBlock({
     return <MermaidDiagram code={codeContent} className="my-4" />;
   }
 
-  // For inline code or non-mermaid code blocks, use default rendering
+  // Inline code
   if (inline) {
-    return (
-      <code className={className} {...props}>
-        {children}
-      </code>
-    );
+    return <code className="inline-code">{children}</code>;
   }
 
+  // Block code - single pre element with code inside
   return (
-    <pre className={className}>
-      <code className={className} {...props}>
-        {children}
-      </code>
+    <pre className="code-block">
+      <code className={className}>{children}</code>
     </pre>
   );
 }
