@@ -9,14 +9,19 @@ import { Button } from '../components/Button';
 import { ThemeSelector } from '../components/ThemeSelector';
 import { useSubscription } from '../hooks/useSubscription';
 import { openCustomerPortal, initiateCheckout } from '../lib/polar';
-import { Crown, Sparkles, Gift, Zap, Calendar, CreditCard, Palette } from 'lucide-react';
+import { Crown, Sparkles, Gift, Zap, Calendar, CreditCard, Palette, LogOut, User, BookOpen, Volume2 } from 'lucide-react';
 
 export function Settings() {
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
   const { theme } = useTheme();
   const subscription = useSubscription();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   const handleManageSubscription = async () => {
     try {
@@ -90,11 +95,73 @@ export function Settings() {
     );
   };
 
+  const getPlanBenefits = () => {
+    switch (subscription.planType) {
+      case 'PRO_MAX':
+        return [
+          { icon: BookOpen, text: 'Unlimited courses per month' },
+          { icon: Volume2, text: 'Unlimited audio generation included' },
+          { icon: Sparkles, text: 'Priority AI generation' },
+          { icon: Crown, text: 'Early access to new features' },
+        ];
+      case 'PRO':
+        return [
+          { icon: BookOpen, text: '20 courses per month' },
+          { icon: Volume2, text: 'Audio add-on available ($10/mo)' },
+          { icon: Sparkles, text: 'Advanced AI generation' },
+        ];
+      case 'PLUS':
+        return [
+          { icon: BookOpen, text: '10 courses per month' },
+          { icon: Volume2, text: 'Audio add-on available ($10/mo)' },
+        ];
+      default:
+        return [
+          { icon: BookOpen, text: '3 courses per month' },
+          { icon: Gift, text: 'Basic features included' },
+        ];
+    }
+  };
+
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
-      <h1 className="font-display text-display-lg text-neutral-text mb-6">Settings</h1>
+      <h1 className="font-display text-display-lg text-neutral-text mb-6">Account Settings</h1>
 
       <div className="space-y-6">
+        <Card>
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+                {profile?.full_name ? (
+                  <span className="text-2xl font-bold text-primary">
+                    {profile.full_name.charAt(0).toUpperCase()}
+                  </span>
+                ) : (
+                  <User className="w-8 h-8 text-primary" />
+                )}
+              </div>
+              <div>
+                <h2 className="font-display text-display-sm text-neutral-text">
+                  {profile?.full_name || 'User'}
+                </h2>
+                <p className="font-body text-neutral-text-muted">{profile?.email}</p>
+                <div className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-sm font-medium ${getPlanColor()}`}>
+                  {getPlanIcon()}
+                  <span>{subscription.planType}</span>
+                </div>
+              </div>
+            </div>
+            <Button
+              variant="secondary"
+              onClick={handleSignOut}
+              className="flex items-center gap-2 text-accent-red hover:bg-accent-red/10"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </Button>
+          </div>
+        </Card>
+
         <Card>
           <div className="flex items-center gap-3 mb-4">
             <Palette className="w-6 h-6 text-primary" />
@@ -117,7 +184,7 @@ export function Settings() {
         </Card>
 
         <Card>
-          <h2 className="font-display text-display-sm text-neutral-text mb-4">Profile</h2>
+          <h2 className="font-display text-display-sm text-neutral-text mb-4">Profile Details</h2>
           <div className="space-y-4">
             <Input
               label="Full Name"
@@ -176,6 +243,23 @@ export function Settings() {
                 </span>
               </div>
             )}
+
+            <div className="border-t border-gray-200 pt-4">
+              <h3 className="font-semibold text-neutral-text mb-3">Plan Benefits</h3>
+              <div className="space-y-2">
+                {getPlanBenefits().map((benefit, index) => {
+                  const BenefitIcon = benefit.icon;
+                  return (
+                    <div key={index} className="flex items-center gap-3 text-sm">
+                      <div className="w-8 h-8 rounded-lg bg-primary-light/30 flex items-center justify-center flex-shrink-0">
+                        <BenefitIcon className="w-4 h-4 text-primary" />
+                      </div>
+                      <span className="text-neutral-text">{benefit.text}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             <div className="border-t border-gray-200 pt-4">
               <div className="flex items-center justify-between mb-2">

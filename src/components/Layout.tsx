@@ -1,26 +1,18 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Home, BookOpen, StickyNote, Settings, LogOut, GraduationCap, Plus, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, BookOpen, StickyNote, GraduationCap, Plus, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { ThemeSelector } from './ThemeSelector';
 
 export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signOut, profile } = useAuth();
+  const { profile } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/login');
-  };
 
   const navItems = [
     { icon: Home, label: 'Dashboard', path: '/dashboard' },
     { icon: BookOpen, label: 'My Courses', path: '/courses' },
     { icon: StickyNote, label: 'Notes', path: '/notes' },
-    { icon: DollarSign, label: 'Pricing', path: '/pricing' },
-    { icon: Settings, label: 'Settings', path: '/settings' },
   ];
 
   const isActivePath = (path: string) => location.pathname === path;
@@ -63,20 +55,30 @@ export function Layout() {
           </nav>
 
           <div className="p-4 border-t-2 border-neutral-border">
-            {!sidebarCollapsed && (
-              <div className="mb-4 p-4 bg-accent-yellow/20 rounded-2xl border-2 border-accent-yellow/30">
-                <p className="font-body text-xs text-neutral-text-muted font-semibold uppercase">Plan</p>
-                <p className="font-display text-lg font-bold text-neutral-text">{profile?.plan_type || 'FREE'}</p>
-              </div>
-            )}
-            <ThemeSelector collapsed={sidebarCollapsed} />
             <button
-              onClick={handleSignOut}
-              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-5 py-4 rounded-2xl font-body font-bold text-neutral-text hover:bg-accent-red/10 hover:text-accent-red transition-all hover:scale-[1.02]`}
-              title={sidebarCollapsed ? 'Sign Out' : undefined}
+              onClick={() => navigate('/settings')}
+              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-4 py-3 rounded-2xl font-body font-bold transition-all ${
+                location.pathname === '/settings'
+                  ? 'bg-primary text-white shadow-soft'
+                  : 'text-neutral-text hover:bg-primary-light/20 hover:scale-[1.02]'
+              }`}
+              title={sidebarCollapsed ? 'Account' : undefined}
             >
-              <LogOut className={sidebarCollapsed ? 'w-7 h-7' : 'w-5 h-5'} />
-              {!sidebarCollapsed && 'Sign Out'}
+              <div className={`${sidebarCollapsed ? 'w-10 h-10' : 'w-8 h-8'} rounded-full bg-primary-light flex items-center justify-center flex-shrink-0`}>
+                {profile?.full_name ? (
+                  <span className={`${sidebarCollapsed ? 'text-base' : 'text-sm'} font-bold text-primary`}>
+                    {profile.full_name.charAt(0).toUpperCase()}
+                  </span>
+                ) : (
+                  <User className={`${sidebarCollapsed ? 'w-5 h-5' : 'w-4 h-4'} text-primary`} />
+                )}
+              </div>
+              {!sidebarCollapsed && (
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-sm font-semibold truncate">{profile?.full_name || 'Account'}</p>
+                  <p className="text-xs text-neutral-text-muted truncate">{profile?.email}</p>
+                </div>
+              )}
             </button>
           </div>
 
@@ -136,6 +138,23 @@ export function Layout() {
                 </button>
               );
             })}
+            <button
+              onClick={() => navigate('/settings')}
+              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all active:scale-95 ${
+                location.pathname === '/settings' ? 'text-primary bg-primary-light/30' : 'text-neutral-text-muted hover:bg-neutral-surface'
+              }`}
+            >
+              <div className="w-6 h-6 rounded-full bg-primary-light flex items-center justify-center">
+                {profile?.full_name ? (
+                  <span className="text-xs font-bold text-primary">
+                    {profile.full_name.charAt(0).toUpperCase()}
+                  </span>
+                ) : (
+                  <User className="w-4 h-4 text-primary" />
+                )}
+              </div>
+              <span className="text-xs font-body font-bold">Account</span>
+            </button>
           </div>
         </nav>
       </div>

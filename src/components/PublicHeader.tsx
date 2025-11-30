@@ -16,10 +16,10 @@ export function PublicHeader() {
     }
   };
 
-  const navLinks = [
+  const navLinks: Array<{ label: string; id?: string; path?: string }> = [
     { label: 'Features', id: 'features' },
     { label: 'How It Works', id: 'how-it-works' },
-    { label: 'Pricing', id: 'pricing' },
+    { label: 'Pricing', path: '/pricing' },
     { label: 'FAQ', id: 'faq' },
   ];
 
@@ -37,8 +37,8 @@ export function PublicHeader() {
           <nav className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <button
-                key={link.id}
-                onClick={() => scrollToSection(link.id)}
+                key={link.id || link.path}
+                onClick={() => link.path ? navigate(link.path) : scrollToSection(link.id!)}
                 className="font-body font-semibold text-neutral-text hover:text-primary transition-colors"
               >
                 {link.label}
@@ -78,8 +78,15 @@ export function PublicHeader() {
           <div className="px-4 py-6 space-y-4">
             {navLinks.map((link) => (
               <button
-                key={link.id}
-                onClick={() => scrollToSection(link.id)}
+                key={link.id || link.path}
+                onClick={() => {
+                  if (link.path) {
+                    navigate(link.path);
+                    setMobileMenuOpen(false);
+                  } else {
+                    scrollToSection(link.id!);
+                  }
+                }}
                 className="block w-full text-left font-body font-semibold text-neutral-text hover:text-primary py-2 transition-colors"
               >
                 {link.label}
