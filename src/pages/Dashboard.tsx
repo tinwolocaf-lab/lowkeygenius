@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, BookOpen, TrendingUp, Clock, AlertCircle, Crown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,11 +25,7 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [user]);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     if (!user) return;
 
     const { data: coursesData, error: coursesError } = await supabase
@@ -46,7 +42,11 @@ export function Dashboard() {
     }
 
     setLoading(false);
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   const handleNewCourse = () => {
     if (!subscription.canCreateCourse) {

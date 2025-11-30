@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Check, CheckCircle, Circle, Edit2, Sparkles, Save, X, AlertCircle } from 'lucide-react';
@@ -19,12 +19,20 @@ interface Lesson {
   lesson_index: number;
 }
 
+interface CourseOutlineJson {
+  modules: Array<{
+    title: string;
+    description: string;
+    lessons: Array<{ title: string; objectives: string[] }>;
+  }>;
+}
+
 interface Course {
   id: string;
   title: string;
   topic: string;
   level: string;
-  outline_json: any;
+  outline_json: CourseOutlineJson | null;
 }
 
 export function LessonPreview() {
@@ -42,11 +50,7 @@ export function LessonPreview() {
   const [regenerateInstructions, setRegenerateInstructions] = useState('');
   const [publishing, setPublishing] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [courseId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!courseId) return;
 
     try {
@@ -65,7 +69,10 @@ export function LessonPreview() {
         return;
       }
 
-      setCourse(courseResult.data);
+      setCourse({
+        ...courseResult.data,
+        outline_json: courseResult.data.outline_json as CourseOutlineJson | null,
+      });
       setLessons(lessonsResult.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -73,7 +80,11 @@ export function LessonPreview() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId, navigate]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const currentLesson = lessons[currentLessonIndex];
 
@@ -118,7 +129,7 @@ export function LessonPreview() {
   };
 
   const handleRegenerateLesson = async () => {
-    if (!currentLesson || !course) return;
+    if (!currentLesson || !course || !course.outline_json) return;
 
     setRegenerating(true);
     setShowRegenerateModal(false);
@@ -149,7 +160,8 @@ export function LessonPreview() {
       await loadData();
     } catch (error: unknown) {
       console.error('Error regenerating lesson:', error);
-      toast.error(error.message || 'Failed to regenerate lesson. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to regenerate lesson. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setRegenerating(false);
     }

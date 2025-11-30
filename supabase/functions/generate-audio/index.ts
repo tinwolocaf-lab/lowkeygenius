@@ -71,7 +71,29 @@ interface GenerateAudioRequest {
   voiceType: 'male' | 'female';
 }
 
-async function checkAudioAccess(supabase: any, userId: string): Promise<{ hasAccess: boolean; reason?: string }> {
+interface SupabaseClient {
+  from: (table: string) => {
+    select: (columns: string) => {
+      eq: (column: string, value: string) => {
+        single: () => Promise<{ data: Record<string, unknown> | null; error: Error | null }>;
+      };
+    };
+    update: (data: Record<string, unknown>) => {
+      eq: (column: string, value: string) => Promise<{ error: Error | null }>;
+    };
+  };
+  storage: {
+    from: (bucket: string) => {
+      upload: (path: string, data: Uint8Array, options: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }>;
+      getPublicUrl: (path: string) => { data: { publicUrl: string } };
+    };
+  };
+  auth: {
+    getUser: (token: string) => Promise<{ data: { user: { id: string } | null }; error: Error | null }>;
+  };
+}
+
+async function checkAudioAccess(supabase: SupabaseClient, userId: string): Promise<{ hasAccess: boolean; reason?: string }> {
   const { data: profile, error } = await supabase
     .from('profiles')
     .select('plan_type, audio_addon_enabled, audio_addon_trial_used, audio_addon_expires_at')
@@ -104,7 +126,7 @@ async function checkAudioAccess(supabase: any, userId: string): Promise<{ hasAcc
   return { hasAccess: false, reason: 'Audio add-on required' };
 }
 
-async function downloadAndUploadAudio(audioUrl: string, supabase: any, courseId: string, lessonId: string, voiceType: string): Promise<string> {
+async function downloadAndUploadAudio(audioUrl: string, supabase: SupabaseClient, courseId: string, lessonId: string, voiceType: string): Promise<string> {
   const audioResponse = await fetch(audioUrl);
   if (!audioResponse.ok) {
     throw new Error('Failed to download audio from Murf AI');
@@ -115,7 +137,7 @@ async function downloadAndUploadAudio(audioUrl: string, supabase: any, courseId:
   const uint8Array = new Uint8Array(arrayBuffer);
 
   const fileName = `${courseId}/${lessonId}-${voiceType}.mp3`;
-  const { data: uploadData, error: uploadError } = await supabase.storage
+  const { error: uploadError } = await supabase.storage
     .from('lesson-audio')
     .upload(fileName, uint8Array, {
       contentType: 'audio/mpeg',
@@ -310,13 +332,14 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error generating audio:', error);
 
+    const errorWithMessage = error as { message?: string; stack?: string };
     return new Response(
       JSON.stringify({
-        error: error?.message || 'Failed to generate audio',
-        details: error?.stack?.substring(0, 500),
+        error: errorWithMessage?.message || 'Failed to generate audio',
+        details: errorWithMessage?.stack?.substring(0, 500),
       }),
       {
         status: 500,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, Clock, Plus, MoreVertical, Edit2, Trash2, Volume2 } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
@@ -34,11 +34,7 @@ export function Courses() {
   const [deleteModal, setDeleteModal] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
 
-  useEffect(() => {
-    loadCourses();
-  }, [user, activeTab]);
-
-  const loadCourses = async () => {
+  const loadCourses = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -106,7 +102,11 @@ export function Courses() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, activeTab]);
+
+  useEffect(() => {
+    loadCourses();
+  }, [loadCourses]);
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {

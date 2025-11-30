@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, Clock, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -16,12 +16,24 @@ interface Lesson {
   markdown_content: string | null;
 }
 
+interface CourseModule {
+  title: string;
+  description: string;
+  lessons: { title: string; objectives: string[] }[];
+}
+
+interface CourseOutlineJson {
+  modules: CourseModule[];
+  estimatedDurationHours?: number;
+  estimatedLessonsCount?: number;
+}
+
 interface Course {
   id: string;
   title: string;
   topic: string;
   level: string;
-  outline_json: any;
+  outline_json: CourseOutlineJson | null;
 }
 
 export function GenerateLessons() {
@@ -35,11 +47,7 @@ export function GenerateLessons() {
   const [error, setError] = useState<string | null>(null);
 
 
-  useEffect(() => {
-    loadCourseAndLessons();
-  }, [courseId]);
-
-  const loadCourseAndLessons = async () => {
+  const loadCourseAndLessons = useCallback(async () => {
     if (!courseId) return;
 
     try {
@@ -55,7 +63,7 @@ export function GenerateLessons() {
         return;
       }
 
-      setCourse(courseData);
+      setCourse(courseData as Course);
 
       const { data: lessonsData, error: lessonsError } = await supabase
         .from('lessons')
@@ -74,7 +82,11 @@ export function GenerateLessons() {
       console.error('Unexpected error:', error);
       navigate('/courses');
     }
-  };
+  }, [courseId, navigate]);
+
+  useEffect(() => {
+    loadCourseAndLessons();
+  }, [loadCourseAndLessons]);
 
   const startGeneration = async () => {
     if (!course || lessons.length === 0) return;
@@ -111,17 +123,18 @@ export function GenerateLessons() {
         });
 
         await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (error: any) {
+      } catch (error) {
         console.error(`Error generating lesson ${i + 1}:`, error);
         let errorMessage = `Failed to generate lesson ${i + 1}`;
 
-        if (error?.message) {
-          if (error.message.includes('429') || error.message.includes('quota')) {
+        const errorWithMessage = error as { message?: string };
+        if (errorWithMessage?.message) {
+          if (errorWithMessage.message.includes('429') || errorWithMessage.message.includes('quota')) {
             errorMessage = 'AI service rate limit reached. Please wait and try again later.';
             setError(errorMessage);
             setGenerating(false);
             return;
-          } else if (error.message.includes('Gemini API error')) {
+          } else if (errorWithMessage.message.includes('Gemini API error')) {
             errorMessage = `AI service error on lesson ${i + 1}. Some lessons may be incomplete.`;
           }
         }

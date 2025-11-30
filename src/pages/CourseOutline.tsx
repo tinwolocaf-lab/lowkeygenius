@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ArrowLeft, ChevronDown, ChevronRight, Plus, Trash2, Edit2, Sparkles, Play, AlertCircle } from 'lucide-react';
@@ -48,11 +48,7 @@ export function CourseOutline() {
   const [editingModule, setEditingModule] = useState<{ index: number; module: Module } | null>(null);
   const [editingLesson, setEditingLesson] = useState<{ moduleIndex: number; lessonIndex: number; lesson: Lesson } | null>(null);
 
-  useEffect(() => {
-    loadCourse();
-  }, [courseId]);
-
-  const loadCourse = async () => {
+  const loadCourse = useCallback(async () => {
     if (!courseId) return;
 
     try {
@@ -84,7 +80,11 @@ export function CourseOutline() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId, navigate]);
+
+  useEffect(() => {
+    loadCourse();
+  }, [loadCourse]);
 
   const toggleModule = (index: number) => {
     const newExpanded = new Set(expandedModules);

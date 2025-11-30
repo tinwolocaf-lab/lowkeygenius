@@ -103,15 +103,35 @@ export function CourseView() {
     }
   }, [user, courseId]);
 
+  // Load course data on mount and when dependencies change
   useEffect(() => {
     loadCourseData();
   }, [loadCourseData]);
 
+  // Mark lesson as viewed when current lesson changes
   useEffect(() => {
     if (currentLesson) {
       markAsViewed(currentLesson);
     }
   }, [currentLesson, markAsViewed]);
+
+  /**
+   * Handle content update from inline editing.
+   * Updates local lesson state after edit.
+   * Requirements: 3.3
+   */
+  const handleContentUpdate = useCallback((newContent: string) => {
+    if (!currentLesson) return;
+
+    // Update local lessons state with the new content
+    setLessons(prevLessons => 
+      prevLessons.map(lesson => 
+        lesson.id === currentLesson.id 
+          ? { ...lesson, markdown_content: newContent }
+          : lesson
+      )
+    );
+  }, [currentLesson]);
 
   const markAsComplete = async () => {
     if (!currentLesson || !user || !courseId) return;
@@ -340,6 +360,7 @@ export function CourseView() {
                 courseTitle={course.title}
                 isOwner={user?.id === course.owner_id}
                 enableSelection={true}
+                onContentUpdate={handleContentUpdate}
               />
             ) : (
               <Card className="text-center py-12">

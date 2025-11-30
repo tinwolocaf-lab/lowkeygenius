@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Send, Paperclip, ArrowLeft } from 'lucide-react';
 import { ChatMessage } from '../components/ChatMessage';
@@ -52,22 +52,22 @@ export function Onboarding() {
         setStep('topic');
       }, 1000);
     }
-  }, []);
+  }, [addAssistantMessage]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const addMessage = (type: 'assistant' | 'user' | 'system', content: string) => {
+  const addMessage = useCallback((type: 'assistant' | 'user' | 'system', content: string) => {
     setMessages((prev) => [
       ...prev,
       { id: `${Date.now()}-${Math.random()}`, type, content, timestamp: new Date() },
     ]);
-  };
+  }, []);
 
-  const addAssistantMessage = (content: string) => addMessage('assistant', content);
-  const addUserMessage = (content: string) => addMessage('user', content);
-  const addSystemMessage = (content: string) => addMessage('system', content);
+  const addAssistantMessage = useCallback((content: string) => addMessage('assistant', content), [addMessage]);
+  const addUserMessage = useCallback((content: string) => addMessage('user', content), [addMessage]);
+  const addSystemMessage = useCallback((content: string) => addMessage('system', content), [addMessage]);
 
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
@@ -96,7 +96,7 @@ export function Onboarding() {
         }, 500);
         break;
 
-      case 'materials':
+      case 'materials': {
         const useMaterials = response === 'with-materials';
         setData((prev) => ({ ...prev, useMaterials }));
 
@@ -112,6 +112,7 @@ export function Onboarding() {
           }, 500);
         }
         break;
+      }
 
       case 'attachments':
         setShowAttachments(false);
@@ -146,7 +147,7 @@ export function Onboarding() {
         }, 500);
         break;
 
-      case 'level':
+      case 'level': {
         const level = response as 'beginner' | 'intermediate' | 'advanced' | 'expert';
         setData((prev) => ({ ...prev, level }));
         setTimeout(() => {
@@ -155,14 +156,16 @@ export function Onboarding() {
           setStep('intensity');
         }, 500);
         break;
+      }
 
-      case 'intensity':
+      case 'intensity': {
         const intensity = response as 'short' | 'standard' | 'deep';
         setData((prev) => ({ ...prev, intensity }));
         setTimeout(() => {
           showSummary(intensity);
         }, 500);
         break;
+      }
     }
   };
 
@@ -246,26 +249,27 @@ export function Onboarding() {
       setTimeout(() => {
         navigate(`/courses/${course.id}/outline`);
       }, 1500);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error generating course:', error);
 
       let errorMessage = "Oops! Something went wrong. Please try again.";
 
-      if (error?.message && error.message.includes('Gemini API error')) {
+      const errorWithMessage = error as { message?: string };
+      if (errorWithMessage?.message && errorWithMessage.message.includes('Gemini API error')) {
         try {
-          const geminiError = JSON.parse(error.message.replace('Gemini API error: ', ''));
+          const geminiError = JSON.parse(errorWithMessage.message.replace('Gemini API error: ', ''));
           if (geminiError?.error?.code === 429) {
             errorMessage = "AI service rate limit reached. Please wait a moment and try again, or check your API quota.";
           } else if (geminiError?.error?.message) {
             errorMessage = `AI service error: ${geminiError.error.message.split('\n')[0]}`;
           }
-        } catch (parseError) {
-          if (error.message.includes('429') || error.message.includes('quota')) {
+        } catch {
+          if (errorWithMessage.message.includes('429') || errorWithMessage.message.includes('quota')) {
             errorMessage = "AI service rate limit reached. Please wait a moment and try again.";
           }
         }
-      } else if (error?.message) {
-        errorMessage = `Error: ${error.message}`;
+      } else if (errorWithMessage?.message) {
+        errorMessage = `Error: ${errorWithMessage.message}`;
       }
 
       addAssistantMessage(errorMessage);

@@ -104,11 +104,11 @@
     - Pass isOwner to SelectionOverlayMenu
     - _Requirements: 3.1, 3.4_
 
-- [ ] 6. Checkpoint - Ensure all tests pass
+- [x] 6. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Implement note-taking functionality
-  - [ ] 7.1 Implement note save handler in MarkdownRenderer
+- [x] 7. Implement note-taking functionality
+  - [x] 7.1 Implement note save handler in MarkdownRenderer
     - Create saveNote function that calls Supabase
     - Insert note with user_id, course_id, lesson_id, snippet_markdown
     - Show success toast on save
@@ -116,24 +116,24 @@
   - [ ]* 7.2 Write property test for note creation metadata
     - **Property 7: Note creation stores complete metadata**
     - **Validates: Requirements 4.2, 4.4**
-  - [ ] 7.3 Implement error handling for note save
+  - [x] 7.3 Implement error handling for note save
     - Catch save errors and display error toast
     - Allow user to retry failed saves
     - _Requirements: 4.5_
-  - [ ] 7.4 Update Notes page to display context metadata
+  - [x] 7.4 Update Notes page to display context metadata
     - Modify query to join courses and lessons tables
     - Display course_title and lesson_title with each note
     - Style metadata as reference information
     - _Requirements: 4.4_
 
-- [ ] 8. Implement inline editing functionality
-  - [ ] 8.1 Create InlineEditor component
+- [x] 8. Implement inline editing functionality
+  - [x] 8.1 Create InlineEditor component
     - Create component at src/components/InlineEditor.tsx
     - Render textarea with original text
     - Provide Save and Cancel buttons
     - Position near the selection
     - _Requirements: 3.2, 3.3_
-  - [ ] 8.2 Implement inline edit save logic
+  - [x] 8.2 Implement inline edit save logic
     - Calculate new markdown content with edited text
     - Call Supabase to update lesson markdown_content
     - Update local state on success
@@ -141,30 +141,30 @@
   - [ ]* 8.3 Write property test for inline edit round-trip
     - **Property 6: Inline edit round-trip consistency**
     - **Validates: Requirements 3.3**
-  - [ ] 8.4 Implement error handling for inline edit
+  - [x] 8.4 Implement error handling for inline edit
     - Catch save errors and display error toast
     - Preserve original content on failure
     - _Requirements: 3.5_
-  - [ ] 8.5 Wire InlineEditor to SelectionOverlayMenu
+  - [x] 8.5 Wire InlineEditor to SelectionOverlayMenu
     - Show InlineEditor when Edit is clicked
     - Pass original text and save callback
     - Close menu and editor on save/cancel
     - _Requirements: 3.2, 3.3_
 
-- [ ] 9. Update CourseView with full integration
-  - [ ] 9.1 Add ownership detection to CourseView
+- [x] 9. Update CourseView with full integration
+  - [x] 9.1 Add ownership detection to CourseView
     - Compare course.owner_id with current user.id
     - Pass isOwner prop to MarkdownRenderer
     - _Requirements: 3.1, 3.4_
-  - [ ] 9.2 Wire content update callback in CourseView
+  - [x] 9.2 Wire content update callback in CourseView
     - Implement onContentUpdate handler
     - Update local lesson state after edit
     - Refresh lesson data from database
     - _Requirements: 3.3_
-  - [ ] 9.3 Pass course and lesson context to MarkdownRenderer
+  - [x] 9.3 Pass course and lesson context to MarkdownRenderer
     - Pass courseId, lessonId, courseTitle, lessonTitle props
     - Enable note-taking with full context
     - _Requirements: 4.2_
 
-- [ ] 10. Final Checkpoint - Ensure all tests pass
+- [x] 10. Final Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.

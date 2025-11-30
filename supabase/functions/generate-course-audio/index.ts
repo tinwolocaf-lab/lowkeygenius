@@ -128,7 +128,50 @@ function splitTextIntoChunks(text: string, maxChunkSize: number): string[] {
   return chunks.filter(chunk => chunk.length > 0);
 }
 
-async function checkAudioAccess(supabase: any, userId: string): Promise<{ hasAccess: boolean; reason?: string }> {
+interface SupabaseClient {
+  from: (table: string) => {
+    select: (columns: string) => {
+      eq: (column: string, value: string) => {
+        single: () => Promise<{ data: Record<string, unknown> | null; error: Error | null }>;
+        order: (column: string, options?: { ascending?: boolean }) => {
+          order: (column: string, options?: { ascending?: boolean }) => Promise<{ data: LessonRecord[] | null; error: Error | null }>;
+        };
+      };
+      not: (column: string, operator: string, value: null) => {
+        order: (column: string) => {
+          order: (column: string) => Promise<{ data: LessonRecord[] | null; error: Error | null }>;
+        };
+      };
+    };
+    insert: (data: Record<string, unknown>) => {
+      select: () => {
+        single: () => Promise<{ data: Record<string, unknown> | null; error: Error | null }>;
+      };
+    };
+    update: (data: Record<string, unknown>) => {
+      eq: (column: string, value: string) => Promise<{ error: Error | null }>;
+    };
+  };
+  storage: {
+    from: (bucket: string) => {
+      upload: (path: string, data: Uint8Array, options: Record<string, unknown>) => Promise<{ error: Error | null }>;
+      getPublicUrl: (path: string) => { data: { publicUrl: string } };
+    };
+  };
+  auth: {
+    getUser: (token: string) => Promise<{ data: { user: { id: string } | null }; error: Error | null }>;
+  };
+}
+
+interface LessonRecord {
+  id: string;
+  title: string;
+  markdown_content: string | null;
+  module_index: number;
+  lesson_index: number;
+}
+
+async function checkAudioAccess(supabase: SupabaseClient, userId: string): Promise<{ hasAccess: boolean; reason?: string }> {
   const { data: profile, error } = await supabase
     .from('profiles')
     .select('plan_type, audio_addon_enabled, audio_addon_expires_at')
@@ -207,7 +250,7 @@ async function downloadAudioAsBuffer(audioUrl: string): Promise<Uint8Array> {
 
 async function concatenateAndUploadAudio(
   audioUrls: string[],
-  supabase: any,
+  supabase: SupabaseClient,
   courseId: string,
   lessonId: string,
   voiceType: string
@@ -252,8 +295,8 @@ async function concatenateAndUploadAudio(
 }
 
 async function generateLessonAudio(
-  supabase: any,
-  lesson: any,
+  supabase: SupabaseClient,
+  lesson: LessonRecord,
   voiceType: 'male' | 'female',
   courseId: string
 ): Promise<{ success: boolean; error?: string }> {
@@ -283,9 +326,10 @@ async function generateLessonAudio(
         const result = await generateAudioForChunk(chunk, voiceType);
         audioUrls.push(result.audioUrl);
         totalDuration += result.duration;
-      } catch (chunkError: any) {
-        console.error(`Chunk ${i + 1} failed:`, chunkError.message);
-        throw new Error(`Chunk ${i + 1} failed: ${chunkError.message}`);
+      } catch (chunkError) {
+        const errorWithMessage = chunkError as { message?: string };
+        console.error(`Chunk ${i + 1} failed:`, errorWithMessage.message);
+        throw new Error(`Chunk ${i + 1} failed: ${errorWithMessage.message}`);
       }
       
       // Small delay between API calls to avoid rate limiting
@@ -315,13 +359,14 @@ async function generateLessonAudio(
       .eq('id', lesson.id);
 
     return { success: true };
-  } catch (error: any) {
-    console.error(`Lesson "${lesson.title}" failed:`, error.message);
+  } catch (error) {
+    const errorWithMessage = error as { message?: string };
+    console.error(`Lesson "${lesson.title}" failed:`, errorWithMessage.message);
     await supabase
       .from('lessons')
       .update({ audio_status: 'failed' })
       .eq('id', lesson.id);
-    return { success: false, error: error.message };
+    return { success: false, error: errorWithMessage.message };
   }
 }
 
@@ -466,13 +511,14 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error generating course audio:', error);
 
+    const errorWithMessage = error as { message?: string; stack?: string };
     return new Response(
       JSON.stringify({
-        error: error?.message || 'Failed to generate course audio',
-        details: error?.stack?.substring(0, 500),
+        error: errorWithMessage?.message || 'Failed to generate course audio',
+        details: errorWithMessage?.stack?.substring(0, 500),
       }),
       {
         status: 500,

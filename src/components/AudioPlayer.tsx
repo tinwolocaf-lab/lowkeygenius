@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, List, X, Clock, Settings } from 'lucide-react';
 
 interface Lesson {
@@ -46,6 +46,7 @@ export function AudioPlayer({ lessons, currentLessonId, onLessonChange }: AudioP
     if (isPlaying) {
       audio.play().catch((err) => console.error('Play error:', err));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentLessonId, currentLesson?.audio_url]);
 
   useEffect(() => {
@@ -70,7 +71,7 @@ export function AudioPlayer({ lessons, currentLessonId, onLessonChange }: AudioP
       audio.removeEventListener('loadedmetadata', updateDuration);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [autoPlayNext, currentLessonId]);
+  }, [autoPlayNext, currentLessonId, handleNext]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -126,13 +127,13 @@ export function AudioPlayer({ lessons, currentLessonId, onLessonChange }: AudioP
     }
   };
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     const nextLesson = lessonsWithAudio[lessonsWithAudio.findIndex((l) => l.id === currentLessonId) + 1];
     if (nextLesson) {
       onLessonChange(nextLesson.id);
       setIsPlaying(true);
     }
-  };
+  }, [lessonsWithAudio, currentLessonId, onLessonChange]);
 
   const handlePrevious = () => {
     const audio = audioRef.current;

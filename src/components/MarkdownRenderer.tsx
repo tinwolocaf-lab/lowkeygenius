@@ -3,8 +3,12 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import type { Components } from 'react-markdown';
+import toast from 'react-hot-toast';
 import { MermaidDiagram } from './MermaidDiagram';
 import { SelectionOverlayMenu } from './SelectionOverlayMenu';
+import { InlineEditor } from './InlineEditor';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import 'highlight.js/styles/github-dark.css';
 
 interface MarkdownRendererProps {
@@ -82,14 +86,28 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   onTextSelect,
   courseId,
   lessonId,
-  lessonTitle,
-  courseTitle,
+  lessonTitle: _lessonTitle,
+  courseTitle: _courseTitle,
   isOwner = false,
   onContentUpdate,
 }: MarkdownRendererProps) {
+  // Note: lessonTitle and courseTitle are available via props for future use
+  // but note saving only requires IDs (titles are joined from DB in Notes page)
+  void _lessonTitle;
+  void _courseTitle;
   const containerRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<TextSelection | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isSavingNote, setIsSavingNote] = useState(false);
+  const [showInlineEditor, setShowInlineEditor] = useState(false);
+  const [editorPosition, setEditorPosition] = useState<{ x: number; y: number } | null>(null);
+  const [currentContent, setCurrentContent] = useState(content);
+  const { user } = useAuth();
+
+  // Keep currentContent in sync with content prop
+  useEffect(() => {
+    setCurrentContent(content);
+  }, [content]);
 
   // Memoize the components configuration to prevent unnecessary re-renders
   const components: Components = useMemo(
@@ -148,39 +166,65 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   }, [enableSelection, onTextSelect]);
 
   /**
-   * Close the selection overlay menu
+   * Close the selection overlay menu and inline editor
    */
   const handleCloseMenu = useCallback(() => {
     setSelection(null);
     setMenuPosition(null);
+    setShowInlineEditor(false);
+    setEditorPosition(null);
   }, []);
 
   /**
    * Handle save note action from the selection menu.
-   * This is a placeholder that will be fully implemented in task 7.
+   * Requirements: 4.2, 4.3 - Store note with context and show success notification
    */
-  const handleSaveNote = useCallback(() => {
+  const handleSaveNote = useCallback(async () => {
     if (!selection || !courseId || !lessonId) {
-      console.warn('Cannot save note: missing required context');
+      toast.error('Cannot save note: missing required context');
       handleCloseMenu();
       return;
     }
 
-    // TODO: Implement note saving in task 7
-    console.log('Save note:', {
-      text: selection.text,
-      courseId,
-      lessonId,
-      courseTitle,
-      lessonTitle,
-    });
-    
-    handleCloseMenu();
-  }, [selection, courseId, lessonId, courseTitle, lessonTitle, handleCloseMenu]);
+    if (!user) {
+      toast.error('You must be logged in to save notes');
+      handleCloseMenu();
+      return;
+    }
+
+    // Prevent double-saves
+    if (isSavingNote) {
+      return;
+    }
+
+    setIsSavingNote(true);
+
+    try {
+      const { error } = await supabase.from('notes').insert({
+        user_id: user.id,
+        course_id: courseId,
+        lesson_id: lessonId,
+        snippet_markdown: selection.text,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success('Note saved successfully!');
+      handleCloseMenu();
+    } catch (error) {
+      console.error('Error saving note:', error);
+      toast.error('Failed to save note. Please try again.');
+      // Don't close menu on error to allow retry (Requirement 4.5)
+    } finally {
+      setIsSavingNote(false);
+    }
+  }, [selection, courseId, lessonId, user, isSavingNote, handleCloseMenu]);
 
   /**
    * Handle edit action from the selection menu.
-   * This is a placeholder that will be fully implemented in task 8.
+   * Requirements: 3.2, 3.3 - Enable inline editing and save modified content
    */
   const handleEdit = useCallback(() => {
     if (!selection || !isOwner) {
@@ -188,14 +232,70 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
       return;
     }
 
-    // TODO: Implement inline editing in task 8
-    console.log('Edit selection:', {
-      text: selection.text,
-      onContentUpdate: !!onContentUpdate,
-    });
-    
+    // Calculate position for the inline editor (below the selection)
+    const editorPos = {
+      x: selection.rect.left + selection.rect.width / 2,
+      y: selection.rect.bottom + 10,
+    };
+
+    setEditorPosition(editorPos);
+    setShowInlineEditor(true);
+    // Close the menu but keep selection data for the editor
+    setMenuPosition(null);
+  }, [selection, isOwner, handleCloseMenu]);
+
+  /**
+   * Handle inline edit save.
+   * Requirements: 3.3 - Save modified content to database and update display immediately
+   */
+  const handleInlineEditSave = useCallback(async (newText: string) => {
+    if (!selection || !lessonId) {
+      toast.error('Cannot save edit: missing required context');
+      handleCloseMenu();
+      return;
+    }
+
+    // Calculate new markdown content by replacing the selected text
+    const originalText = selection.text;
+    const newContent = currentContent.replace(originalText, newText);
+
+    try {
+      // Update the lesson in the database
+      const { error } = await supabase
+        .from('lessons')
+        .update({ 
+          markdown_content: newContent,
+          is_manually_edited: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', lessonId);
+
+      if (error) {
+        throw error;
+      }
+
+      // Update local state
+      setCurrentContent(newContent);
+      
+      // Notify parent component of the content update
+      onContentUpdate?.(newContent);
+
+      toast.success('Content updated successfully!');
+      handleCloseMenu();
+    } catch (error) {
+      console.error('Error saving edit:', error);
+      // Requirement 3.5: Display error notification and preserve original content
+      toast.error('Failed to save edit. Please try again.');
+      // Don't close editor on error to allow retry
+    }
+  }, [selection, lessonId, currentContent, onContentUpdate, handleCloseMenu]);
+
+  /**
+   * Handle inline editor cancel
+   */
+  const handleInlineEditCancel = useCallback(() => {
     handleCloseMenu();
-  }, [selection, isOwner, onContentUpdate, handleCloseMenu]);
+  }, [handleCloseMenu]);
 
   // Clean up selection when component unmounts or content changes
   useEffect(() => {
@@ -205,7 +305,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
     };
   }, [content]);
 
-  if (!content) {
+  if (!currentContent) {
     return (
       <div className={`text-neutral-text-muted italic ${className}`}>
         No content available
@@ -225,12 +325,12 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
           rehypePlugins={[rehypeHighlight]}
           components={components}
         >
-          {content}
+          {currentContent}
         </ReactMarkdown>
       </div>
 
       {/* Selection Overlay Menu - Requirements: 3.1, 4.1, 5.1 */}
-      {selection && menuPosition && (
+      {selection && menuPosition && !showInlineEditor && (
         <SelectionOverlayMenu
           selection={selection}
           position={menuPosition}
@@ -238,6 +338,16 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
           onSaveNote={handleSaveNote}
           onEdit={handleEdit}
           onClose={handleCloseMenu}
+        />
+      )}
+
+      {/* Inline Editor - Requirements: 3.2, 3.3 */}
+      {showInlineEditor && selection && editorPosition && (
+        <InlineEditor
+          originalText={selection.text}
+          onSave={handleInlineEditSave}
+          onCancel={handleInlineEditCancel}
+          position={editorPosition}
         />
       )}
     </>
