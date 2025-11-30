@@ -167,15 +167,15 @@ export function AnimatedCourseDemo() {
   }, [phase, currentLessonIndex, messageIndex, lessons.length]);
 
   return (
-    <div className="w-full h-full min-h-[600px] lg:min-h-[700px] relative">
+    <div className="w-full relative h-[600px] md:h-[650px] lg:h-[700px]">
       <AnimatedBrowserWindow>
-        <div className="h-full overflow-y-auto p-4 md:p-6 relative">
+        <div className="overflow-y-auto p-4 md:p-6 relative h-[552px] md:h-[602px] lg:h-[652px]">
           {/* Debug indicator - remove in production */}
           <div className="absolute top-2 right-2 bg-neutral-bg/90 px-3 py-1 rounded-full text-xs font-mono text-neutral-text-muted z-50">
             {phase} | msg: {messageIndex}/{conversationMessages.length}
           </div>
           {(phase === 'chat-conversation' || phase === 'intro') && (
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-2xl mx-auto min-h-[500px] md:min-h-[550px] lg:min-h-[600px]">
               {messages.map((message) => (
                 <DemoChatBubble
                   key={message.id}
@@ -188,7 +188,7 @@ export function AnimatedCourseDemo() {
           )}
 
           {phase === 'generating-outline' && (
-            <div className="flex flex-col items-center justify-center h-full">
+            <div className="flex flex-col items-center justify-center min-h-[500px] md:min-h-[550px] lg:min-h-[600px]">
               <div className="relative w-24 h-24 mb-6">
                 <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -209,7 +209,7 @@ export function AnimatedCourseDemo() {
           )}
 
           {phase === 'generating-lessons' && (
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-2xl mx-auto min-h-[500px] md:min-h-[550px] lg:min-h-[600px]">
               <div className="mb-6 animate-fade-in">
                 <h2 className="font-display text-2xl font-bold text-neutral-text mb-2">
                   Python for JS/TS Developers
@@ -232,7 +232,7 @@ export function AnimatedCourseDemo() {
           )}
 
           {(phase === 'publishing' || phase === 'audio-generation' || phase === 'celebration') && (
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-2xl mx-auto min-h-[500px] md:min-h-[550px] lg:min-h-[600px]">
               {!showModules && (
                 <div className="flex flex-col items-center justify-center py-12 animate-fade-in">
                   <div className="w-16 h-16 bg-accent-green rounded-full flex items-center justify-center mb-4 animate-bounce-soft">
