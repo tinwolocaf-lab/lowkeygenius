@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronRight, ChevronLeft, CheckCircle, Circle, BookOpen, Menu, X, Headphones } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ChevronLeft, CheckCircle, Circle, BookOpen, Menu, X, Headphones, Volume2 } from 'lucide-react';
 import { CourseAudioPlayer } from '../components/CourseAudioPlayer';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -26,6 +26,7 @@ interface Course {
   title: string;
   description: string;
   outline_json: any;
+  status: string;
 }
 
 interface Progress {
@@ -200,6 +201,16 @@ export function CourseView() {
               />
             </div>
           </div>
+          {/* Generate Audio button for published courses (Requirement 1.1) */}
+          {course.status === 'published' && (
+            <button
+              onClick={() => navigate(`/courses/${courseId}/generate-audio`)}
+              className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary-light/20 hover:bg-primary-light/30 border border-primary/30 rounded-lg transition-colors"
+            >
+              <Volume2 className="w-4 h-4 text-primary" />
+              <span className="font-body text-sm font-semibold text-primary">Generate Audio</span>
+            </button>
+          )}
         </div>
 
         <div className="p-4">

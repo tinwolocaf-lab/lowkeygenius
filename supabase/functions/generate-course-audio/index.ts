@@ -20,7 +20,7 @@ const VOICE_CONFIGS = {
   },
   male: {
     voiceId: 'en-US-cooper',
-    style: 'Narration',
+    style: 'Conversational',
     multiNativeLocale: 'en-US',
   },
 };

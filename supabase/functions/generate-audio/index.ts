@@ -18,10 +18,53 @@ const VOICE_CONFIGS = {
   },
   male: {
     voiceId: 'en-US-cooper',
-    style: 'Narration',
+    style: 'Conversational',
     multiNativeLocale: 'en-US',
   },
 };
+
+/**
+ * Strip markdown formatting to get plain text for TTS
+ * Requirements: 7.3
+ */
+function stripMarkdown(text: string): string {
+  if (!text) {
+    return '';
+  }
+
+  return text
+    // Remove code blocks (fenced)
+    .replace(/```[\s\S]*?```/g, '')
+    // Remove inline code
+    .replace(/`[^`]+`/g, '')
+    // Remove headers
+    .replace(/^#{1,6}\s+/gm, '')
+    // Remove images (must come before links)
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+    // Remove links but keep text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove bold (double asterisks)
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    // Remove italic (single asterisks)
+    .replace(/\*([^*]+)\*/g, '$1')
+    // Remove bold (double underscores)
+    .replace(/__([^_]+)__/g, '$1')
+    // Remove italic (single underscores)
+    .replace(/_([^_]+)_/g, '$1')
+    // Remove blockquotes
+    .replace(/^>\s+/gm, '')
+    // Remove horizontal rules
+    .replace(/^[-*_]{3,}$/gm, '')
+    // Remove unordered list markers
+    .replace(/^[\s]*[-*+]\s+/gm, '')
+    // Remove ordered list markers
+    .replace(/^[\s]*\d+\.\s+/gm, '')
+    // Remove HTML tags
+    .replace(/<[^>]+>/g, '')
+    // Clean up extra whitespace
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 interface GenerateAudioRequest {
   lessonId: string;
@@ -157,6 +200,13 @@ Deno.serve(async (req: Request) => {
       .update({ audio_status: 'generating' })
       .eq('id', lessonId);
 
+    // Strip markdown formatting for clean TTS (Requirement 7.3)
+    const plainText = stripMarkdown(lesson.markdown_content);
+    
+    if (!plainText) {
+      throw new Error('Lesson has no readable content after stripping markdown');
+    }
+
     const voiceConfig = VOICE_CONFIGS[voiceType];
     const murfResponse = await fetch('https://api.murf.ai/v1/speech/generate', {
       method: 'POST',
@@ -165,7 +215,7 @@ Deno.serve(async (req: Request) => {
         'api-key': MURF_API_KEY,
       },
       body: JSON.stringify({
-        text: lesson.markdown_content,
+        text: plainText,
         voiceId: voiceConfig.voiceId,
         style: voiceConfig.style,
         multiNativeLocale: voiceConfig.multiNativeLocale,
@@ -178,10 +228,22 @@ Deno.serve(async (req: Request) => {
       const errorText = await murfResponse.text();
       let errorMessage = 'Murf AI API error';
 
+      console.error('Murf API error response:', {
+        status: murfResponse.status,
+        statusText: murfResponse.statusText,
+        body: errorText,
+        voiceConfig,
+        textLength: plainText.length,
+      });
+
       try {
         const errorData = JSON.parse(errorText);
         if (errorData.error) {
           errorMessage = errorData.error;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.detail) {
+          errorMessage = errorData.detail;
         }
       } catch {
         errorMessage = errorText.substring(0, 200) || `API error (${murfResponse.status})`;
@@ -192,7 +254,7 @@ Deno.serve(async (req: Request) => {
         .update({ audio_status: 'failed' })
         .eq('id', lessonId);
 
-      throw new Error(errorMessage);
+      throw new Error(`Murf AI: ${errorMessage}`);
     }
 
     const murfData = await murfResponse.json();

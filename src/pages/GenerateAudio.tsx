@@ -1,10 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Volume2, CheckCircle, XCircle, Loader, Sparkles, Play, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Volume2, CheckCircle, XCircle, Loader, Sparkles, Play, RefreshCw, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { VoiceSelector } from '../components/VoiceSelector';
+import { checkAudioAccess } from '../utils/audioAccess';
+import { generateLessonAudio } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Course {
   id: string;
@@ -17,6 +21,7 @@ interface Lesson {
   title: string;
   markdown_content: string | null;
   audio_status: string | null;
+  audio_url: string | null;
   module_index: number;
   lesson_index: number;
 }
@@ -34,12 +39,27 @@ interface AudioGenerationJob {
 export function GenerateAudio() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [voiceType, setVoiceType] = useState<'male' | 'female'>('female');
   const [generating, setGenerating] = useState(false);
   const [job, setJob] = useState<AudioGenerationJob | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retryingLessonId, setRetryingLessonId] = useState<string | null>(null);
+
+  // Check audio access using profile from AuthContext (Requirements 4.1, 4.2, 4.3, 4.4, 4.5)
+  const audioAccessResult = profile
+    ? checkAudioAccess({
+        plan_type: profile.plan_type,
+        audio_addon_enabled: profile.audio_addon_enabled,
+        audio_addon_trial_used: profile.audio_addon_trial_used,
+        audio_addon_expires_at: profile.audio_addon_expires_at,
+      })
+    : { hasAccess: false, reason: 'Loading profile...' };
+  
+  const hasAudioAccess = audioAccessResult.hasAccess;
+  const accessReason = audioAccessResult.reason;
 
   const loadLessons = useCallback(async () => {
     if (!courseId) return;
@@ -86,6 +106,7 @@ export function GenerateAudio() {
 
       setCourse(courseResult.data);
       setLessons(lessonsResult.data || []);
+      
       // Only show in-progress jobs, not completed or failed ones
       const jobData = jobResult.data as AudioGenerationJob | null;
       if (jobData && jobData.status === 'processing') {
@@ -135,6 +156,12 @@ export function GenerateAudio() {
   const handleStartGeneration = async () => {
     if (!courseId) return;
 
+    // Check access control before starting (Requirements 4.1, 4.2, 4.3, 4.4, 4.5)
+    if (!hasAudioAccess) {
+      toast.error(accessReason);
+      return;
+    }
+
     setGenerating(true);
 
     try {
@@ -171,6 +198,27 @@ export function GenerateAudio() {
       console.error('Error starting generation:', error);
       toast.error(errorMessage);
       setGenerating(false);
+    }
+  };
+
+  // Retry audio generation for a single failed lesson (Requirement 6.3)
+  const handleRetryLesson = async (lessonId: string) => {
+    if (!hasAudioAccess) {
+      toast.error(accessReason);
+      return;
+    }
+
+    setRetryingLessonId(lessonId);
+
+    try {
+      await generateLessonAudio({ lessonId, voiceType });
+      toast.success('Audio generated successfully');
+      await loadLessons();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate audio';
+      toast.error(errorMessage);
+    } finally {
+      setRetryingLessonId(null);
     }
   };
 
@@ -239,37 +287,39 @@ export function GenerateAudio() {
                 Convert all {lessons.length} lessons into high-quality audio narrations.
               </p>
 
-              <div className="mb-6">
-                <label className="block font-body font-semibold text-neutral-text mb-3">
-                  Select Voice Type
-                </label>
-                <div className="flex gap-4 justify-center">
-                  <button
-                    onClick={() => setVoiceType('female')}
-                    className={`flex-1 max-w-xs p-4 rounded-xl border-2 transition-all ${
-                      voiceType === 'female'
-                        ? 'border-primary bg-primary-light/20'
-                        : 'border-neutral-border hover:border-primary/50'
-                    }`}
+              {/* Access control warning (Requirements 4.1, 4.2, 4.3, 4.4, 4.5) */}
+              {!hasAudioAccess && (
+                <div className="mb-6 p-4 bg-accent-red/10 border border-accent-red/30 rounded-xl">
+                  <div className="flex items-center gap-3 justify-center">
+                    <AlertCircle className="w-5 h-5 text-accent-red" />
+                    <p className="font-body text-accent-red">{accessReason}</p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => navigate('/pricing')}
+                    className="mt-3"
                   >
-                    <h3 className="font-body font-bold text-neutral-text mb-1">Female Voice</h3>
-                    <p className="text-sm text-neutral-text-muted">Natalie - Professional narration</p>
-                  </button>
-                  <button
-                    onClick={() => setVoiceType('male')}
-                    className={`flex-1 max-w-xs p-4 rounded-xl border-2 transition-all ${
-                      voiceType === 'male'
-                        ? 'border-primary bg-primary-light/20'
-                        : 'border-neutral-border hover:border-primary/50'
-                    }`}
-                  >
-                    <h3 className="font-body font-bold text-neutral-text mb-1">Male Voice</h3>
-                    <p className="text-sm text-neutral-text-muted">Cooper - Clear and engaging</p>
-                  </button>
+                    View Pricing
+                  </Button>
                 </div>
+              )}
+
+              {/* Voice selection using VoiceSelector component (Requirement 1.2) */}
+              <div className="mb-6 flex justify-center">
+                <VoiceSelector
+                  selectedVoice={voiceType}
+                  onVoiceChange={setVoiceType}
+                  disabled={!hasAudioAccess}
+                />
               </div>
 
-              <Button onClick={handleStartGeneration} size="lg" className="flex items-center gap-2 mx-auto">
+              <Button 
+                onClick={handleStartGeneration} 
+                size="lg" 
+                className="flex items-center gap-2 mx-auto"
+                disabled={!hasAudioAccess}
+              >
                 <Sparkles className="w-5 h-5" />
                 Generate Audio for All Lessons
               </Button>
@@ -341,6 +391,7 @@ export function GenerateAudio() {
               <div className="space-y-2">
                 {lessons.map((lesson) => {
                   const status = getLessonStatus(lesson);
+                  const isRetrying = retryingLessonId === lesson.id;
                   return (
                     <div
                       key={lesson.id}
@@ -348,9 +399,9 @@ export function GenerateAudio() {
                     >
                       <div className="flex-shrink-0">
                         {status === 'completed' && <CheckCircle className="w-5 h-5 text-green-500" />}
-                        {status === 'failed' && <XCircle className="w-5 h-5 text-accent-red" />}
-                        {status === 'generating' && <Loader className="w-5 h-5 text-primary animate-spin" />}
-                        {status === 'pending' && <div className="w-5 h-5 rounded-full border-2 border-neutral-border" />}
+                        {status === 'failed' && !isRetrying && <XCircle className="w-5 h-5 text-accent-red" />}
+                        {(status === 'generating' || isRetrying) && <Loader className="w-5 h-5 text-primary animate-spin" />}
+                        {status === 'pending' && !isRetrying && <div className="w-5 h-5 rounded-full border-2 border-neutral-border" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-body text-sm text-neutral-text-muted">
@@ -358,19 +409,32 @@ export function GenerateAudio() {
                         </p>
                         <p className="font-body font-semibold text-neutral-text truncate">{lesson.title}</p>
                       </div>
-                      <div className="flex-shrink-0">
+                      <div className="flex-shrink-0 flex items-center gap-2">
+                        {/* Retry button for failed lessons (Requirement 6.3) */}
+                        {status === 'failed' && !isRetrying && (
+                          <button
+                            onClick={() => handleRetryLesson(lesson.id)}
+                            className="p-2 hover:bg-neutral-border rounded-lg transition-colors"
+                            title="Retry audio generation"
+                            disabled={!hasAudioAccess}
+                          >
+                            <RefreshCw className="w-4 h-4 text-neutral-text-muted hover:text-primary" />
+                          </button>
+                        )}
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-body font-semibold ${
                             status === 'completed'
                               ? 'bg-green-500/20 text-green-600'
                               : status === 'failed'
                               ? 'bg-accent-red/20 text-accent-red'
-                              : status === 'generating'
+                              : status === 'generating' || isRetrying
                               ? 'bg-primary-light/20 text-primary'
                               : 'bg-neutral-border text-neutral-text-muted'
                           }`}
                         >
-                          {status === 'completed'
+                          {isRetrying
+                            ? 'Retrying...'
+                            : status === 'completed'
                             ? 'Ready'
                             : status === 'failed'
                             ? 'Failed'

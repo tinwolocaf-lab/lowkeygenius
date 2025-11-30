@@ -13,6 +13,8 @@ export type CourseIntensity = 'short' | 'standard' | 'deep';
 export type CourseStatus = 'draft_outline' | 'generating_lessons' | 'ready' | 'published';
 export type FileSourceType = 'pdf' | 'docx' | 'pptx' | 'url' | 'text';
 export type AudioStatus = 'none' | 'generating' | 'ready' | 'failed';
+export type AudioJobStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type VoiceType = 'male' | 'female';
 
 export interface Database {
   public: {
@@ -31,6 +33,8 @@ export interface Database {
           subscription_ends_at: string | null;
           audio_addon_enabled: boolean;
           audio_addon_trial_used: boolean;
+          audio_addon_expires_at: string | null;
+          audio_addon_subscription_id: string | null;
           billing_cycle: string | null;
           theme_preference: string;
           created_at: string;
@@ -49,6 +53,8 @@ export interface Database {
           subscription_ends_at?: string | null;
           audio_addon_enabled?: boolean;
           audio_addon_trial_used?: boolean;
+          audio_addon_expires_at?: string | null;
+          audio_addon_subscription_id?: string | null;
           theme_preference?: string;
           billing_cycle?: string | null;
           created_at?: string;
@@ -67,6 +73,8 @@ export interface Database {
           subscription_ends_at?: string | null;
           audio_addon_enabled?: boolean;
           audio_addon_trial_used?: boolean;
+          audio_addon_expires_at?: string | null;
+          audio_addon_subscription_id?: string | null;
           billing_cycle?: string | null;
           theme_preference?: string;
           created_at?: string;
@@ -240,6 +248,8 @@ export interface Database {
           audio_url: string | null;
           audio_duration_seconds: number | null;
           audio_status: AudioStatus;
+          audio_voice_type: VoiceType | null;
+          audio_generated_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -254,6 +264,8 @@ export interface Database {
           audio_url?: string | null;
           audio_duration_seconds?: number | null;
           audio_status?: AudioStatus;
+          audio_voice_type?: VoiceType | null;
+          audio_generated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -268,6 +280,8 @@ export interface Database {
           audio_url?: string | null;
           audio_duration_seconds?: number | null;
           audio_status?: AudioStatus;
+          audio_voice_type?: VoiceType | null;
+          audio_generated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -362,6 +376,53 @@ export interface Database {
           created_at?: string;
         };
       };
+      audio_generation_jobs: {
+        Row: {
+          id: string;
+          course_id: string;
+          user_id: string;
+          voice_type: VoiceType;
+          status: AudioJobStatus;
+          total_lessons: number;
+          completed_lessons: number;
+          failed_lessons: number;
+          error_message: string | null;
+          started_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          course_id: string;
+          user_id: string;
+          voice_type: VoiceType;
+          status?: AudioJobStatus;
+          total_lessons: number;
+          completed_lessons?: number;
+          failed_lessons?: number;
+          error_message?: string | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          course_id?: string;
+          user_id?: string;
+          voice_type?: VoiceType;
+          status?: AudioJobStatus;
+          total_lessons?: number;
+          completed_lessons?: number;
+          failed_lessons?: number;
+          error_message?: string | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+        };
+      };
     };
   };
 }
+
+// Convenience type for AudioGenerationJob
+export type AudioGenerationJob = Database['public']['Tables']['audio_generation_jobs']['Row'];
