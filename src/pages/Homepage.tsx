@@ -104,11 +104,13 @@ export function Homepage() {
 
       <section className="relative overflow-hidden bg-neutral-surface py-12 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            <div className="text-center lg:text-left order-2 lg:order-1">
-              <div className="inline-flex items-center gap-2 bg-neutral-bg backdrop-blur-sm px-6 py-3 rounded-full shadow-soft border border-neutral-border mb-6">
-                <Sparkles className="w-5 h-5 text-primary" />
-                <span className="font-body font-bold text-primary">AI-Powered Personalized Learning</span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start lg:items-center">
+            <div className="text-center lg:text-left order-2 lg:order-1 flex flex-col justify-center">
+              <div className="flex justify-center lg:justify-start mb-6">
+                <div className="inline-flex items-center gap-2 bg-neutral-bg backdrop-blur-sm px-6 py-3 rounded-full shadow-soft border border-neutral-border">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  <span className="font-body font-bold text-primary">AI-Powered Personalized Learning</span>
+                </div>
               </div>
 
               <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-text mb-6 leading-tight">

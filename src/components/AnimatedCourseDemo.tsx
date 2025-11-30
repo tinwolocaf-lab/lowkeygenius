@@ -61,14 +61,16 @@ export function AnimatedCourseDemo() {
   const [showModules, setShowModules] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
+  const [messageIndex, setMessageIndex] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messageIndexRef = useRef(0);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   useEffect(() => {
+    console.log('Animation phase:', phase, 'Message index:', messageIndex);
+
     if (phase === 'intro') {
       const timer = setTimeout(() => {
         setPhase('chat-conversation');
@@ -77,18 +79,18 @@ export function AnimatedCourseDemo() {
     }
 
     if (phase === 'chat-conversation') {
-      if (messageIndexRef.current < conversationMessages.length) {
-        const currentMessage = conversationMessages[messageIndexRef.current];
+      if (messageIndex < conversationMessages.length) {
+        const currentMessage = conversationMessages[messageIndex];
         const timer = setTimeout(() => {
           setMessages((prev) => [
             ...prev,
             {
-              id: messageIndexRef.current,
+              id: messageIndex,
               type: currentMessage.type,
               content: currentMessage.content,
             },
           ]);
-          messageIndexRef.current += 1;
+          setMessageIndex(messageIndex + 1);
         }, currentMessage.delay);
         return () => clearTimeout(timer);
       } else {
@@ -162,18 +164,22 @@ export function AnimatedCourseDemo() {
       setShowModules(false);
       setShowConfetti(false);
       setCurrentLessonIndex(0);
-      messageIndexRef.current = 0;
+      setMessageIndex(0);
       const timer = setTimeout(() => {
         setPhase('intro');
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [phase, currentLessonIndex, lessons.length]);
+  }, [phase, currentLessonIndex, messageIndex, lessons.length]);
 
   return (
     <div className="w-full h-full min-h-[600px] lg:min-h-[700px] relative">
       <AnimatedBrowserWindow>
         <div className="h-full overflow-y-auto p-4 md:p-6 relative">
+          {/* Debug indicator - remove in production */}
+          <div className="absolute top-2 right-2 bg-neutral-bg/90 px-3 py-1 rounded-full text-xs font-mono text-neutral-text-muted z-50">
+            {phase} | msg: {messageIndex}/{conversationMessages.length}
+          </div>
           {(phase === 'chat-conversation' || phase === 'intro') && (
             <div className="max-w-2xl mx-auto">
               {messages.map((message) => (
