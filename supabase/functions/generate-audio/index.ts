@@ -33,7 +33,9 @@ function stripMarkdown(text: string): string {
   }
 
   return text
-    // Remove code blocks (fenced)
+    // Replace mermaid diagrams with spoken placeholder
+    .replace(/```mermaid[\s\S]*?```/g, 'There is a diagram here illustrating this concept.')
+    // Remove other code blocks (fenced)
     .replace(/```[\s\S]*?```/g, '')
     // Remove inline code
     .replace(/`[^`]+`/g, '')

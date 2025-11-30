@@ -74,10 +74,11 @@ ${objectives.map(obj => `- ${obj}`).join('\n')}${materialsContext}
 Create a complete lesson in GitHub-flavored Markdown format with:
 1. An engaging introduction
 2. Clear explanations with examples
-3. Code snippets or diagrams where appropriate (use markdown code blocks)
-4. Practical exercises or questions
-5. Key takeaways summary
-6. Further reading suggestions
+3. Code snippets where appropriate (use markdown code blocks)
+4. **IMPORTANT: Include 1-2 Mermaid diagrams** to visualize concepts, processes, or relationships. Use \`\`\`mermaid code blocks.
+5. Practical exercises or questions
+6. Key takeaways summary
+7. Further reading suggestions
 
 Use proper markdown formatting:
 - # for main title
@@ -86,9 +87,17 @@ Use proper markdown formatting:
 - **bold** for emphasis
 - \`code\` for inline code
 - \`\`\`language for code blocks
+- \`\`\`mermaid for diagrams (flowcharts, sequence diagrams, class diagrams, etc.)
 - > for callouts/notes
 - - for bullet lists
 - 1. for numbered lists
+
+Mermaid diagram examples to include:
+- Flowcharts for processes or decision trees
+- Sequence diagrams for interactions
+- Class diagrams for object relationships
+- State diagrams for state machines
+- Mind maps for concept relationships
 
 Make it engaging, practical, and appropriate for ${courseContext.level} level learners.`;
 
