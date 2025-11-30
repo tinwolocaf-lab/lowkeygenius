@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, ChevronRight, ChevronLeft, CheckCircle, Circle, BookOpen, Menu, X, Headphones, Volume2 } from 'lucide-react';
 import { CourseAudioPlayer } from '../components/CourseAudioPlayer';
 import { supabase } from '../lib/supabase';
@@ -40,9 +40,15 @@ interface Progress {
   completed: boolean;
 }
 
+interface LocationState {
+  lessonId?: string;
+  autoPlayAudio?: boolean;
+}
+
 export function CourseView() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -51,6 +57,7 @@ export function CourseView() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
+  const [initialNavigationHandled, setInitialNavigationHandled] = useState(false);
 
   // Derive currentLesson from state
   const currentLesson = lessons[currentLessonIndex];
@@ -107,6 +114,25 @@ export function CourseView() {
   useEffect(() => {
     loadCourseData();
   }, [loadCourseData]);
+
+  // Handle navigation state (lessonId and autoPlayAudio from GenerateAudio page)
+  useEffect(() => {
+    if (initialNavigationHandled || loading || lessons.length === 0) return;
+
+    const state = location.state as LocationState | null;
+    if (state?.lessonId) {
+      const lessonIndex = lessons.findIndex(l => l.id === state.lessonId);
+      if (lessonIndex !== -1) {
+        setCurrentLessonIndex(lessonIndex);
+        if (state.autoPlayAudio && lessons[lessonIndex].audio_url) {
+          setShowAudioPlayer(true);
+        }
+      }
+      // Clear the state to prevent re-triggering on subsequent renders
+      navigate(location.pathname, { replace: true, state: null });
+    }
+    setInitialNavigationHandled(true);
+  }, [loading, lessons, location.state, location.pathname, navigate, initialNavigationHandled]);
 
   // Mark lesson as viewed when current lesson changes
   useEffect(() => {

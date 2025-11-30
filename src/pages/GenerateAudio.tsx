@@ -242,7 +242,12 @@ export function GenerateAudio() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => navigate(`/courses/${courseId}/lessons/${lesson.id}`)}
+                        onClick={() => navigate(`/courses/${courseId}`, { 
+                          state: { 
+                            lessonId: lesson.id,
+                            autoPlayAudio: true 
+                          } 
+                        })}
                         className="flex items-center gap-1"
                       >
                         <Play className="w-3 h-3" />
