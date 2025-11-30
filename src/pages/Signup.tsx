@@ -9,7 +9,7 @@ import { Card } from '../components/Card';
 export function Signup() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { signUp, user } = useAuth();
+  const { signUp, user, isEmailVerified } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,10 +18,14 @@ export function Signup() {
 
   useEffect(() => {
     if (user) {
-      const redirect = searchParams.get('redirect') || '/dashboard';
-      navigate(redirect);
+      if (isEmailVerified) {
+        const redirect = searchParams.get('redirect') || '/dashboard';
+        navigate(redirect);
+      } else {
+        navigate('/verify-email/pending', { state: { email: user.email } });
+      }
     }
-  }, [user, navigate, searchParams]);
+  }, [user, isEmailVerified, navigate, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,8 +44,8 @@ export function Signup() {
       setError(error.message);
       setLoading(false);
     } else {
-      const redirect = searchParams.get('redirect') || '/dashboard';
-      navigate(redirect);
+      // Redirect to verification pending page with email in state
+      navigate('/verify-email/pending', { state: { email } });
     }
   };
 

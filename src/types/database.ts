@@ -245,6 +245,8 @@ export interface Database {
           title: string;
           objectives: string[] | null;
           markdown_content: string | null;
+          lesson_status: string;
+          is_manually_edited: boolean;
           audio_url: string | null;
           audio_duration_seconds: number | null;
           audio_status: AudioStatus;
@@ -261,6 +263,8 @@ export interface Database {
           title: string;
           objectives?: string[] | null;
           markdown_content?: string | null;
+          lesson_status?: string;
+          is_manually_edited?: boolean;
           audio_url?: string | null;
           audio_duration_seconds?: number | null;
           audio_status?: AudioStatus;
@@ -277,6 +281,8 @@ export interface Database {
           title?: string;
           objectives?: string[] | null;
           markdown_content?: string | null;
+          lesson_status?: string;
+          is_manually_edited?: boolean;
           audio_url?: string | null;
           audio_duration_seconds?: number | null;
           audio_status?: AudioStatus;

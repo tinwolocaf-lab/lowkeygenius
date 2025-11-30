@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, Clock, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -33,7 +33,7 @@ export function GenerateLessons() {
   const [generating, setGenerating] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
+
 
   useEffect(() => {
     loadCourseAndLessons();

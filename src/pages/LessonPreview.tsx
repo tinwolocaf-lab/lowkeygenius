@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Check, CheckCircle, Circle, Edit2, Sparkles, Eye, Save, X, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle, Circle, Edit2, Sparkles, Save, X, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';

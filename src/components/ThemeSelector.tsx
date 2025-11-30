@@ -51,8 +51,6 @@ export function ThemeSelector({ collapsed = false }: ThemeSelectorProps) {
     };
   }, [isOpen]);
 
-  const currentTheme = themeOptions.find((option) => option.value === theme);
-
   const handleThemeChange = async (newTheme: Theme) => {
     await setTheme(newTheme);
     setIsOpen(false);

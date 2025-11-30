@@ -1,4 +1,3 @@
-import React from 'react';
 import { Sparkles, BookOpen, Lightbulb, Zap } from 'lucide-react';
 
 interface LoadingAnimationProps {

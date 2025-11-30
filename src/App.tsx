@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -23,6 +23,9 @@ import { LessonPreview } from './pages/LessonPreview';
 import { GenerateAudio } from './pages/GenerateAudio';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PublicRoute } from './components/PublicRoute';
+import { VerifyEmailPending } from './pages/VerifyEmailPending';
+import { VerifyEmailSuccess } from './pages/VerifyEmailSuccess';
+import { AuthCallback } from './pages/AuthCallback';
 
 function PricingWrapper() {
   const { user } = useAuth();
@@ -79,6 +82,9 @@ function App() {
           } />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/verify-email/pending" element={<VerifyEmailPending />} />
+          <Route path="/verify-email/success" element={<VerifyEmailSuccess />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
 
           <Route path="/dashboard" element={
             <ProtectedRoute>

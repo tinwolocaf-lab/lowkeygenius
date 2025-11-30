@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ChevronRight, ChevronLeft, CheckCircle, Circle, BookOpen, Menu, X, Headphones, Volume2 } from 'lucide-react';
 import { CourseAudioPlayer } from '../components/CourseAudioPlayer';
@@ -222,7 +222,7 @@ export function CourseView() {
                   Module {moduleIndex + 1}: {getModuleTitle(moduleIndex)}
                 </h3>
                 <div className="space-y-1">
-                  {moduleLessons.map((lesson, idx) => {
+                  {moduleLessons.map((lesson) => {
                     const globalIndex = lessons.findIndex(l => l.id === lesson.id);
                     const isActive = globalIndex === currentLessonIndex;
                     const isComplete = isLessonComplete(lesson.id);

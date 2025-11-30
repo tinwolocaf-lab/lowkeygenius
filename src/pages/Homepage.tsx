@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Sparkles, Zap, BookOpen, FileText, Headphones, ArrowRight, CheckCircle2, Clock, Target, Users } from 'lucide-react';
+import { GraduationCap, Sparkles, BookOpen, FileText, Headphones, ArrowRight, CheckCircle2, Clock, Target } from 'lucide-react';
 import { PublicHeader } from '../components/PublicHeader';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
