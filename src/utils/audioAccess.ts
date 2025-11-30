@@ -50,7 +50,10 @@ export function checkAudioAccess(
         return { hasAccess: true, reason: 'Audio add-on subscription active' };
       }
       // Subscription has expired (Requirement 4.5)
-      return { hasAccess: false, reason: 'Audio add-on subscription expired' };
+      return { 
+        hasAccess: false, 
+        reason: 'Your Audio Add-on subscription has expired. Please renew your subscription or upgrade to Pro Max to continue generating audio.' 
+      };
     }
     // No expiration date means active subscription
     return { hasAccess: true, reason: 'Audio add-on subscription active' };
@@ -63,9 +66,15 @@ export function checkAudioAccess(
 
   // FREE plan users who have used their trial need to upgrade (Requirement 4.2)
   if (profile.plan_type === 'FREE' && profile.audio_addon_trial_used) {
-    return { hasAccess: false, reason: 'Free trial used. Please upgrade to continue.' };
+    return { 
+      hasAccess: false, 
+      reason: 'Your free audio trial has been used. Subscribe to the Audio Add-on or upgrade to Pro Max to generate more audio.' 
+    };
   }
 
   // PLUS or PRO plan users without audio add-on (Requirement 4.3)
-  return { hasAccess: false, reason: 'Audio add-on required' };
+  return { 
+    hasAccess: false, 
+    reason: 'Audio generation requires the Audio Add-on subscription or a Pro Max plan.' 
+  };
 }

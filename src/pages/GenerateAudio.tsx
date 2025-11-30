@@ -289,19 +289,32 @@ export function GenerateAudio() {
 
               {/* Access control warning (Requirements 4.1, 4.2, 4.3, 4.4, 4.5) */}
               {!hasAudioAccess && (
-                <div className="mb-6 p-4 bg-accent-red/10 border border-accent-red/30 rounded-xl">
-                  <div className="flex items-center gap-3 justify-center">
-                    <AlertCircle className="w-5 h-5 text-accent-red" />
-                    <p className="font-body text-accent-red">{accessReason}</p>
+                <div className="mb-6 p-5 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl text-left">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h3 className="font-display font-semibold text-amber-800 dark:text-amber-300 mb-2">
+                        Audio Generation Requires Subscription
+                      </h3>
+                      <p className="font-body text-amber-700 dark:text-amber-400 text-sm mb-3">
+                        {accessReason}
+                      </p>
+                      <div className="font-body text-amber-700 dark:text-amber-400 text-sm mb-4">
+                        <p className="font-semibold mb-1">To unlock audio generation:</p>
+                        <ul className="list-disc list-inside space-y-1 ml-1">
+                          <li>Subscribe to the <span className="font-semibold">Audio Add-on</span> for your current plan</li>
+                          <li>Or upgrade to <span className="font-semibold">Pro Max</span> which includes unlimited audio generation</li>
+                        </ul>
+                      </div>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => navigate('/pricing')}
+                      >
+                        View Plans & Pricing
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => navigate('/pricing')}
-                    className="mt-3"
-                  >
-                    View Pricing
-                  </Button>
                 </div>
               )}
 
