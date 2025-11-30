@@ -80,28 +80,129 @@ function CodeBlock({
 }
 
 /**
- * Custom paragraph component that avoids invalid DOM nesting.
- * If children contain block-level elements (pre, div, etc.), render as div instead of p.
+ * Process React children to wrap wiki terms with InlineWikiTerm components.
  */
-function Paragraph({ children, ...props }: { children?: React.ReactNode }) {
-  const hasBlockElement = (nodes: React.ReactNode): boolean => {
-    return React.Children.toArray(nodes).some((child) => {
-      if (!React.isValidElement(child)) return false;
-      const type = child.type;
-      if (typeof type === 'string') {
-        return ['pre', 'div', 'table', 'ul', 'ol', 'blockquote', 'figure'].includes(type);
-      }
-      // Check for our custom CodeBlock which renders pre
-      if (type === CodeBlock) return true;
-      return false;
-    });
-  };
-
-  if (hasBlockElement(children)) {
-    return <div {...props}>{children}</div>;
+function processChildrenForWikiTerms(
+  children: React.ReactNode,
+  wikiEntries: InlineWikiEntry[],
+  isOwner: boolean,
+  onDelete: (entryId: string) => void,
+  isLoading?: boolean
+): React.ReactNode {
+  if (wikiEntries.length === 0 || isLoading) {
+    return children;
   }
 
-  return <p {...props}>{children}</p>;
+  return React.Children.map(children, (child) => {
+    // If it's a string, process it for wiki terms
+    if (typeof child === 'string') {
+      return renderTextWithWikiTerms(child, wikiEntries, isOwner, onDelete);
+    }
+    
+    // If it's a valid React element, recursively process its children
+    if (React.isValidElement(child)) {
+      const elementChild = child as React.ReactElement<{ children?: React.ReactNode }>;
+      // Don't process code blocks or pre elements
+      if (elementChild.type === 'code' || elementChild.type === 'pre' || elementChild.type === CodeBlock) {
+        return child;
+      }
+      
+      if (elementChild.props.children) {
+        return React.cloneElement(elementChild, {
+          ...elementChild.props,
+          children: processChildrenForWikiTerms(
+            elementChild.props.children,
+            wikiEntries,
+            isOwner,
+            onDelete,
+            isLoading
+          ),
+        });
+      }
+    }
+    
+    return child;
+  });
+}
+
+/**
+ * Render text with InlineWiki terms wrapped.
+ */
+function renderTextWithWikiTerms(
+  text: string,
+  wikiEntries: InlineWikiEntry[],
+  isOwner: boolean,
+  onDelete: (entryId: string) => void
+): React.ReactNode {
+  if (wikiEntries.length === 0) {
+    return text;
+  }
+
+  // Sort entries by term length (longest first) to handle overlapping terms
+  const sortedEntries = [...wikiEntries].sort((a, b) => b.term.length - a.term.length);
+  
+  // Build a map of term positions to avoid overlapping matches
+  const matches: Array<{ start: number; end: number; entry: InlineWikiEntry }> = [];
+  
+  for (const entry of sortedEntries) {
+    // Case-insensitive search for the term
+    const regex = new RegExp(`\\b${escapeRegExp(entry.term)}\\b`, 'gi');
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      const start = match.index;
+      const end = start + match[0].length;
+      
+      // Check if this position overlaps with existing matches
+      const overlaps = matches.some(
+        m => (start >= m.start && start < m.end) || (end > m.start && end <= m.end)
+      );
+      
+      if (!overlaps) {
+        matches.push({ start, end, entry });
+      }
+    }
+  }
+
+  if (matches.length === 0) {
+    return text;
+  }
+
+  // Sort matches by position
+  matches.sort((a, b) => a.start - b.start);
+
+  // Build the result with InlineWikiTerm components
+  const result: React.ReactNode[] = [];
+  let lastIndex = 0;
+
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
+    // Add text before this match
+    if (match.start > lastIndex) {
+      result.push(text.slice(lastIndex, match.start));
+    }
+
+    // Add the InlineWikiTerm component
+    const matchedText = text.slice(match.start, match.end);
+    result.push(
+      <InlineWikiTerm
+        key={`${match.entry.id}-${match.start}-${i}`}
+        term={matchedText}
+        definition={match.entry.definition}
+        entryId={match.entry.id}
+        isOwner={isOwner}
+        onDelete={onDelete}
+      />
+    );
+
+    lastIndex = match.end;
+  }
+
+  // Add remaining text
+  if (lastIndex < text.length) {
+    result.push(text.slice(lastIndex));
+  }
+
+  return result;
 }
 
 
@@ -140,7 +241,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 
   // InlineWiki state - Requirements: 4.2, 5.1, 6.1
   const [wikiEntries, setWikiEntries] = useState<InlineWikiEntry[]>([]);
-  const [isLoadingEntries, setIsLoadingEntries] = useState(false);
+  const [isLoadingEntries, setIsLoadingEntries] = useState(true);
   const [entriesError, setEntriesError] = useState<string | null>(null);
 
   // Keep currentContent in sync with content prop
@@ -231,101 +332,83 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   }, []);
 
   /**
-   * Render content with InlineWiki terms wrapped.
+   * Create custom paragraph component that processes wiki terms.
    * Requirements: 5.1, 5.3 - Match InlineWiki terms in content and apply styling
    */
-  const renderContentWithWikiTerms = useCallback((text: string): React.ReactNode => {
-    if (wikiEntries.length === 0 || isLoadingEntries) {
-      return text;
-    }
-
-    // Sort entries by term length (longest first) to handle overlapping terms
-    const sortedEntries = [...wikiEntries].sort((a, b) => b.term.length - a.term.length);
-    
-    // Build a map of term positions to avoid overlapping matches
-    const matches: Array<{ start: number; end: number; entry: InlineWikiEntry }> = [];
-    
-    for (const entry of sortedEntries) {
-      // Case-insensitive search for the term
-      const regex = new RegExp(`\\b${escapeRegExp(entry.term)}\\b`, 'gi');
-      let match;
-      while ((match = regex.exec(text)) !== null) {
-        const start = match.index;
-        const end = start + match[0].length;
-        
-        // Check if this position overlaps with existing matches
-        const overlaps = matches.some(
-          m => (start >= m.start && start < m.end) || (end > m.start && end <= m.end)
-        );
-        
-        if (!overlaps) {
-          matches.push({ start, end, entry });
+  const WikiParagraph = useCallback(({ children, ...props }: { children?: React.ReactNode }) => {
+    const hasBlockElement = (nodes: React.ReactNode): boolean => {
+      return React.Children.toArray(nodes).some((child) => {
+        if (!React.isValidElement(child)) return false;
+        const type = child.type;
+        if (typeof type === 'string') {
+          return ['pre', 'div', 'table', 'ul', 'ol', 'blockquote', 'figure'].includes(type);
         }
-      }
+        if (type === CodeBlock) return true;
+        return false;
+      });
+    };
+
+    const processedChildren = processChildrenForWikiTerms(
+      children,
+      wikiEntries,
+      isOwner,
+      handleDeleteEntry,
+      isLoadingEntries
+    );
+
+    if (hasBlockElement(children)) {
+      return <div {...props}>{processedChildren}</div>;
     }
 
-    if (matches.length === 0) {
-      return text;
-    }
-
-    // Sort matches by position
-    matches.sort((a, b) => a.start - b.start);
-
-    // Build the result with InlineWikiTerm components
-    const result: React.ReactNode[] = [];
-    let lastIndex = 0;
-
-    for (const match of matches) {
-      // Add text before this match
-      if (match.start > lastIndex) {
-        result.push(text.slice(lastIndex, match.start));
-      }
-
-      // Add the InlineWikiTerm component
-      const matchedText = text.slice(match.start, match.end);
-      result.push(
-        <InlineWikiTerm
-          key={`${match.entry.id}-${match.start}`}
-          term={matchedText}
-          definition={match.entry.definition}
-          entryId={match.entry.id}
-          isOwner={isOwner}
-          onDelete={handleDeleteEntry}
-        />
-      );
-
-      lastIndex = match.end;
-    }
-
-    // Add remaining text
-    if (lastIndex < text.length) {
-      result.push(text.slice(lastIndex));
-    }
-
-    return result;
-  }, [wikiEntries, isLoadingEntries, isOwner, handleDeleteEntry]);
-
+    return <p {...props}>{processedChildren}</p>;
+  }, [wikiEntries, isOwner, handleDeleteEntry, isLoadingEntries]);
 
   /**
-   * Custom text renderer that wraps InlineWiki terms.
-   * Requirements: 5.1, 5.3 - Match InlineWiki terms and apply styling
+   * Create custom list item component that processes wiki terms.
    */
-  const TextRenderer = useCallback(({ children }: { children?: React.ReactNode }) => {
-    if (typeof children === 'string') {
-      return <>{renderContentWithWikiTerms(children)}</>;
-    }
-    return <>{children}</>;
-  }, [renderContentWithWikiTerms]);
+  const WikiListItem = useCallback(({ children, ...props }: { children?: React.ReactNode }) => {
+    const processedChildren = processChildrenForWikiTerms(
+      children,
+      wikiEntries,
+      isOwner,
+      handleDeleteEntry,
+      isLoadingEntries
+    );
+    return <li {...props}>{processedChildren}</li>;
+  }, [wikiEntries, isOwner, handleDeleteEntry, isLoadingEntries]);
+
+  /**
+   * Create custom heading components that process wiki terms.
+   */
+  const createWikiHeading = useCallback((level: 1 | 2 | 3 | 4 | 5 | 6) => {
+    const HeadingComponent = ({ children, ...props }: { children?: React.ReactNode }) => {
+      const processedChildren = processChildrenForWikiTerms(
+        children,
+        wikiEntries,
+        isOwner,
+        handleDeleteEntry,
+        isLoadingEntries
+      );
+      const Tag = `h${level}` as keyof JSX.IntrinsicElements;
+      return <Tag {...props}>{processedChildren}</Tag>;
+    };
+    return HeadingComponent;
+  }, [wikiEntries, isOwner, handleDeleteEntry, isLoadingEntries]);
 
   // Memoize the components configuration to prevent unnecessary re-renders
   const components: Components = useMemo(
     () => ({
       code: CodeBlock as Components['code'],
-      p: Paragraph as Components['p'],
-      // Use custom text renderer to wrap InlineWiki terms
-      text: TextRenderer as unknown as Components['text'],
+      p: WikiParagraph as Components['p'],
+      li: WikiListItem as Components['li'],
+      h1: createWikiHeading(1) as Components['h1'],
+      h2: createWikiHeading(2) as Components['h2'],
+      h3: createWikiHeading(3) as Components['h3'],
+      h4: createWikiHeading(4) as Components['h4'],
+      h5: createWikiHeading(5) as Components['h5'],
+      h6: createWikiHeading(6) as Components['h6'],
     }),
-    [TextRenderer]
+    [WikiParagraph, WikiListItem, createWikiHeading]
   );
 
   /**
