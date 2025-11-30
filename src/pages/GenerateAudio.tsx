@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Volume2, CheckCircle, XCircle, Loader, Sparkles, Play } from 'lucide-react';
+import { ArrowLeft, Volume2, CheckCircle, XCircle, Loader, Sparkles, Play, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -41,38 +41,23 @@ export function GenerateAudio() {
   const [job, setJob] = useState<AudioGenerationJob | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
+  const loadLessons = useCallback(async () => {
+    if (!courseId) return;
+
+    const { data } = await supabase
+      .from('lessons')
+      .select('*')
+      .eq('course_id', courseId)
+      .not('markdown_content', 'is', null)
+      .order('module_index')
+      .order('lesson_index');
+
+    if (data) {
+      setLessons(data);
+    }
   }, [courseId]);
 
-  useEffect(() => {
-    if (!job || job.status === 'completed' || job.status === 'failed') return;
-
-    const subscription = supabase
-      .channel(`audio_job_${job.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'audio_generation_jobs',
-          filter: `id=eq.${job.id}`,
-        },
-        (payload) => {
-          setJob(payload.new as AudioGenerationJob);
-          if (payload.new.status === 'completed' || payload.new.status === 'failed') {
-            loadLessons();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [job?.id]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!courseId) return;
 
     try {
@@ -101,10 +86,12 @@ export function GenerateAudio() {
 
       setCourse(courseResult.data);
       setLessons(lessonsResult.data || []);
-      if (jobResult.data && jobResult.data.status !== 'completed' && jobResult.data.status !== 'failed') {
-        setJob(jobResult.data);
+      // Only show in-progress jobs, not completed or failed ones
+      const jobData = jobResult.data as AudioGenerationJob | null;
+      if (jobData && jobData.status === 'processing') {
+        setJob(jobData);
         setGenerating(true);
-        setVoiceType(jobResult.data.voice_type as 'male' | 'female');
+        setVoiceType(jobData.voice_type as 'male' | 'female');
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -112,23 +99,38 @@ export function GenerateAudio() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId, navigate]);
 
-  const loadLessons = async () => {
-    if (!courseId) return;
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-    const { data } = await supabase
-      .from('lessons')
-      .select('*')
-      .eq('course_id', courseId)
-      .not('markdown_content', 'is', null)
-      .order('module_index')
-      .order('lesson_index');
+  useEffect(() => {
+    if (!job || job.status === 'completed' || job.status === 'failed') return;
 
-    if (data) {
-      setLessons(data);
-    }
-  };
+    const subscription = supabase
+      .channel(`audio_job_${job.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'audio_generation_jobs',
+          filter: `id=eq.${job.id}`,
+        },
+        (payload) => {
+          setJob(payload.new as AudioGenerationJob);
+          if (payload.new.status === 'completed' || payload.new.status === 'failed') {
+            loadLessons();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [job, loadLessons]);
 
   const handleStartGeneration = async () => {
     if (!courseId) return;
@@ -162,11 +164,12 @@ export function GenerateAudio() {
         throw new Error(error.error || 'Failed to start audio generation');
       }
 
-      const result = await response.json();
+      await response.json();
       await loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start audio generation';
       console.error('Error starting generation:', error);
-      toast.error(error.message || 'Failed to start audio generation');
+      toast.error(errorMessage);
       setGenerating(false);
     }
   };
@@ -199,6 +202,12 @@ export function GenerateAudio() {
 
   const isCompleted = job?.status === 'completed';
   const isFailed = job?.status === 'failed';
+
+  const handleRetry = () => {
+    // Reset state to show the initial generation form
+    setJob(null);
+    setGenerating(false);
+  };
 
   return (
     <div className="min-h-screen bg-neutral-surface">
@@ -306,6 +315,23 @@ export function GenerateAudio() {
                   <Button variant="secondary" onClick={() => navigate(`/courses/${courseId}`)}>
                     Back to Course
                   </Button>
+                </div>
+              )}
+
+              {isFailed && (
+                <div className="flex flex-col items-center gap-4 mt-6">
+                  <p className="text-sm text-accent-red max-w-md text-center">
+                    {job?.error_message || 'Audio generation failed. Please try again.'}
+                  </p>
+                  <div className="flex justify-center gap-3">
+                    <Button onClick={handleRetry} className="flex items-center gap-2">
+                      <RefreshCw className="w-4 h-4" />
+                      Try Again
+                    </Button>
+                    <Button variant="secondary" onClick={() => navigate(`/courses/${courseId}`)}>
+                      Back to Course
+                    </Button>
+                  </div>
                 </div>
               )}
             </Card>
