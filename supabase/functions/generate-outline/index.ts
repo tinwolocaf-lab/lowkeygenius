@@ -8,6 +8,15 @@ const corsHeaders = {
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
+interface ExtractedContext {
+  education: string;
+  experience: string;
+  interests: string;
+  expertise: string[];
+  learningStyle?: string;
+  preferences?: string[];
+}
+
 interface OutlineRequest {
   topic: string;
   level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
@@ -21,6 +30,8 @@ interface OutlineRequest {
     title: string;
     summary?: string;
   }>;
+  // Profile data passed from frontend when available
+  profileContext?: ExtractedContext;
 }
 
 interface Module {
@@ -68,7 +79,22 @@ Deno.serve(async (req: Request) => {
     }
 
     const requestData: OutlineRequest = await req.json();
-    const { topic, level, intensity, background, materials } = requestData;
+    const { topic, level, intensity, background, materials, profileContext } = requestData;
+
+    // Fetch user profile from database if not provided in request (Requirements 6.3)
+    let userProfileContext: ExtractedContext | null = profileContext || null;
+    
+    if (!userProfileContext) {
+      const { data: profileData } = await supabase
+        .from('user_profiles')
+        .select('extracted_context')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (profileData?.extracted_context) {
+        userProfileContext = profileData.extracted_context as ExtractedContext;
+      }
+    }
 
     const moduleCount = intensity === 'short' ? 3 : intensity === 'standard' ? 5 : 8;
     const lessonsPerModule = intensity === 'short' ? 2 : intensity === 'standard' ? 3 : 4;
@@ -77,15 +103,46 @@ Deno.serve(async (req: Request) => {
       ? `\n\nAvailable learning materials:\n${materials.map(m => `- ${m.title}${m.summary ? ': ' + m.summary : ''}`).join('\n')}`
       : '';
 
+    // Build learner background section - prefer profile data over onboarding background
+    const buildLearnerBackground = (): string => {
+      if (userProfileContext) {
+        // Use profile data (Requirements 6.3)
+        const expertiseStr = userProfileContext.expertise?.length > 0 
+          ? userProfileContext.expertise.join(', ') 
+          : 'Not specified';
+        const preferencesStr = userProfileContext.preferences?.length > 0
+          ? userProfileContext.preferences.join(', ')
+          : '';
+        
+        let backgroundStr = `Learner Background (from profile):
+- Education: ${userProfileContext.education || 'Not specified'}
+- Experience: ${userProfileContext.experience || 'Not specified'}
+- Interests: ${userProfileContext.interests || 'Not specified'}
+- Expertise/Skills: ${expertiseStr}`;
+        
+        if (userProfileContext.learningStyle) {
+          backgroundStr += `\n- Learning Style: ${userProfileContext.learningStyle}`;
+        }
+        if (preferencesStr) {
+          backgroundStr += `\n- Preferences: ${preferencesStr}`;
+        }
+        
+        return backgroundStr;
+      }
+      
+      // Fallback to onboarding background data
+      return `Learner Background:
+- Education: ${background.degree || 'Not specified'}
+- Experience: ${background.experience || 'Not specified'}
+- Interests: ${background.interests || 'Not specified'}`;
+    };
+
     const prompt = `You are an expert instructional designer. Create a detailed course outline for the following:
 
 Topic: ${topic}
 Level: ${level}
 Intensity: ${intensity}
-Learner Background:
-- Education: ${background.degree || 'Not specified'}
-- Experience: ${background.experience || 'Not specified'}
-- Interests: ${background.interests || 'Not specified'}${materialsContext}
+${buildLearnerBackground()}${materialsContext}
 
 Create a course with approximately ${moduleCount} modules, each with ${lessonsPerModule} lessons.
 

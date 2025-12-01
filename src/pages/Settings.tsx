@@ -7,6 +7,7 @@ import { Card } from '../components/Card';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { ThemeSelector } from '../components/ThemeSelector';
+import { ProfileSettings } from '../components/ProfileSettings';
 import { useSubscription } from '../hooks/useSubscription';
 import { openCustomerPortal, initiateCheckout } from '../lib/polar';
 import { Crown, Sparkles, Gift, Zap, Calendar, CreditCard, Palette, LogOut, User, BookOpen, Volume2 } from 'lucide-react';
@@ -182,6 +183,8 @@ export function Settings() {
             </div>
           </div>
         </Card>
+
+        <ProfileSettings />
 
         <Card>
           <h2 className="font-display text-display-sm text-neutral-text mb-4">Profile Details</h2>

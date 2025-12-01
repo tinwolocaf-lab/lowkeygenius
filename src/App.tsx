@@ -27,6 +27,7 @@ import { PublicRoute } from './components/PublicRoute';
 import { VerifyEmailPending } from './pages/VerifyEmailPending';
 import { VerifyEmailSuccess } from './pages/VerifyEmailSuccess';
 import { AuthCallback } from './pages/AuthCallback';
+import { UserProfileOnboarding } from './pages/UserProfileOnboarding';
 
 function PricingWrapper() {
   const { user } = useAuth();
@@ -139,6 +140,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <Onboarding />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/profile-onboarding"
+            element={
+              <ProtectedRoute>
+                <UserProfileOnboarding />
               </ProtectedRoute>
             }
           />

@@ -2,6 +2,15 @@ import { supabase } from './supabase';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
+interface ExtractedContext {
+  education: string;
+  experience: string;
+  interests: string;
+  expertise: string[];
+  learningStyle?: string;
+  preferences?: string[];
+}
+
 export async function generateCourseOutline(data: {
   topic: string;
   level: string;
@@ -13,6 +22,7 @@ export async function generateCourseOutline(data: {
     interests?: string;
   };
   materials?: Array<{ title: string; summary?: string }>;
+  profileContext?: ExtractedContext;
 }) {
   const { data: { session } } = await supabase.auth.getSession();
 

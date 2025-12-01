@@ -16,6 +16,23 @@ export type AudioStatus = 'none' | 'generating' | 'ready' | 'failed';
 export type AudioJobStatus = 'pending' | 'processing' | 'completed' | 'failed';
 export type VoiceType = 'male' | 'female';
 export type DeletionRequestStatus = 'pending' | 'approved' | 'rejected';
+export type InputMethod = 'text' | 'voice' | 'conversation';
+
+export interface ExtractedContext {
+  education: string;
+  experience: string;
+  interests: string;
+  expertise: string[];
+  learningStyle?: string;
+  preferences?: string[];
+}
+
+export interface AnonymizationMetadata {
+  emails: number;
+  phones: number;
+  names: number;
+  addresses: number;
+}
 
 export type Database = {
   public: {
@@ -542,6 +559,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          input_method: InputMethod
+          anonymized_content: string
+          extracted_context: ExtractedContext
+          anonymization_metadata: AnonymizationMetadata | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          input_method: InputMethod
+          anonymized_content: string
+          extracted_context: ExtractedContext
+          anonymization_metadata?: AnonymizationMetadata | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          input_method?: InputMethod
+          anonymized_content?: string
+          extracted_context?: ExtractedContext
+          anonymization_metadata?: AnonymizationMetadata | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -569,3 +619,4 @@ export type InlineWikiEntry = Database['public']['Tables']['inline_wiki_entries'
 export type CourseEnrollment = Database['public']['Tables']['course_enrollments']['Row']
 export type DeletionRequest = Database['public']['Tables']['deletion_requests']['Row']
 export type UsageCounter = Database['public']['Tables']['usage_counters']['Row']
+export type UserProfile = Database['public']['Tables']['user_profiles']['Row']

@@ -6,9 +6,11 @@ import { QuickReplies } from '../components/QuickReplies';
 import { AttachmentsPanel } from '../components/AttachmentsPanel';
 import { LoadingAnimation } from '../components/LoadingAnimation';
 import { useAuth } from '../contexts/AuthContext';
+import { useUserProfile } from '../hooks/useUserProfile';
 import { supabase } from '../lib/supabase';
 import { generateCourseOutline } from '../lib/api';
 import type { Message, OnboardingData, Attachment } from '../types/onboarding';
+import type { ExtractedContext } from '../types/database';
 
 type OnboardingStep =
   | 'welcome'
@@ -26,6 +28,7 @@ type OnboardingStep =
 export function Onboarding() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { hasProfile, extractedContext, isLoading: isProfileLoading } = useUserProfile();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
   const [step, setStep] = useState<OnboardingStep>('welcome');
@@ -42,6 +45,22 @@ export function Onboarding() {
     level: null,
     intensity: null,
   });
+  
+  // Store profile context for course generation (Requirements 1.3, 1.4)
+  const profileContextRef = useRef<ExtractedContext | null>(null);
+  
+  useEffect(() => {
+    if (extractedContext) {
+      profileContextRef.current = extractedContext;
+    }
+  }, [extractedContext]);
+
+  // Redirect to profile onboarding if user has no profile (Requirements 1.1)
+  useEffect(() => {
+    if (!isProfileLoading && !hasProfile) {
+      navigate('/profile-onboarding', { replace: true });
+    }
+  }, [isProfileLoading, hasProfile, navigate]);
 
   const addMessage = useCallback((type: 'assistant' | 'user' | 'system', content: string) => {
     setMessages((prev) => [
@@ -170,6 +189,17 @@ export function Onboarding() {
   };
 
   const proceedToBackground = () => {
+    // Skip background questions if user has a profile (Requirements 1.3, 1.4)
+    if (hasProfile && profileContextRef.current) {
+      addAssistantMessage("I already have your background from your profile. Let's continue with course settings!");
+      setTimeout(() => {
+        addAssistantMessage("What level should this course be?");
+        setShowQuickReplies(true);
+        setStep('level');
+      }, 500);
+      return;
+    }
+    
     addAssistantMessage("Now let me learn a bit about you to personalize the course. What's your educational background?");
     setStep('degree');
   };
@@ -223,12 +253,14 @@ export function Onboarding() {
         summary: att.content?.substring(0, 500),
       }));
 
+      // Pass profile context if available (Requirements 6.3)
       const outline = await generateCourseOutline({
         topic: data.topic,
         level: data.level!,
         intensity: data.intensity!,
         background: data.background,
         materials: materials.length > 0 ? materials : undefined,
+        profileContext: profileContextRef.current || undefined,
       });
 
       const { error: updateError } = await supabase
@@ -298,6 +330,15 @@ export function Onboarding() {
   const handleContinueFromAttachments = () => {
     handleStep('continue');
   };
+
+  // Show loading while checking profile status
+  if (isProfileLoading) {
+    return (
+      <div className="min-h-screen bg-neutral-surface flex items-center justify-center">
+        <LoadingAnimation message="Loading..." />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-surface flex flex-col">
