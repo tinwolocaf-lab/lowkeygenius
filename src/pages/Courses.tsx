@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, Plus, MoreVertical, Edit2, Trash2, Volume2 } from 'lucide-react';
+import { BookOpen, Clock, Plus, MoreVertical, Edit2, Trash2, Volume2, Globe, AlertTriangle, LogOut } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
 import { useAuth } from '../contexts/AuthContext';
+import { useCoursePublishing } from '../hooks/useCoursePublishing';
+import { useEnrollment } from '../hooks/useEnrollment';
 import { supabase } from '../lib/supabase';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import toast from 'react-hot-toast';
 
 interface Course {
   id: string;
@@ -18,21 +21,29 @@ interface Course {
   estimated_duration_hours: number | null;
   created_at: string;
   owner_id?: string;
+  is_public?: boolean;
   total_lessons?: number;
   completed_lessons?: number;
+  creator_display_name?: string | null;
+  isEnrolled?: boolean; // true if user enrolled in this public course (not owner)
 }
 
 export function Courses() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAudioEnabled } = useSubscription();
+  const { publishCourse, requestDeletion, isLoading: isPublishingLoading } = useCoursePublishing();
+  const { unenrollFromCourse, isLoading: isUnenrolling } = useEnrollment();
   const [activeTab, setActiveTab] = useState<'created' | 'learning'>('created');
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState<string | null>(null);
   const [renameModal, setRenameModal] = useState<{ courseId: string; title: string } | null>(null);
   const [deleteModal, setDeleteModal] = useState<string | null>(null);
+  const [deletionRequestModal, setDeletionRequestModal] = useState<{ courseId: string; title: string } | null>(null);
+  const [deletionMessage, setDeletionMessage] = useState('');
   const [newTitle, setNewTitle] = useState('');
+  const [unenrollModal, setUnenrollModal] = useState<{ courseId: string; title: string } | null>(null);
 
   const loadCourses = useCallback(async () => {
     if (!user) return;
@@ -48,6 +59,10 @@ export function Courses() {
         if (error) throw error;
         setCourses(data || []);
       } else {
+        // "I'm Learning" tab: includes both courses with progress AND enrolled public courses
+        // Requirements: 3.1 - enrolled courses appear in learning list
+        
+        // Get courses from user_progress (courses user has started learning)
         const { data: progressData, error: progressError } = await supabase
           .from('user_progress')
           .select('course_id')
@@ -55,9 +70,22 @@ export function Courses() {
 
         if (progressError) throw progressError;
 
-        const courseIds = [...new Set(progressData?.map(p => p.course_id) || [])];
+        const progressCourseIds = [...new Set(progressData?.map(p => p.course_id) || [])];
 
-        if (courseIds.length === 0) {
+        // Get enrolled public courses (Requirements: 3.1)
+        const { data: enrollmentData, error: enrollmentError } = await supabase
+          .from('course_enrollments')
+          .select('course_id')
+          .eq('user_id', user.id);
+
+        if (enrollmentError) throw enrollmentError;
+
+        const enrolledCourseIds = enrollmentData?.map(e => e.course_id) || [];
+
+        // Combine both sets of course IDs (remove duplicates)
+        const allCourseIds = [...new Set([...progressCourseIds, ...enrolledCourseIds])];
+
+        if (allCourseIds.length === 0) {
           setCourses([]);
           setLoading(false);
           return;
@@ -66,7 +94,7 @@ export function Courses() {
         const { data: coursesData, error: coursesError } = await supabase
           .from('courses')
           .select('*')
-          .in('id', courseIds)
+          .in('id', allCourseIds)
           .eq('status', 'published')
           .order('created_at', { ascending: false });
 
@@ -86,10 +114,14 @@ export function Courses() {
               .eq('user_id', user.id)
               .eq('completed', true);
 
+            // Check if this is an enrolled course (not owned by user)
+            const isEnrolled = enrolledCourseIds.includes(course.id) && course.owner_id !== user.id;
+
             return {
               ...course,
               total_lessons: lessons?.length || 0,
               completed_lessons: completedProgress?.length || 0,
+              isEnrolled,
             };
           })
         );
@@ -155,6 +187,14 @@ export function Courses() {
   const handleDelete = async () => {
     if (!deleteModal) return;
 
+    // Check if course is public - public courses cannot be deleted directly
+    const courseToDelete = courses.find(c => c.id === deleteModal);
+    if (courseToDelete?.is_public) {
+      console.error('Cannot delete public course directly. Use deletion request workflow.');
+      setDeleteModal(null);
+      return;
+    }
+
     const { error } = await supabase
       .from('courses')
       .delete()
@@ -177,6 +217,82 @@ export function Courses() {
     e.stopPropagation();
     setDeleteModal(courseId);
     setShowMenu(null);
+  };
+
+  const openDeletionRequestModal = (course: Course, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeletionRequestModal({ courseId: course.id, title: course.title });
+    setDeletionMessage('');
+    setShowMenu(null);
+  };
+
+  /**
+   * Handle making a course public
+   * Requirements: 1.4, 1.5
+   */
+  const handleMakePublic = async (courseId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowMenu(null);
+
+    const result = await publishCourse(courseId);
+    
+    if (result.success) {
+      toast.success('Course published to marketplace!');
+      // Update local state to reflect the change
+      setCourses(courses.map(c =>
+        c.id === courseId ? { ...c, is_public: true } : c
+      ));
+    } else {
+      toast.error(result.error || 'Failed to publish course');
+    }
+  };
+
+  /**
+   * Handle submitting a deletion request
+   * Requirements: 5.1
+   * Note: Deletion requests are stored in DB and admins handle them manually via email
+   */
+  const handleDeletionRequest = async () => {
+    if (!deletionRequestModal) return;
+
+    const result = await requestDeletion(deletionRequestModal.courseId, deletionMessage || undefined);
+    
+    if (result.success) {
+      toast.success('Deletion request submitted. Our team will review it and contact you.');
+      setDeletionRequestModal(null);
+      setDeletionMessage('');
+    } else {
+      toast.error(result.error || 'Failed to submit deletion request');
+    }
+  };
+
+  /**
+   * Open unenroll confirmation modal
+   * Requirements: 7.1
+   */
+  const openUnenrollModal = (course: Course, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setUnenrollModal({ courseId: course.id, title: course.title });
+    setShowMenu(null);
+  };
+
+  /**
+   * Handle unenrolling from a course
+   * Requirements: 7.1
+   */
+  const handleUnenroll = async () => {
+    if (!unenrollModal) return;
+
+    const result = await unenrollFromCourse(unenrollModal.courseId);
+    
+    if (result.success) {
+      toast.success('Successfully unenrolled from course');
+      // Remove course from local state
+      setCourses(courses.filter(c => c.id !== unenrollModal.courseId));
+      setUnenrollModal(null);
+    } else {
+      toast.error(result.error || 'Failed to unenroll from course');
+    }
   };
 
   if (loading) {
@@ -263,7 +379,8 @@ export function Courses() {
                       {course.estimated_duration_hours || '?'}h
                     </span>
                   </div>
-                  {activeTab === 'created' && (
+                  {/* Show menu for created courses OR enrolled courses in learning tab */}
+                  {(activeTab === 'created' || (activeTab === 'learning' && course.isEnrolled)) && (
                   <div className="relative">
                     <button
                       onClick={(e) => {
@@ -276,33 +393,73 @@ export function Courses() {
                     </button>
                     {showMenu === course.id && (
                       <div className="absolute right-0 top-full mt-1 bg-neutral-bg shadow-soft rounded-2xl border-2 border-neutral-border z-10 py-2 w-48">
-                        {isAudioEnabled && course.status === 'published' && (
+                        {/* Unenroll option - show only for enrolled courses in learning tab (Requirement 7.1) */}
+                        {activeTab === 'learning' && course.isEnrolled && (
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/courses/${course.id}/generate-audio`);
-                              setShowMenu(null);
-                            }}
-                            className="w-full px-4 py-2 text-left hover:bg-neutral-surface flex items-center gap-2 font-body text-sm"
+                            onClick={(e) => openUnenrollModal(course, e)}
+                            disabled={isUnenrolling}
+                            className="w-full px-4 py-2 text-left hover:bg-accent-red/10 text-accent-red flex items-center gap-2 font-body text-sm disabled:opacity-50"
                           >
-                            <Volume2 className="w-4 h-4" />
-                            Generate Audio
+                            <LogOut className="w-4 h-4" />
+                            Unenroll
                           </button>
                         )}
-                        <button
-                          onClick={(e) => openRenameModal(course, e)}
-                          className="w-full px-4 py-2 text-left hover:bg-neutral-surface flex items-center gap-2 font-body text-sm"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                          Rename
-                        </button>
-                        <button
-                          onClick={(e) => openDeleteModal(course.id, e)}
-                          className="w-full px-4 py-2 text-left hover:bg-accent-red/10 text-accent-red flex items-center gap-2 font-body text-sm"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete
-                        </button>
+                        {/* Options for created courses only */}
+                        {activeTab === 'created' && (
+                          <>
+                            {isAudioEnabled && course.status === 'published' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/courses/${course.id}/generate-audio`);
+                                  setShowMenu(null);
+                                }}
+                                className="w-full px-4 py-2 text-left hover:bg-neutral-surface flex items-center gap-2 font-body text-sm"
+                              >
+                                <Volume2 className="w-4 h-4" />
+                                Generate Audio
+                              </button>
+                            )}
+                            {/* Make Public option - show only for ready/published courses that are not public (Requirements 1.4, 1.5) */}
+                            {!course.is_public && (course.status === 'ready' || course.status === 'published') && (
+                              <button
+                                onClick={(e) => handleMakePublic(course.id, e)}
+                                disabled={isPublishingLoading}
+                                className="w-full px-4 py-2 text-left hover:bg-neutral-surface flex items-center gap-2 font-body text-sm disabled:opacity-50"
+                              >
+                                <Globe className="w-4 h-4" />
+                                Make Public
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => openRenameModal(course, e)}
+                              className="w-full px-4 py-2 text-left hover:bg-neutral-surface flex items-center gap-2 font-body text-sm"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                              Rename
+                            </button>
+                            {/* Delete option - hide for public courses (Requirement 1.2) */}
+                            {!course.is_public && (
+                              <button
+                                onClick={(e) => openDeleteModal(course.id, e)}
+                                className="w-full px-4 py-2 text-left hover:bg-accent-red/10 text-accent-red flex items-center gap-2 font-body text-sm"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete
+                              </button>
+                            )}
+                            {/* Request Deletion option - show only for public courses owned by user (Requirement 5.1) */}
+                            {course.is_public && (
+                              <button
+                                onClick={(e) => openDeletionRequestModal(course, e)}
+                                className="w-full px-4 py-2 text-left hover:bg-accent-yellow/10 text-accent-yellow flex items-center gap-2 font-body text-sm"
+                              >
+                                <AlertTriangle className="w-4 h-4" />
+                                Request Deletion
+                              </button>
+                            )}
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -313,6 +470,12 @@ export function Courses() {
               <h3 className="font-display text-xl font-bold text-neutral-text mb-2">
                 {course.title}
               </h3>
+              {/* Show creator name for enrolled public courses */}
+              {course.isEnrolled && course.creator_display_name && (
+                <p className="font-body text-xs text-primary mb-1">
+                  by {course.creator_display_name}
+                </p>
+              )}
               <p className="font-body text-sm text-neutral-text-muted mb-4 line-clamp-2">
                 {course.description}
               </p>
@@ -404,6 +567,93 @@ export function Courses() {
               <Button
                 variant="secondary"
                 onClick={() => setDeleteModal(null)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Deletion Request Modal for public courses (Requirement 5.1) */}
+      {deletionRequestModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full">
+            <h3 className="font-display text-xl font-bold text-neutral-text mb-4">
+              Request Course Deletion
+            </h3>
+            <p className="font-body text-neutral-text-muted mb-4">
+              Since "{deletionRequestModal.title}" is a public course, our team must approve its deletion. 
+              If learners are currently enrolled, the request will be held until they unenroll.
+            </p>
+            <p className="font-body text-sm text-neutral-text-muted mb-4">
+              You can also contact us directly at{' '}
+              <a 
+                href="mailto:contact@progent.study" 
+                className="text-primary hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                contact@progent.study
+              </a>
+            </p>
+            <div className="mb-4">
+              <label className="block font-body text-sm font-semibold text-neutral-text mb-2">
+                Reason for deletion (optional)
+              </label>
+              <textarea
+                value={deletionMessage}
+                onChange={(e) => setDeletionMessage(e.target.value)}
+                placeholder="Explain why you want to delete this course..."
+                className="w-full px-4 py-3 bg-neutral-surface border-2 border-neutral-border rounded-2xl font-body text-neutral-text placeholder:text-neutral-text-muted focus:outline-none focus:border-primary resize-none"
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleDeletionRequest}
+                disabled={isPublishingLoading}
+                className="flex-1 bg-accent-yellow hover:bg-accent-yellow/90 text-neutral-text"
+              >
+                {isPublishingLoading ? 'Submitting...' : 'Submit Request'}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setDeletionRequestModal(null);
+                  setDeletionMessage('');
+                }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Unenroll Confirmation Modal (Requirement 7.1) */}
+      {unenrollModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full">
+            <h3 className="font-display text-xl font-bold text-neutral-text mb-4">
+              Unenroll from Course
+            </h3>
+            <p className="font-body text-neutral-text-muted mb-6">
+              Are you sure you want to unenroll from "{unenrollModal.title}"? 
+              Your progress will be removed, but your notes and definitions will be preserved.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleUnenroll}
+                disabled={isUnenrolling}
+                className="flex-1 bg-accent-red hover:bg-accent-red/90"
+              >
+                {isUnenrolling ? 'Unenrolling...' : 'Unenroll'}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setUnenrollModal(null)}
                 className="flex-1"
               >
                 Cancel

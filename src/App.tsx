@@ -21,6 +21,7 @@ import CheckoutSuccess from './pages/CheckoutSuccess';
 import CheckoutCancel from './pages/CheckoutCancel';
 import { LessonPreview } from './pages/LessonPreview';
 import { GenerateAudio } from './pages/GenerateAudio';
+import { Marketplace } from './pages/Marketplace';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PublicRoute } from './components/PublicRoute';
 import { VerifyEmailPending } from './pages/VerifyEmailPending';
@@ -108,6 +109,14 @@ function App() {
             </ProtectedRoute>
           }>
             <Route index element={<Notes />} />
+          </Route>
+
+          <Route path="/marketplace" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Marketplace />} />
           </Route>
 
           <Route path="/settings" element={

@@ -15,6 +15,7 @@ export type FileSourceType = 'pdf' | 'docx' | 'pptx' | 'url' | 'text';
 export type AudioStatus = 'none' | 'generating' | 'ready' | 'failed';
 export type AudioJobStatus = 'pending' | 'processing' | 'completed' | 'failed';
 export type VoiceType = 'male' | 'female';
+export type DeletionRequestStatus = 'pending' | 'approved' | 'rejected';
 
 export type Database = {
   public: {
@@ -37,6 +38,7 @@ export type Database = {
           audio_addon_subscription_id: string | null
           billing_cycle: string | null
           theme_preference: string
+          is_admin: boolean
           created_at: string
           updated_at: string
         }
@@ -57,6 +59,7 @@ export type Database = {
           audio_addon_subscription_id?: string | null
           billing_cycle?: string | null
           theme_preference?: string
+          is_admin?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -77,6 +80,7 @@ export type Database = {
           audio_addon_subscription_id?: string | null
           billing_cycle?: string | null
           theme_preference?: string
+          is_admin?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -131,6 +135,7 @@ export type Database = {
           month: number
           year: number
           courses_created: number
+          courses_enrolled: number
           audio_minutes_generated: number
           created_at: string
           updated_at: string
@@ -141,6 +146,7 @@ export type Database = {
           month: number
           year: number
           courses_created?: number
+          courses_enrolled?: number
           audio_minutes_generated?: number
           created_at?: string
           updated_at?: string
@@ -151,6 +157,7 @@ export type Database = {
           month?: number
           year?: number
           courses_created?: number
+          courses_enrolled?: number
           audio_minutes_generated?: number
           created_at?: string
           updated_at?: string
@@ -169,6 +176,9 @@ export type Database = {
           estimated_duration_hours: number | null
           status: CourseStatus
           outline_json: Json | null
+          is_public: boolean
+          published_at: string | null
+          creator_display_name: string | null
           created_at: string
           updated_at: string
         }
@@ -183,6 +193,9 @@ export type Database = {
           estimated_duration_hours?: number | null
           status?: CourseStatus
           outline_json?: Json | null
+          is_public?: boolean
+          published_at?: string | null
+          creator_display_name?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -197,6 +210,9 @@ export type Database = {
           estimated_duration_hours?: number | null
           status?: CourseStatus
           outline_json?: Json | null
+          is_public?: boolean
+          published_at?: string | null
+          creator_display_name?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -466,6 +482,66 @@ export type Database = {
         }
         Relationships: []
       }
+      course_enrollments: {
+        Row: {
+          id: string
+          user_id: string
+          course_id: string
+          enrolled_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          course_id: string
+          enrolled_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          course_id?: string
+          enrolled_at?: string
+        }
+        Relationships: []
+      }
+      deletion_requests: {
+        Row: {
+          id: string
+          course_id: string
+          requester_id: string
+          message: string | null
+          status: DeletionRequestStatus
+          admin_notes: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          course_id: string
+          requester_id: string
+          message?: string | null
+          status?: DeletionRequestStatus
+          admin_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          course_id?: string
+          requester_id?: string
+          message?: string | null
+          status?: DeletionRequestStatus
+          admin_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -490,3 +566,6 @@ export type UserProgress = Database['public']['Tables']['user_progress']['Row']
 export type Note = Database['public']['Tables']['notes']['Row']
 export type AudioGenerationJob = Database['public']['Tables']['audio_generation_jobs']['Row']
 export type InlineWikiEntry = Database['public']['Tables']['inline_wiki_entries']['Row']
+export type CourseEnrollment = Database['public']['Tables']['course_enrollments']['Row']
+export type DeletionRequest = Database['public']['Tables']['deletion_requests']['Row']
+export type UsageCounter = Database['public']['Tables']['usage_counters']['Row']

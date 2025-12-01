@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Home, BookOpen, StickyNote, GraduationCap, ChevronLeft, ChevronRight, User, Settings, LogOut } from 'lucide-react';
+import { Home, BookOpen, StickyNote, GraduationCap, ChevronLeft, ChevronRight, User, Settings, LogOut, Store } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Layout() {
@@ -31,6 +31,7 @@ export function Layout() {
   const navItems = [
     { icon: Home, label: 'Dashboard', path: '/dashboard' },
     { icon: BookOpen, label: 'My Courses', path: '/courses' },
+    { icon: Store, label: 'Marketplace', path: '/marketplace' },
     { icon: StickyNote, label: 'Notes', path: '/notes' },
   ];
 

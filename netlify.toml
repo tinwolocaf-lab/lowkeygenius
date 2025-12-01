@@ -1,0 +1,8 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Supabase anon key and URL are designed to be public (used client-side with RLS)
+  # They are not secrets and should not trigger the secrets scanner
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_ANON_KEY,VITE_SUPABASE_URL"

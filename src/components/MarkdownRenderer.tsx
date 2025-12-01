@@ -251,20 +251,24 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 
   /**
    * Load InlineWiki entries for the lesson on mount.
-   * Requirements: 4.2 - Retrieve all InlineWiki_Entries associated with the lesson
+   * Requirements: 4.1, 4.2, 4.4 - Retrieve InlineWiki_Entries for the current user only
+   * Each user sees only their own definitions, ensuring user isolation for public courses.
    */
   useEffect(() => {
     async function loadWikiEntries() {
-      if (!lessonId) return;
+      if (!lessonId || !user) return;
 
       setIsLoadingEntries(true);
       setEntriesError(null);
 
       try {
+        // Filter by user_id to ensure user isolation (Requirements 4.1, 4.2, 4.4)
+        // Each user only sees their own definitions, whether they are the course owner or a learner
         const { data, error } = await supabase
           .from('inline_wiki_entries')
           .select('*')
           .eq('lesson_id', lessonId)
+          .eq('user_id', user.id)
           .order('created_at', { ascending: true });
 
         if (error) {
@@ -281,7 +285,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
     }
 
     loadWikiEntries();
-  }, [lessonId]);
+  }, [lessonId, user]);
 
 
   /**
@@ -310,13 +314,21 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   /**
    * Handle deleting an InlineWiki entry.
    * Requirements: 4.3 - Remove entry from database and update display immediately
+   * Only allows deletion of entries owned by the current user (user isolation)
    */
   const handleDeleteEntry = useCallback(async (entryId: string) => {
+    if (!user) {
+      toast.error('You must be logged in to delete definitions');
+      return;
+    }
+
     try {
+      // Filter by user_id to ensure users can only delete their own definitions
       const { error } = await supabase
         .from('inline_wiki_entries')
         .delete()
-        .eq('id', entryId);
+        .eq('id', entryId)
+        .eq('user_id', user.id);
 
       if (error) {
         throw error;
@@ -329,11 +341,12 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
       console.error('Error deleting InlineWiki entry:', error);
       toast.error('Failed to delete definition');
     }
-  }, []);
+  }, [user]);
 
   /**
    * Create custom paragraph component that processes wiki terms.
    * Requirements: 5.1, 5.3 - Match InlineWiki terms in content and apply styling
+   * Requirements: 4.1, 4.2 - User isolation: users only see their own definitions
    */
   const WikiParagraph = useCallback(({ children, ...props }: { children?: React.ReactNode }) => {
     const hasBlockElement = (nodes: React.ReactNode): boolean => {
@@ -348,10 +361,12 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
       });
     };
 
+    // With user isolation, users only see their own definitions,
+    // so they should always be able to delete them (pass true for canDelete)
     const processedChildren = processChildrenForWikiTerms(
       children,
       wikiEntries,
-      isOwner,
+      true, // Users can always delete their own definitions
       handleDeleteEntry,
       isLoadingEntries
     );
@@ -361,31 +376,37 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
     }
 
     return <p {...props}>{processedChildren}</p>;
-  }, [wikiEntries, isOwner, handleDeleteEntry, isLoadingEntries]);
+  }, [wikiEntries, handleDeleteEntry, isLoadingEntries]);
 
   /**
    * Create custom list item component that processes wiki terms.
+   * Requirements: 4.1, 4.2 - User isolation: users only see their own definitions
    */
   const WikiListItem = useCallback(({ children, ...props }: { children?: React.ReactNode }) => {
+    // With user isolation, users only see their own definitions,
+    // so they should always be able to delete them (pass true for canDelete)
     const processedChildren = processChildrenForWikiTerms(
       children,
       wikiEntries,
-      isOwner,
+      true, // Users can always delete their own definitions
       handleDeleteEntry,
       isLoadingEntries
     );
     return <li {...props}>{processedChildren}</li>;
-  }, [wikiEntries, isOwner, handleDeleteEntry, isLoadingEntries]);
+  }, [wikiEntries, handleDeleteEntry, isLoadingEntries]);
 
   /**
    * Create custom heading components that process wiki terms.
+   * Requirements: 4.1, 4.2 - User isolation: users only see their own definitions
    */
   const createWikiHeading = useCallback((level: 1 | 2 | 3 | 4 | 5 | 6) => {
     const HeadingComponent = ({ children, ...props }: { children?: React.ReactNode }) => {
+      // With user isolation, users only see their own definitions,
+      // so they should always be able to delete them (pass true for canDelete)
       const processedChildren = processChildrenForWikiTerms(
         children,
         wikiEntries,
-        isOwner,
+        true, // Users can always delete their own definitions
         handleDeleteEntry,
         isLoadingEntries
       );
@@ -393,7 +414,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
       return <Tag {...props}>{processedChildren}</Tag>;
     };
     return HeadingComponent;
-  }, [wikiEntries, isOwner, handleDeleteEntry, isLoadingEntries]);
+  }, [wikiEntries, handleDeleteEntry, isLoadingEntries]);
 
   // Memoize the components configuration to prevent unnecessary re-renders
   const components: Components = useMemo(
