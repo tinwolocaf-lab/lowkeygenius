@@ -34,40 +34,64 @@ function stripMarkdown(text: string): string {
     return '';
   }
 
-  return text
+  let result = text
     // Replace mermaid diagrams with spoken placeholder
     .replace(/```mermaid[\s\S]*?```/g, 'There is a diagram here illustrating this concept.')
-    // Remove other code blocks (fenced)
-    .replace(/```[\s\S]*?```/g, '')
-    // Remove inline code
-    .replace(/`[^`]+`/g, '')
-    // Remove headers
-    .replace(/^#{1,6}\s+/gm, '')
-    // Remove images (must come before links)
-    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+    // Replace code blocks with a spoken placeholder (keep some context)
+    .replace(/```(\w+)?\n([\s\S]*?)```/g, (_match, lang) => {
+      if (lang) {
+        return `There is a ${lang} code example here.`;
+      }
+      return 'There is a code example here.';
+    })
+    // Remove inline code but keep the text
+    .replace(/`([^`]+)`/g, '$1')
+    // Remove headers but keep the text
+    .replace(/^#{1,6}\s+(.+)$/gm, '$1.')
+    // Remove images but add description if available
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, (_match, alt) => {
+      if (alt && alt.trim()) {
+        return `Image: ${alt}.`;
+      }
+      return '';
+    })
     // Remove links but keep text
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    // Remove bold (double asterisks)
+    // Remove bold (double asterisks) but keep text
     .replace(/\*\*([^*]+)\*\*/g, '$1')
-    // Remove italic (single asterisks)
+    // Remove italic (single asterisks) but keep text
     .replace(/\*([^*]+)\*/g, '$1')
-    // Remove bold (double underscores)
+    // Remove bold (double underscores) but keep text
     .replace(/__([^_]+)__/g, '$1')
-    // Remove italic (single underscores)
+    // Remove italic (single underscores) but keep text
     .replace(/_([^_]+)_/g, '$1')
-    // Remove blockquotes
-    .replace(/^>\s+/gm, '')
+    // Remove strikethrough but keep text
+    .replace(/~~([^~]+)~~/g, '$1')
+    // Remove blockquotes marker but keep text
+    .replace(/^>\s*/gm, '')
     // Remove horizontal rules
     .replace(/^[-*_]{3,}$/gm, '')
-    // Remove unordered list markers
+    // Remove unordered list markers but keep text
     .replace(/^[\s]*[-*+]\s+/gm, '')
-    // Remove ordered list markers
+    // Remove ordered list markers but keep text
     .replace(/^[\s]*\d+\.\s+/gm, '')
     // Remove HTML tags
     .replace(/<[^>]+>/g, '')
-    // Clean up extra whitespace
+    // Remove table formatting
+    .replace(/\|/g, ' ')
+    .replace(/^[\s]*[-:]+[\s]*$/gm, '')
+    // Clean up multiple spaces
+    .replace(/[ \t]+/g, ' ')
+    // Clean up extra newlines
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+
+  // If result is too short, return a fallback message
+  if (result.length < 10) {
+    return 'This lesson contains visual content such as diagrams and code examples. Please refer to the written content for details.';
+  }
+
+  return result;
 }
 
 /**
@@ -264,20 +288,32 @@ Deno.serve(async (req: Request) => {
     // Split text into chunks for Murf API (has ~3000 char limit)
     const chunks = splitTextIntoChunks(lesson.markdown_content, MAX_CHUNK_SIZE);
     
-    if (chunks.length === 0 || chunks.every(c => !c.trim())) {
-      throw new Error('Lesson has no readable content after stripping markdown');
+    // Filter out empty chunks and ensure we have content
+    const validChunks = chunks.filter(c => c.trim().length >= 10);
+    
+    if (validChunks.length === 0) {
+      // Fallback: try to extract any text content
+      const fallbackText = stripMarkdown(lesson.markdown_content);
+      if (fallbackText.length >= 10) {
+        validChunks.push(fallbackText);
+      } else {
+        throw new Error('Lesson has no readable content after stripping markdown');
+      }
     }
+    
+    // Use validChunks instead of chunks
+    const chunksToProcess = validChunks;
 
-    console.log(`Processing ${chunks.length} chunks for lesson`);
+    console.log(`Processing ${chunksToProcess.length} chunks for lesson`);
 
     const voiceConfig = VOICE_CONFIGS[voiceType];
     const audioUrls: string[] = [];
     let totalDuration = 0;
 
     // Generate audio for each chunk
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
-      console.log(`Processing chunk ${i + 1}/${chunks.length} (${chunk.length} chars)`);
+    for (let i = 0; i < chunksToProcess.length; i++) {
+      const chunk = chunksToProcess[i];
+      console.log(`Processing chunk ${i + 1}/${chunksToProcess.length} (${chunk.length} chars)`);
 
       const murfResponse = await fetch('https://api.murf.ai/v1/speech/generate', {
         method: 'POST',
@@ -338,7 +374,7 @@ Deno.serve(async (req: Request) => {
       totalDuration += murfData.audioLengthInSeconds || 0;
 
       // Small delay between API calls to avoid rate limiting
-      if (i < chunks.length - 1) {
+      if (i < chunksToProcess.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 300));
       }
     }
