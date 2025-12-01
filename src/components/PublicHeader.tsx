@@ -31,7 +31,7 @@ export function PublicHeader() {
             <div className="bg-primary rounded-2xl p-2.5 shadow-soft">
               <GraduationCap className="w-7 h-7 text-white" />
             </div>
-            <h1 className="font-display text-2xl font-bold text-primary">LearnSelfAI</h1>
+            <h1 className="font-display text-2xl font-bold text-primary">Progent</h1>
           </div>
 
           <nav className="hidden md:flex items-center gap-8">

@@ -46,7 +46,7 @@ export function Login() {
             <div className="bg-primary rounded-3xl p-4 shadow-tile">
               <GraduationCap className="w-10 h-10 text-white" />
             </div>
-            <h1 className="font-display text-display-lg text-primary">LearnSelfAI</h1>
+            <h1 className="font-display text-display-lg text-primary">Progent</h1>
           </div>
         </div>
 

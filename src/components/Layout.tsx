@@ -47,7 +47,7 @@ export function Layout() {
                 <GraduationCap className="text-white" style={{ width: '28px', height: '28px' }} />
               </div>
               {!sidebarCollapsed && (
-                <h1 className="font-display text-2xl font-bold text-primary">LearnSelfAI</h1>
+                <h1 className="font-display text-2xl font-bold text-primary">Progent</h1>
               )}
             </div>
           </div>
@@ -60,11 +60,10 @@ export function Layout() {
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-5 py-4 rounded-2xl font-body font-bold transition-all ${
-                    isActive
-                      ? 'bg-primary text-white shadow-soft'
-                      : 'text-neutral-text hover:bg-primary-light/20 hover:scale-[1.02]'
-                  }`}
+                  className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-5 py-4 rounded-2xl font-body font-bold transition-all ${isActive
+                    ? 'bg-primary text-white shadow-soft'
+                    : 'text-neutral-text hover:bg-primary-light/20 hover:scale-[1.02]'
+                    }`}
                   title={sidebarCollapsed ? item.label : undefined}
                 >
                   <Icon style={{ width: '20px', height: '20px', flexShrink: 0 }} />
@@ -77,11 +76,10 @@ export function Layout() {
           <div className="p-4 border-t-2 border-neutral-border">
             <button
               onClick={() => navigate('/settings')}
-              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-4 py-3 rounded-2xl font-body font-bold transition-all ${
-                location.pathname === '/settings'
-                  ? 'bg-primary text-white shadow-soft'
-                  : 'text-neutral-text hover:bg-primary-light/20 hover:scale-[1.02]'
-              }`}
+              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-4 py-3 rounded-2xl font-body font-bold transition-all ${location.pathname === '/settings'
+                ? 'bg-primary text-white shadow-soft'
+                : 'text-neutral-text hover:bg-primary-light/20 hover:scale-[1.02]'
+                }`}
               title={sidebarCollapsed ? 'Account' : undefined}
             >
               <div style={{ width: '40px', height: '40px', flexShrink: 0 }} className="rounded-full bg-primary-light flex items-center justify-center">
@@ -126,14 +124,13 @@ export function Layout() {
             <div className="bg-primary rounded-xl p-2.5 shadow-soft">
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
-            <h1 className="font-display text-xl font-bold text-primary">LearnSelfAI</h1>
+            <h1 className="font-display text-xl font-bold text-primary">Progent</h1>
           </div>
           <div className="relative" ref={accountMenuRef}>
             <button
               onClick={() => setShowAccountMenu(!showAccountMenu)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-all ${
-                location.pathname === '/settings' || showAccountMenu ? 'bg-primary' : 'bg-primary-light'
-              }`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-all ${location.pathname === '/settings' || showAccountMenu ? 'bg-primary' : 'bg-primary-light'
+                }`}
             >
               {profile?.full_name ? (
                 <span className={`text-sm font-bold ${location.pathname === '/settings' || showAccountMenu ? 'text-white' : 'text-primary'}`}>
@@ -143,7 +140,7 @@ export function Layout() {
                 <User className={`w-5 h-5 ${location.pathname === '/settings' || showAccountMenu ? 'text-white' : 'text-primary'}`} />
               )}
             </button>
-            
+
             {showAccountMenu && (
               <div className="absolute right-0 top-12 w-48 bg-neutral-bg border border-neutral-border rounded-xl shadow-tile z-50 overflow-hidden">
                 <div className="p-3 border-b border-neutral-border">
@@ -188,9 +185,8 @@ export function Layout() {
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all active:scale-95 ${
-                    isActive ? 'text-primary bg-primary-light/30' : 'text-neutral-text-muted hover:bg-neutral-surface'
-                  }`}
+                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all active:scale-95 ${isActive ? 'text-primary bg-primary-light/30' : 'text-neutral-text-muted hover:bg-neutral-surface'
+                    }`}
                 >
                   <Icon className="w-6 h-6" />
                   <span className="text-xs font-body font-bold">{item.label}</span>

@@ -94,7 +94,7 @@ export function Homepage() {
     },
     {
       question: 'What makes this different from other learning platforms?',
-      answer: 'Unlike pre-made courses, LearnSelfAI creates completely personalized courses tailored to your specific background, goals, and learning style. You get exactly what you need to learn, not generic content.',
+      answer: 'Unlike pre-made courses, Progent creates completely personalized courses tailored to your specific background, goals, and learning style. You get exactly what you need to learn, not generic content.',
     },
   ];
 
@@ -119,8 +119,8 @@ export function Homepage() {
                 <span className="text-primary">Your Way</span>
               </h1>
 
-              <p className="font-body text-lg sm:text-xl text-neutral-text-muted mb-8 max-w-xl mx-auto lg:mx-0">
-                Create personalized AI-generated courses on any topic in minutes. Tailored to your background, goals, and learning style.
+              <p className="font-body text-xl text-neutral-text-muted mb-8 max-w-2xl mx-auto leading-relaxed">
+                Professional agent that helps to create courses and learn things independently using AI.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 mb-8">
@@ -313,7 +313,7 @@ export function Homepage() {
               Frequently Asked Questions
             </h2>
             <p className="font-body text-xl text-neutral-text-muted">
-              Everything you need to know about LearnSelfAI
+              Everything you need to know about Progent
             </p>
           </div>
 
@@ -361,7 +361,7 @@ export function Homepage() {
                 <div className="bg-primary rounded-xl p-2">
                   <GraduationCap className="w-6 h-6 text-white" />
                 </div>
-                <span className="font-display text-xl font-bold text-neutral-text">LearnSelfAI</span>
+                <span className="font-display text-xl font-bold text-neutral-text">Progent</span>
               </div>
               <p className="font-body text-neutral-text-muted text-sm">
                 Personalized AI-powered learning for everyone.
@@ -394,7 +394,7 @@ export function Homepage() {
           </div>
 
           <div className="border-t border-neutral-border pt-8 text-center font-body text-sm text-neutral-text-muted">
-            <p>&copy; {new Date().getFullYear()} LearnSelfAI. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} Progent. All rights reserved.</p>
           </div>
         </div>
       </footer>
