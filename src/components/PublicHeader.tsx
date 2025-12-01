@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Button } from './Button';
 import { ThemeSelector } from './ThemeSelector';
 
@@ -28,8 +28,8 @@ export function PublicHeader() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <div className="bg-primary rounded-2xl p-2.5 shadow-soft">
-              <GraduationCap className="w-7 h-7 text-white" />
+            <div className="p-1">
+              <img src="/logo.png" alt="Progent" className="w-9 h-9 object-contain" />
             </div>
             <h1 className="font-display text-2xl font-bold text-primary">Progent</h1>
           </div>

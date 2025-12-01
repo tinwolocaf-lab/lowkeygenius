@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { GraduationCap } from 'lucide-react';
+
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
@@ -54,8 +54,8 @@ export function Signup() {
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-3">
-            <div className="bg-primary rounded-3xl p-4 shadow-tile">
-              <GraduationCap className="w-10 h-10 text-white" />
+            <div className="p-2">
+              <img src="/logo.png" alt="Progent" className="w-12 h-12 object-contain" />
             </div>
             <h1 className="font-display text-display-lg text-primary">Progent</h1>
           </div>

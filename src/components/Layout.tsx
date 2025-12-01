@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Home, BookOpen, StickyNote, GraduationCap, ChevronLeft, ChevronRight, User, Settings, LogOut, Store } from 'lucide-react';
+import { Home, BookOpen, StickyNote, ChevronLeft, ChevronRight, User, Settings, LogOut, Store } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Layout() {
@@ -43,8 +43,8 @@ export function Layout() {
         <aside className={`relative bg-neutral-bg border-r border-neutral-border shadow-soft flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
           <div className={`p-6 border-b-2 border-neutral-border ${sidebarCollapsed ? 'flex justify-center' : ''}`}>
             <div className={`flex items-center gap-3 ${sidebarCollapsed ? 'flex-col' : ''}`}>
-              <div className="bg-primary rounded-2xl shadow-soft" style={{ padding: '12px' }}>
-                <GraduationCap className="text-white" style={{ width: '28px', height: '28px' }} />
+              <div className="" style={{ padding: '8px' }}>
+                <img src="/logo.png" alt="Progent" className="w-9 h-9 object-contain" />
               </div>
               {!sidebarCollapsed && (
                 <h1 className="font-display text-2xl font-bold text-primary">Progent</h1>
@@ -121,8 +121,8 @@ export function Layout() {
       <div className="md:hidden flex flex-col h-screen">
         <header className="bg-neutral-bg border-b border-neutral-border shadow-soft p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="bg-primary rounded-xl p-2.5 shadow-soft">
-              <GraduationCap className="w-6 h-6 text-white" />
+            <div className="p-1">
+              <img src="/logo.png" alt="Progent" className="w-8 h-8 object-contain" />
             </div>
             <h1 className="font-display text-xl font-bold text-primary">Progent</h1>
           </div>

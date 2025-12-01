@@ -1,4 +1,4 @@
-import { Bot, User } from 'lucide-react';
+import { User } from 'lucide-react';
 
 interface ChatMessageProps {
   type: 'assistant' | 'user' | 'system';
@@ -10,8 +10,8 @@ export function ChatMessage({ type, content }: ChatMessageProps) {
     return (
       <div className="flex gap-4 mb-6 animate-fade-in">
         <div className="flex-shrink-0">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center shadow-soft">
-            <Bot className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center shadow-soft overflow-hidden">
+            <img src="/favicon.png" alt="AI" className="w-full h-full object-cover" />
           </div>
         </div>
         <div className="flex-1 bg-white rounded-3xl rounded-tl-lg p-5 shadow-soft max-w-2xl">
