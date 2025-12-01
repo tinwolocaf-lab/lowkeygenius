@@ -1,4 +1,4 @@
-# LearnSelfAI React Native - Real Data Integration & Authentication Implementation Guide
+# Progent React Native - Real Data Integration & Authentication Implementation Guide
 
 ## Table of Contents
 1. [Environment Setup](#1-environment-setup)
@@ -623,7 +623,7 @@ export function LoginScreen() {
               <GraduationCap size={40} color="#FFFFFF" />
             </View>
             <Text style={[typography.displayLg, { color: colors.primary, marginTop: 16 }]}>
-              LearnSelfAI
+              Progent
             </Text>
           </View>
 
@@ -842,7 +842,7 @@ export function SignupScreen() {
               <GraduationCap size={40} color="#FFFFFF" />
             </View>
             <Text style={[typography.displayLg, { color: colors.primary, marginTop: 16 }]}>
-              LearnSelfAI
+              Progent
             </Text>
           </View>
 
@@ -1103,7 +1103,7 @@ export function LandingScreen() {
             <GraduationCap size={32} color="#FFFFFF" />
           </View>
           <Text style={[typography.displayMd, { color: colors.primary, marginBottom: 8 }]}>
-            LearnSelfAI
+            Progent
           </Text>
 
           {/* Badge */}

@@ -1,4 +1,4 @@
-# LearnSelfAI React Native - Gemini AI & Murf AI Integration Guide
+# Progent React Native - Gemini AI & Murf AI Integration Guide
 
 ## Table of Contents
 1. [Environment Setup](#1-environment-setup)
