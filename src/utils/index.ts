@@ -13,3 +13,19 @@ export {
   PII_PLACEHOLDERS 
 } from './anonymization';
 export type { PIIReport, AnonymizationResult } from './anonymization';
+
+export {
+  getThumbnailStoragePath,
+  validateThumbnailFile,
+  uploadThumbnail,
+  deleteThumbnail,
+  ACCEPTED_THUMBNAIL_TYPES,
+  MAX_THUMBNAIL_SIZE_BYTES,
+  THUMBNAIL_BUCKET,
+} from './thumbnailStorage';
+export type {
+  AcceptedThumbnailType,
+  ValidationResult,
+  UploadResult,
+  DeleteResult,
+} from './thumbnailStorage';

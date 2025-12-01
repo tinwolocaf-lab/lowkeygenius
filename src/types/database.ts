@@ -196,6 +196,7 @@ export type Database = {
           is_public: boolean
           published_at: string | null
           creator_display_name: string | null
+          thumbnail_url: string | null
           created_at: string
           updated_at: string
         }
@@ -213,6 +214,7 @@ export type Database = {
           is_public?: boolean
           published_at?: string | null
           creator_display_name?: string | null
+          thumbnail_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -230,6 +232,7 @@ export type Database = {
           is_public?: boolean
           published_at?: string | null
           creator_display_name?: string | null
+          thumbnail_url?: string | null
           created_at?: string
           updated_at?: string
         }

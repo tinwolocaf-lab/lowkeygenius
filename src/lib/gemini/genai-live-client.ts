@@ -48,7 +48,6 @@ export class GenAILiveClient {
   private events: Map<string, EventCallback[]> = new Map();
   private _status: 'connected' | 'disconnected' | 'connecting' = 'disconnected';
   private _model: string | null = null;
-  private config: LiveConnectConfig | null = null;
 
   get status() {
     return this._status;
@@ -92,7 +91,6 @@ export class GenAILiveClient {
     }
 
     this._status = 'connecting';
-    this.config = config;
     this._model = model;
 
     return new Promise((resolve, reject) => {

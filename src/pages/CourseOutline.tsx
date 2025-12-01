@@ -9,6 +9,7 @@ import { Button } from '../components/Button';
 import { EditModuleModal } from '../components/EditModuleModal';
 import { EditLessonModal } from '../components/EditLessonModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ThumbnailUpload } from '../components/ThumbnailUpload';
 
 interface Lesson {
   title: string;
@@ -36,6 +37,7 @@ interface Course {
   intensity: string;
   outline_json: CourseOutline | null;
   status: string;
+  thumbnail_url: string | null;
 }
 
 export function CourseOutline() {
@@ -248,6 +250,29 @@ export function CourseOutline() {
     }
   };
 
+  const handleThumbnailUploadComplete = async (url: string | null) => {
+    if (!courseId) return;
+
+    try {
+      const { error } = await supabase
+        .from('courses')
+        .update({ thumbnail_url: url })
+        .eq('id', courseId);
+
+      if (error) {
+        console.error('Error updating course thumbnail:', error);
+        toast.error('Failed to update course thumbnail');
+        return;
+      }
+
+      setCourse(prev => prev ? { ...prev, thumbnail_url: url } : null);
+      toast.success(url ? 'Thumbnail updated successfully' : 'Thumbnail removed');
+    } catch (error) {
+      console.error('Unexpected error updating thumbnail:', error);
+      toast.error('Failed to update course thumbnail');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-light/20 via-secondary-light/10 to-accent-yellow/10 flex items-center justify-center">
@@ -286,16 +311,26 @@ export function CourseOutline() {
     <div className="min-h-screen bg-neutral-surface">
       <header className="bg-neutral-bg border-b border-neutral-border shadow-soft p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-start gap-4 mb-4">
             <button
               onClick={() => navigate('/courses')}
-              className="p-3 hover:bg-neutral-surface rounded-2xl transition-all active:scale-95"
+              className="p-3 hover:bg-neutral-surface rounded-2xl transition-all active:scale-95 flex-shrink-0"
             >
               <ArrowLeft className="w-6 h-6 text-neutral-text" />
             </button>
-            <div className="flex-1">
-              <h1 className="font-display text-display-md text-neutral-text">{course.title}</h1>
-              <p className="font-body text-neutral-text-muted">{course.description}</p>
+            <div className="flex-1 flex flex-col md:flex-row gap-6">
+              <div className="flex-1 min-w-0">
+                <h1 className="font-display text-display-md text-neutral-text">{course.title}</h1>
+                <p className="font-body text-neutral-text-muted">{course.description}</p>
+              </div>
+              <div className="w-full md:w-64 flex-shrink-0">
+                <ThumbnailUpload
+                  courseId={course.id}
+                  currentThumbnailUrl={course.thumbnail_url}
+                  onUploadComplete={handleThumbnailUploadComplete}
+                  disabled={generating || saving}
+                />
+              </div>
             </div>
           </div>
 

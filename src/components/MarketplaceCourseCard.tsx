@@ -1,4 +1,5 @@
-import { Clock, Users, User } from 'lucide-react';
+import { useState } from 'react';
+import { Clock, Users, User, ImageIcon } from 'lucide-react';
 import { Card } from './Card';
 import { Button } from './Button';
 import type { CourseLevel } from '../types/database';
@@ -13,6 +14,7 @@ interface PublicCourse {
   creator_display_name: string | null;
   published_at: string | null;
   enrollment_count: number;
+  thumbnail_url?: string | null;
 }
 
 interface MarketplaceCourseCardProps {
@@ -39,8 +41,38 @@ export function MarketplaceCourseCard({
 }: MarketplaceCourseCardProps) {
   const levelColor = LEVEL_COLORS[course.level] || LEVEL_COLORS.beginner;
 
+  const [thumbnailLoading, setThumbnailLoading] = useState(true);
+  const [thumbnailError, setThumbnailError] = useState(false);
+
   return (
-    <Card className="flex flex-col h-full">
+    <Card className="flex flex-col h-full overflow-hidden">
+      {/* Course Thumbnail - Requirements 3.1, 3.2 */}
+      <div className="relative -mx-6 -mt-6 mb-4 h-40 overflow-hidden">
+        {course.thumbnail_url && !thumbnailError ? (
+          <>
+            {thumbnailLoading && (
+              <div className="absolute inset-0 bg-neutral-surface animate-pulse" />
+            )}
+            <img
+              src={course.thumbnail_url}
+              alt={`${course.title} thumbnail`}
+              className={`w-full h-full object-cover transition-opacity duration-300 ${
+                thumbnailLoading ? 'opacity-0' : 'opacity-100'
+              }`}
+              onLoad={() => setThumbnailLoading(false)}
+              onError={() => {
+                setThumbnailLoading(false);
+                setThumbnailError(true);
+              }}
+            />
+          </>
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+            <ImageIcon className="w-12 h-12 text-primary/30" />
+          </div>
+        )}
+      </div>
+
       {/* Header with level and duration */}
       <div className="flex items-center justify-between mb-3">
         <span className={`px-3 py-1 rounded-full font-body font-semibold text-xs capitalize ${levelColor}`}>

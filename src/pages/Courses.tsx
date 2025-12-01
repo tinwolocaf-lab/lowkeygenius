@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, Plus, MoreVertical, Edit2, Trash2, Volume2, Globe, AlertTriangle, LogOut } from 'lucide-react';
+import { BookOpen, Clock, Plus, MoreVertical, Pencil, Trash2, Volume2, Globe, AlertTriangle, LogOut, ImageIcon } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
 import { useAuth } from '../contexts/AuthContext';
 import { useCoursePublishing } from '../hooks/useCoursePublishing';
@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import { ThumbnailUpload } from '../components/ThumbnailUpload';
 import toast from 'react-hot-toast';
 
 interface Course {
@@ -26,6 +27,45 @@ interface Course {
   completed_lessons?: number;
   creator_display_name?: string | null;
   isEnrolled?: boolean; // true if user enrolled in this public course (not owner)
+  thumbnail_url?: string | null;
+}
+
+/**
+ * CourseThumbnail component with loading skeleton
+ * Requirements: 3.1 - Show thumbnail if exists
+ * Requirements: 3.3 - Display loading skeleton until image loads
+ */
+function CourseThumbnail({ url, title }: { url: string; title: string }) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) {
+    return (
+      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+        <ImageIcon className="w-12 h-12 text-primary/30" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {isLoading && (
+        <div className="absolute inset-0 bg-neutral-surface animate-pulse" />
+      )}
+      <img
+        src={url}
+        alt={`${title} thumbnail`}
+        className={`w-full h-full object-cover transition-opacity duration-300 ${
+          isLoading ? 'opacity-0' : 'opacity-100'
+        }`}
+        onLoad={() => setIsLoading(false)}
+        onError={() => {
+          setIsLoading(false);
+          setHasError(true);
+        }}
+      />
+    </>
+  );
 }
 
 export function Courses() {
@@ -38,11 +78,12 @@ export function Courses() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState<string | null>(null);
-  const [renameModal, setRenameModal] = useState<{ courseId: string; title: string } | null>(null);
+  const [editModal, setEditModal] = useState<{ courseId: string; title: string; thumbnailUrl: string | null } | null>(null);
   const [deleteModal, setDeleteModal] = useState<string | null>(null);
   const [deletionRequestModal, setDeletionRequestModal] = useState<{ courseId: string; title: string } | null>(null);
   const [deletionMessage, setDeletionMessage] = useState('');
   const [newTitle, setNewTitle] = useState('');
+  const [newThumbnailUrl, setNewThumbnailUrl] = useState<string | null>(null);
   const [unenrollModal, setUnenrollModal] = useState<{ courseId: string; title: string } | null>(null);
 
   const loadCourses = useCallback(async () => {
@@ -167,20 +208,35 @@ export function Courses() {
     }
   };
 
-  const handleRename = async () => {
-    if (!renameModal || !newTitle.trim()) return;
+  const handleSaveEdit = async () => {
+    if (!editModal || !newTitle.trim()) return;
+
+    const updates: { title: string; thumbnail_url?: string | null } = { 
+      title: newTitle.trim() 
+    };
+    
+    // Only include thumbnail_url if it changed
+    if (newThumbnailUrl !== editModal.thumbnailUrl) {
+      updates.thumbnail_url = newThumbnailUrl;
+    }
 
     const { error } = await supabase
       .from('courses')
-      .update({ title: newTitle.trim() })
-      .eq('id', renameModal.courseId);
+      .update(updates)
+      .eq('id', editModal.courseId);
 
     if (!error) {
       setCourses(courses.map(c =>
-        c.id === renameModal.courseId ? { ...c, title: newTitle.trim() } : c
+        c.id === editModal.courseId 
+          ? { ...c, title: newTitle.trim(), thumbnail_url: newThumbnailUrl } 
+          : c
       ));
-      setRenameModal(null);
+      toast.success('Course updated successfully');
+      setEditModal(null);
       setNewTitle('');
+      setNewThumbnailUrl(null);
+    } else {
+      toast.error('Failed to update course');
     }
   };
 
@@ -206,10 +262,15 @@ export function Courses() {
     }
   };
 
-  const openRenameModal = (course: Course, e: React.MouseEvent) => {
+  const openEditModal = (course: Course, e: React.MouseEvent) => {
     e.stopPropagation();
-    setRenameModal({ courseId: course.id, title: course.title });
+    setEditModal({ 
+      courseId: course.id, 
+      title: course.title, 
+      thumbnailUrl: course.thumbnail_url ?? null 
+    });
     setNewTitle(course.title);
+    setNewThumbnailUrl(course.thumbnail_url ?? null);
     setShowMenu(null);
   };
 
@@ -368,8 +429,19 @@ export function Courses() {
               key={course.id}
               hover
               onClick={() => handleCourseClick(course)}
-              className="cursor-pointer relative"
+              className="cursor-pointer relative overflow-hidden"
             >
+              {/* Course Thumbnail - Requirements 3.1, 3.2, 3.3 */}
+              <div className="relative -mx-6 -mt-6 mb-4 h-40 overflow-hidden">
+                {course.thumbnail_url ? (
+                  <CourseThumbnail url={course.thumbnail_url} title={course.title} />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                    <ImageIcon className="w-12 h-12 text-primary/30" />
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-start justify-between mb-3">
                 {getStatusBadge(course.status)}
                 <div className="flex items-center gap-2">
@@ -432,11 +504,11 @@ export function Courses() {
                               </button>
                             )}
                             <button
-                              onClick={(e) => openRenameModal(course, e)}
+                              onClick={(e) => openEditModal(course, e)}
                               className="w-full px-4 py-2 text-left hover:bg-neutral-surface flex items-center gap-2 font-body text-sm"
                             >
-                              <Edit2 className="w-4 h-4" />
-                              Rename
+                              <Pencil className="w-4 h-4" />
+                              Edit
                             </button>
                             {/* Delete option - hide for public courses (Requirement 1.2) */}
                             {!course.is_public && (
@@ -512,32 +584,40 @@ export function Courses() {
         </div>
       )}
 
-      {renameModal && (
+      {editModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="max-w-md w-full">
-            <h3 className="font-display text-xl font-bold text-neutral-text mb-4">
-              Rename Course
+          <Card className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <h3 className="font-display text-xl font-bold text-neutral-text mb-6">
+              Edit Course
             </h3>
-            <Input
-              label="Course Title"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="Enter new title"
-              autoFocus
-            />
+            <div className="space-y-6">
+              <Input
+                label="Course Title"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Enter course title"
+                autoFocus
+              />
+              <ThumbnailUpload
+                courseId={editModal.courseId}
+                currentThumbnailUrl={newThumbnailUrl}
+                onUploadComplete={(url) => setNewThumbnailUrl(url)}
+              />
+            </div>
             <div className="flex gap-3 mt-6">
               <Button
-                onClick={handleRename}
+                onClick={handleSaveEdit}
                 className="flex-1"
                 disabled={!newTitle.trim()}
               >
-                Rename
+                Save Changes
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => {
-                  setRenameModal(null);
+                  setEditModal(null);
                   setNewTitle('');
+                  setNewThumbnailUrl(null);
                 }}
                 className="flex-1"
               >
