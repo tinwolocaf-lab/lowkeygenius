@@ -17,6 +17,20 @@ export type AudioJobStatus = 'pending' | 'processing' | 'completed' | 'failed';
 export type VoiceType = 'male' | 'female';
 export type DeletionRequestStatus = 'pending' | 'approved' | 'rejected';
 export type InputMethod = 'text' | 'voice' | 'conversation';
+export type QuestionType = 'multiple_choice' | 'true_false';
+
+// Flashcard and Quiz related types
+export interface FlashcardResponse {
+  flashcardId: string;
+  response: 'got_it' | 'need_review';
+  timeSpentMs: number;
+}
+
+export interface QuizAnswer {
+  questionId: string;
+  selectedIndex: number;
+  isCorrect: boolean;
+}
 
 export interface ExtractedContext {
   education: string;
@@ -595,6 +609,171 @@ export type Database = {
         }
         Relationships: []
       }
+      flashcards: {
+        Row: {
+          id: string
+          lesson_id: string
+          front_text: string
+          back_text: string
+          order_index: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          lesson_id: string
+          front_text: string
+          back_text: string
+          order_index?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          lesson_id?: string
+          front_text?: string
+          back_text?: string
+          order_index?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      flashcard_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          lesson_id: string
+          total_cards: number
+          mastered_cards: number
+          review_cards: number
+          responses_json: FlashcardResponse[]
+          completed_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          lesson_id: string
+          total_cards: number
+          mastered_cards: number
+          review_cards: number
+          responses_json?: FlashcardResponse[]
+          completed_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          lesson_id?: string
+          total_cards?: number
+          mastered_cards?: number
+          review_cards?: number
+          responses_json?: FlashcardResponse[]
+          completed_at?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      quizzes: {
+        Row: {
+          id: string
+          lesson_id: string
+          title: string
+          question_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          lesson_id: string
+          title: string
+          question_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          lesson_id?: string
+          title?: string
+          question_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      quiz_questions: {
+        Row: {
+          id: string
+          quiz_id: string
+          question_text: string
+          question_type: QuestionType
+          options: string[]
+          correct_index: number
+          explanation: string
+          order_index: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          quiz_id: string
+          question_text: string
+          question_type: QuestionType
+          options: string[]
+          correct_index: number
+          explanation: string
+          order_index?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          quiz_id?: string
+          question_text?: string
+          question_type?: QuestionType
+          options?: string[]
+          correct_index?: number
+          explanation?: string
+          order_index?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      quiz_attempts: {
+        Row: {
+          id: string
+          quiz_id: string
+          user_id: string
+          score: number
+          total_questions: number
+          percentage: number
+          answers_json: QuizAnswer[]
+          completed_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          quiz_id: string
+          user_id: string
+          score: number
+          total_questions: number
+          percentage: number
+          answers_json: QuizAnswer[]
+          completed_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          quiz_id?: string
+          user_id?: string
+          score?: number
+          total_questions?: number
+          percentage?: number
+          answers_json?: QuizAnswer[]
+          completed_at?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -623,3 +802,8 @@ export type CourseEnrollment = Database['public']['Tables']['course_enrollments'
 export type DeletionRequest = Database['public']['Tables']['deletion_requests']['Row']
 export type UsageCounter = Database['public']['Tables']['usage_counters']['Row']
 export type UserProfile = Database['public']['Tables']['user_profiles']['Row']
+export type Flashcard = Database['public']['Tables']['flashcards']['Row']
+export type FlashcardSession = Database['public']['Tables']['flashcard_sessions']['Row']
+export type Quiz = Database['public']['Tables']['quizzes']['Row']
+export type QuizQuestion = Database['public']['Tables']['quiz_questions']['Row']
+export type QuizAttempt = Database['public']['Tables']['quiz_attempts']['Row']

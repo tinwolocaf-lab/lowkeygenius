@@ -1,0 +1,176 @@
+# Implementation Plan
+
+- [x] 1. Database schema and types setup
+  - [x] 1.1 Create database migration for flashcard and quiz tables
+    - Create flashcards, flashcard_sessions, quizzes, quiz_questions, quiz_attempts tables
+    - Add indexes and RLS policies as specified in design
+    - _Requirements: 8.1, 8.2, 8.3_
+  - [x] 1.2 Update TypeScript database types
+    - Add Flashcard, FlashcardSession, Quiz, QuizQuestion, QuizAttempt types to database.ts
+    - Add QuestionType and related enums
+    - _Requirements: 8.1, 8.2, 8.3_
+  - [ ]* 1.3 Write property test for flashcard serialization round-trip
+    - **Property 19: Flashcard serialization round-trip**
+    - **Validates: Requirements 8.4, 8.6**
+  - [ ]* 1.4 Write property test for quiz serialization round-trip
+    - **Property 20: Quiz serialization round-trip**
+    - **Validates: Requirements 8.5, 8.6**
+
+- [x] 2. Flashcard generation Edge Function
+  - [x] 2.1 Create generate-flashcards Edge Function
+    - Implement Gemini AI prompt for flashcard generation
+    - Parse AI response and validate structure
+    - Store flashcards in database
+    - Handle errors and rate limiting
+    - _Requirements: 1.1, 1.3, 1.4, 7.1, 7.2, 7.6_
+  - [ ]* 2.2 Write property test for flashcard count bounds
+    - **Property 12: Flashcard count bounds**
+    - **Validates: Requirements 7.1**
+  - [ ]* 2.3 Write property test for flashcard data structure completeness
+    - **Property 16: Flashcard data structure completeness**
+    - **Validates: Requirements 8.1**
+
+- [x] 3. Quiz generation Edge Function
+  - [x] 3.1 Create generate-quiz Edge Function
+    - Implement Gemini AI prompt for quiz generation
+    - Parse AI response and validate structure
+    - Store quiz and questions in database
+    - Handle errors and rate limiting
+    - _Requirements: 3.1, 3.3, 3.4, 7.3, 7.4, 7.5, 7.6_
+  - [ ]* 3.2 Write property test for quiz question count bounds
+    - **Property 13: Quiz question count bounds**
+    - **Validates: Requirements 7.3**
+  - [ ]* 3.3 Write property test for quiz question type diversity
+    - **Property 14: Quiz question type diversity**
+    - **Validates: Requirements 7.4**
+  - [ ]* 3.4 Write property test for quiz question structure validity
+    - **Property 15: Quiz question structure validity**
+    - **Validates: Requirements 7.5**
+  - [ ]* 3.5 Write property test for quiz question data structure completeness
+    - **Property 17: Quiz question data structure completeness**
+    - **Validates: Requirements 8.2**
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 5. Flashcard service layer
+  - [x] 5.1 Create FlashcardService with generation and retrieval methods
+    - Implement generateFlashcards, getFlashcards, regenerateFlashcards
+    - Implement saveStudySession, getStudySessions
+    - Handle caching logic (return existing if available)
+    - _Requirements: 1.1, 1.3, 1.5, 5.1, 5.4_
+  - [ ]* 5.2 Write property test for flashcard caching consistency
+    - **Property 1: Flashcard caching consistency**
+    - **Validates: Requirements 1.5**
+  - [ ]* 5.3 Write property test for flashcard regeneration replacement
+    - **Property 8: Flashcard regeneration replacement**
+    - **Validates: Requirements 5.1, 5.4**
+
+- [x] 6. Quiz service layer
+  - [x] 6.1 Create QuizService with generation and retrieval methods
+    - Implement generateQuiz, getQuiz, regenerateQuiz
+    - Implement saveQuizAttempt, getQuizAttempts
+    - Handle caching logic (return existing if available)
+    - _Requirements: 3.1, 3.3, 3.5, 5.2, 5.4, 6.1, 6.2, 6.4_
+  - [ ]* 6.2 Write property test for quiz caching consistency
+    - **Property 2: Quiz caching consistency**
+    - **Validates: Requirements 3.5**
+  - [ ]* 6.3 Write property test for quiz regeneration replacement
+    - **Property 9: Quiz regeneration replacement**
+    - **Validates: Requirements 5.2, 5.4**
+  - [ ]* 6.4 Write property test for quiz attempt persistence
+    - **Property 10: Quiz attempt persistence**
+    - **Validates: Requirements 6.1, 6.4**
+  - [ ]* 6.5 Write property test for quiz history retrieval
+    - **Property 11: Quiz history retrieval**
+    - **Validates: Requirements 6.2**
+  - [ ]* 6.6 Write property test for quiz attempt data structure completeness
+    - **Property 18: Quiz attempt data structure completeness**
+    - **Validates: Requirements 8.3**
+
+- [x] 7. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 8. FlashcardStudy component
+  - [x] 8.1 Create FlashcardStudy component with flip interaction
+    - Implement card flip animation on click/tap
+    - Display front initially, reveal back on flip
+    - Add "Got it" and "Need review" buttons
+    - Track responses and advance to next card
+    - _Requirements: 2.1, 2.2, 2.3_
+  - [x] 8.2 Implement study session summary and restart
+    - Display summary with mastered vs review counts
+    - Implement restart with review card prioritization
+    - Save session results to database
+    - _Requirements: 2.4, 2.5_
+  - [ ]* 8.3 Write property test for flashcard flip state toggle
+    - **Property 3: Flashcard flip state toggle**
+    - **Validates: Requirements 2.2**
+  - [ ]* 8.4 Write property test for study session response tracking
+    - **Property 4: Study session response tracking**
+    - **Validates: Requirements 2.3, 2.4**
+  - [ ]* 8.5 Write property test for review card prioritization
+    - **Property 5: Review card prioritization**
+    - **Validates: Requirements 2.5**
+
+- [x] 9. QuizTake component
+  - [x] 9.1 Create QuizTake component with question display
+    - Display question text and answer options
+    - Highlight selected answer
+    - Enable submit button on selection
+    - _Requirements: 4.1, 4.2_
+  - [x] 9.2 Implement answer submission with immediate feedback
+    - Show correct/incorrect feedback on submit
+    - Display explanation for incorrect answers
+    - Advance to next question
+    - _Requirements: 4.3, 4.4_
+  - [x] 9.3 Implement quiz completion and scoring
+    - Calculate and display final score with percentage
+    - Show performance summary
+    - Save quiz attempt to database
+    - _Requirements: 4.5, 6.1_
+  - [ ]* 9.4 Write property test for answer correctness determination
+    - **Property 6: Answer correctness determination**
+    - **Validates: Requirements 4.3**
+  - [ ]* 9.5 Write property test for quiz score calculation
+    - **Property 7: Quiz score calculation**
+    - **Validates: Requirements 4.5**
+
+- [ ] 10. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 11. QuizHistory component
+  - [x] 11.1 Create QuizHistory component
+    - Display list of previous attempts with scores and dates
+    - Show improvement trends (score changes over time)
+    - _Requirements: 6.2, 6.3_
+
+- [-] 12. Generation buttons and integration
+  - [ ] 12.1 Create FlashcardButton component
+    - Show "Generate Flashcards" or "Study Flashcards" based on existence
+    - Handle loading state during generation
+    - Display error messages with retry option
+    - _Requirements: 1.1, 1.2, 1.4, 1.5_
+  - [ ] 12.2 Create QuizButton component
+    - Show "Generate Quiz" or "Take Quiz" based on existence
+    - Handle loading state during generation
+    - Display error messages with retry option
+    - _Requirements: 3.1, 3.2, 3.4, 3.5_
+  - [ ] 12.3 Add regeneration functionality with confirmation
+    - Add regenerate option to existing flashcards/quizzes
+    - Show confirmation dialog before regenerating
+    - _Requirements: 5.1, 5.2, 5.3_
+
+- [ ] 13. CourseView integration
+  - [ ] 13.1 Integrate flashcard and quiz buttons into CourseView
+    - Add FlashcardButton and QuizButton to lesson view
+    - Wire up navigation to FlashcardStudy and QuizTake
+    - Handle state management for generation status
+    - _Requirements: 1.1, 1.5, 3.1, 3.5_
+  - [ ] 13.2 Add quiz history access from lesson view
+    - Add "View History" option for quizzes with attempts
+    - Navigate to QuizHistory component
+    - _Requirements: 6.2_
+
+- [ ] 14. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
