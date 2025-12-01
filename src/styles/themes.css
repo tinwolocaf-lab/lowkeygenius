@@ -4,15 +4,15 @@
 
 :root,
 .theme-pink-light {
-  --color-primary: #FF6DAA;
-  --color-primary-soft: #FF9FC7;
-  --color-primary-light: #FFD1E8;
-  --color-primary-dark: #E94E92;
-  --color-primary-darker: #D03578;
+  --color-primary: #1CB0F6;
+  --color-primary-soft: #7DD8FF;
+  --color-primary-light: #B8E9FF;
+  --color-primary-dark: #0098DB;
+  --color-primary-darker: #0080BD;
 
-  --color-secondary: #1CB0F6;
-  --color-secondary-light: #7DD8FF;
-  --color-secondary-dark: #0098DB;
+  --color-secondary: #FF6DAA;
+  --color-secondary-light: #FF9FC7;
+  --color-secondary-dark: #E94E92;
 
   --color-accent-yellow: #FFC800;
   --color-accent-orange: #FF9600;
@@ -80,15 +80,15 @@
 }
 
 .theme-pink-dark {
-  --color-primary: #FF6DAA;
-  --color-primary-soft: #FF9FC7;
-  --color-primary-light: #FFD1E8;
-  --color-primary-dark: #E94E92;
-  --color-primary-darker: #D03578;
+  --color-primary: #1CB0F6;
+  --color-primary-soft: #7DD8FF;
+  --color-primary-light: #B8E9FF;
+  --color-primary-dark: #0098DB;
+  --color-primary-darker: #0080BD;
 
-  --color-secondary: #1CB0F6;
-  --color-secondary-light: #7DD8FF;
-  --color-secondary-dark: #0098DB;
+  --color-secondary: #FF6DAA;
+  --color-secondary-light: #FF9FC7;
+  --color-secondary-dark: #E94E92;
 
   --color-accent-yellow: #FFC800;
   --color-accent-orange: #FF9600;
