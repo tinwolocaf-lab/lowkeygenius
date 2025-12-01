@@ -10,22 +10,29 @@ export function Homepage() {
   const navigate = useNavigate();
   const [isVideoInView, setIsVideoInView] = useState(false);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [isAudioVideoInView, setIsAudioVideoInView] = useState(false);
+  const [isAudioVideoLoaded, setIsAudioVideoLoaded] = useState(false);
   const videoRef = useRef<HTMLDivElement>(null);
+  const audioVideoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          setIsVideoInView(true);
-          observer.disconnect();
-        }
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            if (entry.target === videoRef.current) {
+              setIsVideoInView(true);
+            } else if (entry.target === audioVideoRef.current) {
+              setIsAudioVideoInView(true);
+            }
+          }
+        });
       },
       { threshold: 0.1 }
     );
 
-    if (videoRef.current) {
-      observer.observe(videoRef.current);
-    }
+    if (videoRef.current) observer.observe(videoRef.current);
+    if (audioVideoRef.current) observer.observe(audioVideoRef.current);
 
     return () => observer.disconnect();
   }, []);
@@ -197,7 +204,7 @@ export function Homepage() {
             <div className="order-2 lg:order-1">
               <div
                 ref={videoRef}
-                className="relative w-full max-w-md mx-auto rounded-3xl shadow-2xl overflow-hidden bg-neutral-200 dark:bg-neutral-800 aspect-[9/16] sm:aspect-[3/4]"
+                className="relative w-full max-w-md mx-auto rounded-3xl shadow-2xl overflow-hidden bg-neutral-200 dark:bg-neutral-800 aspect-video"
               >
                 {!isVideoLoaded && (
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -265,7 +272,27 @@ export function Homepage() {
               </Button>
             </div>
             <div>
-              <img src="/images/feature-audio.png" alt="Audio Learning" className="rounded-3xl shadow-2xl w-full max-w-md mx-auto hover:scale-105 transition-transform duration-500" />
+              <div
+                ref={audioVideoRef}
+                className="relative w-full max-w-md mx-auto rounded-3xl shadow-2xl overflow-hidden bg-neutral-200 dark:bg-neutral-800 aspect-video"
+              >
+                {!isAudioVideoLoaded && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-full h-full animate-pulse bg-neutral-300 dark:bg-neutral-700" />
+                  </div>
+                )}
+                {isAudioVideoInView && (
+                  <video
+                    src="/videos/Mascot_Listening_To_Knowledge_Animation.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    onLoadedData={() => setIsAudioVideoLoaded(true)}
+                    className={`w-full h-full object-cover transition-opacity duration-500 ${isAudioVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>
