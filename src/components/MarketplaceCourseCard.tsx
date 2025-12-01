@@ -18,6 +18,7 @@ interface PublicCourse {
 interface MarketplaceCourseCardProps {
   course: PublicCourse;
   isEnrolled: boolean;
+  isOwner: boolean;
   onEnroll: () => void;
   onContinueLearning: () => void;
 }
@@ -32,6 +33,7 @@ const LEVEL_COLORS: Record<CourseLevel, string> = {
 export function MarketplaceCourseCard({
   course,
   isEnrolled,
+  isOwner,
   onEnroll,
   onContinueLearning,
 }: MarketplaceCourseCardProps) {
@@ -85,13 +87,13 @@ export function MarketplaceCourseCard({
 
       {/* Action Button (Requirement 3.6) */}
       <div className="mt-auto">
-        {isEnrolled ? (
+        {isOwner || isEnrolled ? (
           <Button
             variant="secondary"
             onClick={onContinueLearning}
             className="w-full"
           >
-            Continue Learning
+            {isOwner ? 'View Your Course' : 'Continue Learning'}
           </Button>
         ) : (
           <Button
