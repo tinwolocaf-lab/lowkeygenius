@@ -106,6 +106,31 @@ export function initializeMermaid(appTheme: Theme): void {
     startOnLoad: false,
     theme: getMermaidTheme(appTheme),
     securityLevel: 'loose',
+    // Improve text rendering and prevent truncation
+    flowchart: {
+      htmlLabels: true,
+      useMaxWidth: false, // Don't constrain width - let it expand
+      curve: 'basis',
+      padding: 15,
+      nodeSpacing: 50,
+      rankSpacing: 50,
+    },
+    sequence: {
+      useMaxWidth: false,
+      boxMargin: 10,
+      boxTextMargin: 5,
+      noteMargin: 10,
+      messageMargin: 35,
+    },
+    class: {
+      useMaxWidth: false,
+    },
+    state: {
+      useMaxWidth: false,
+    },
+    pie: {
+      useMaxWidth: false,
+    },
     themeVariables: {
       primaryColor,
       primaryTextColor: isDark ? '#F5F5F5' : '#3C3C3C',
@@ -119,8 +144,59 @@ export function initializeMermaid(appTheme: Theme): void {
       clusterBkg: isDark ? '#333333' : '#F7F7F7',
       titleColor: isDark ? '#F5F5F5' : '#3C3C3C',
       edgeLabelBackground: isDark ? '#2A2A2A' : '#FFFFFF',
+      // Improve text sizing
+      fontSize: '14px',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
     },
   });
+}
+
+/**
+ * Post-processes the SVG to fix viewBox and prevent text truncation.
+ * Mermaid sometimes generates SVGs with viewBox that clips content.
+ */
+function fixSvgViewBox(svgString: string): string {
+  // Parse the SVG
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgString, 'image/svg+xml');
+  const svg = doc.querySelector('svg');
+  
+  if (!svg) return svgString;
+
+  // Remove any max-width or width constraints that might clip content
+  svg.style.maxWidth = 'none';
+  svg.removeAttribute('width');
+  
+  // Get the actual bounding box of all content
+  // We need to temporarily add to DOM to calculate bbox
+  const tempContainer = document.createElement('div');
+  tempContainer.style.position = 'absolute';
+  tempContainer.style.visibility = 'hidden';
+  tempContainer.style.left = '-9999px';
+  tempContainer.appendChild(svg.cloneNode(true));
+  document.body.appendChild(tempContainer);
+  
+  const tempSvg = tempContainer.querySelector('svg');
+  if (tempSvg) {
+    try {
+      const bbox = tempSvg.getBBox();
+      // Add padding around the content
+      const padding = 20;
+      const newViewBox = `${bbox.x - padding} ${bbox.y - padding} ${bbox.width + padding * 2} ${bbox.height + padding * 2}`;
+      svg.setAttribute('viewBox', newViewBox);
+      // Set height to auto to allow proper scaling
+      svg.setAttribute('height', '100%');
+      svg.style.minWidth = `${bbox.width + padding * 2}px`;
+    } catch {
+      // getBBox can fail if SVG is invalid, just return original
+    }
+  }
+  
+  document.body.removeChild(tempContainer);
+  
+  // Serialize back to string
+  const serializer = new XMLSerializer();
+  return serializer.serializeToString(svg);
 }
 
 /**
@@ -131,5 +207,7 @@ export async function renderMermaid(code: string, id: string): Promise<string> {
   // Sanitize the code to fix common syntax issues
   const sanitizedCode = sanitizeMermaidCode(code);
   const { svg } = await mermaid.render(id, sanitizedCode);
-  return svg;
+  
+  // Fix viewBox to prevent text truncation
+  return fixSvgViewBox(svg);
 }

@@ -47,28 +47,51 @@ function escapeRegExp(str: string): string {
  * Custom code block component that detects mermaid language
  * and routes to MermaidDiagram component.
  * For regular code blocks, renders a simple pre > code structure.
+ * 
+ * Note: In react-markdown v9+, inline code doesn't have a className,
+ * while code blocks have a className like "language-xxx".
+ * We detect inline code by checking if there's no className and no newlines.
  */
 function CodeBlock({
-  inline,
   className,
   children,
+  node,
+  ...props
 }: {
-  inline?: boolean;
   className?: string;
   children?: React.ReactNode;
+  node?: unknown;
+  [key: string]: unknown;
 }) {
+  // Suppress unused variable warning
+  void node;
+  void props;
+  
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : '';
   const codeContent = String(children).replace(/\n$/, '');
+  
+  // Detect if this is inline code:
+  // - No language class means it's likely inline
+  // - No newlines in content suggests inline
+  // - Short content is likely inline
+  const isInline = !className && !codeContent.includes('\n');
 
   // Route mermaid code blocks to MermaidDiagram component
-  if (!inline && language === 'mermaid') {
+  if (!isInline && language === 'mermaid') {
     return <MermaidDiagram code={codeContent} className="my-4" />;
   }
 
-  // Inline code
-  if (inline) {
-    return <code className="inline-code">{children}</code>;
+  // Inline code - render as simple inline code element
+  if (isInline) {
+    return (
+      <code 
+        className="inline-code"
+        style={{ display: 'inline', whiteSpace: 'nowrap' }}
+      >
+        {children}
+      </code>
+    );
   }
 
   // Block code - single pre element with code inside
@@ -244,10 +267,29 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   const [isLoadingEntries, setIsLoadingEntries] = useState(true);
   const [entriesError, setEntriesError] = useState<string | null>(null);
 
-  // Keep currentContent in sync with content prop
+  /**
+   * Sanitize markdown content by removing outer code fence wrappers.
+   * Some AI-generated content comes wrapped in ```markdown ... ``` which
+   * causes the entire content to render as a code block instead of markdown.
+   */
+  const sanitizeMarkdownContent = useCallback((rawContent: string): string => {
+    if (!rawContent) return rawContent;
+    
+    // Check if content is wrapped in markdown code fence
+    const markdownFencePattern = /^```(?:markdown|md)?\s*\n([\s\S]*?)\n```\s*$/;
+    const match = rawContent.match(markdownFencePattern);
+    
+    if (match) {
+      return match[1].trim();
+    }
+    
+    return rawContent;
+  }, []);
+
+  // Keep currentContent in sync with content prop, sanitizing if needed
   useEffect(() => {
-    setCurrentContent(content);
-  }, [content]);
+    setCurrentContent(sanitizeMarkdownContent(content));
+  }, [content, sanitizeMarkdownContent]);
 
   /**
    * Load InlineWiki entries for the lesson on mount.

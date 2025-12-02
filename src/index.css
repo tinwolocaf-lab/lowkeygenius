@@ -140,8 +140,19 @@
   }
 
   .markdown-content .inline-code {
-    @apply px-2 py-0.5 rounded text-sm font-mono text-primary-dark font-semibold;
+    @apply px-1.5 py-0.5 rounded text-sm font-mono text-primary-dark font-semibold;
     background-color: color-mix(in srgb, var(--color-primary-light) 30%, transparent);
+    display: inline;
+    white-space: nowrap;
+  }
+
+  /* Ensure code elements inside paragraphs and list items stay inline */
+  .markdown-content p code,
+  .markdown-content li code,
+  .markdown-content td code,
+  .markdown-content th code {
+    display: inline !important;
+    white-space: nowrap !important;
   }
 
   .markdown-content .code-block {
@@ -274,5 +285,98 @@
 
   .rotate-y-180 {
     transform: rotateY(180deg);
+  }
+}
+
+
+/* Mermaid diagram styles */
+@layer components {
+  .mermaid-diagram-wrapper {
+    @apply my-6;
+  }
+
+  .mermaid-diagram-container {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-neutral-border) transparent;
+  }
+
+  .mermaid-diagram-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .mermaid-diagram-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .mermaid-diagram-container::-webkit-scrollbar-thumb {
+    background-color: var(--color-neutral-border);
+    border-radius: 4px;
+  }
+
+  .mermaid-diagram-container::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-neutral-text-muted);
+  }
+
+  /* Ensure SVG text is not truncated */
+  .mermaid-diagram-content svg {
+    max-width: none !important;
+    overflow: visible !important;
+    display: block;
+  }
+
+  /* Prevent text clipping in nodes */
+  .mermaid-diagram-content svg .node foreignObject {
+    overflow: visible !important;
+  }
+
+  .mermaid-diagram-content svg .node foreignObject div {
+    overflow: visible !important;
+    white-space: nowrap !important;
+  }
+
+  .mermaid-diagram-content svg .label {
+    overflow: visible !important;
+  }
+
+  .mermaid-diagram-content svg .label foreignObject {
+    overflow: visible !important;
+  }
+
+  .mermaid-diagram-content svg text {
+    font-family: system-ui, -apple-system, sans-serif !important;
+  }
+
+  /* Improve node text visibility */
+  .mermaid-diagram-content .node rect,
+  .mermaid-diagram-content .node circle,
+  .mermaid-diagram-content .node ellipse,
+  .mermaid-diagram-content .node polygon,
+  .mermaid-diagram-content .node path {
+    stroke-width: 2px;
+  }
+
+  .mermaid-diagram-content .edgeLabel {
+    background-color: var(--color-neutral-surface) !important;
+    padding: 2px 4px;
+  }
+
+  /* Class diagram improvements */
+  .mermaid-diagram-content .classGroup text {
+    font-size: 12px !important;
+  }
+
+  /* Flowchart improvements */
+  .mermaid-diagram-content .flowchart-link {
+    stroke-width: 2px;
+  }
+
+  /* Sequence diagram improvements */
+  .mermaid-diagram-content .actor {
+    stroke-width: 2px;
+  }
+
+  .mermaid-diagram-content .messageText {
+    font-size: 13px !important;
   }
 }
