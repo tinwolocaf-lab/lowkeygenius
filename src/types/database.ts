@@ -207,6 +207,7 @@ export type Database = {
           estimated_duration_hours: number | null
           status: CourseStatus
           outline_json: Json | null
+          materials_json: Json | null
           is_public: boolean
           published_at: string | null
           creator_display_name: string | null
@@ -225,6 +226,7 @@ export type Database = {
           estimated_duration_hours?: number | null
           status?: CourseStatus
           outline_json?: Json | null
+          materials_json?: Json | null
           is_public?: boolean
           published_at?: string | null
           creator_display_name?: string | null
@@ -243,6 +245,7 @@ export type Database = {
           estimated_duration_hours?: number | null
           status?: CourseStatus
           outline_json?: Json | null
+          materials_json?: Json | null
           is_public?: boolean
           published_at?: string | null
           creator_display_name?: string | null

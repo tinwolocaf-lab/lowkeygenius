@@ -28,12 +28,18 @@ interface CourseOutlineJson {
   estimatedLessonsCount?: number;
 }
 
+interface CourseMaterial {
+  title: string;
+  content: string;
+}
+
 interface Course {
   id: string;
   title: string;
   topic: string;
   level: string;
   outline_json: CourseOutlineJson | null;
+  materials_json: CourseMaterial[] | null;
 }
 
 export function GenerateLessons() {
@@ -88,6 +94,68 @@ export function GenerateLessons() {
     loadCourseAndLessons();
   }, [loadCourseAndLessons]);
 
+  // Extract relevant material sections for a specific lesson based on title and objectives
+  const getRelevantMaterials = (
+    lessonTitle: string,
+    objectives: string[],
+    moduleTitle: string,
+    allMaterials: CourseMaterial[] | null,
+    lessonIndex: number,
+    totalLessons: number
+  ): Array<{ title: string; content: string }> => {
+    if (!allMaterials || allMaterials.length === 0) return [];
+
+    const relevantMaterials: Array<{ title: string; content: string }> = [];
+    const searchTerms = [
+      lessonTitle.toLowerCase(),
+      moduleTitle.toLowerCase(),
+      ...objectives.map(o => o.toLowerCase()),
+    ];
+
+    for (const material of allMaterials) {
+      if (!material.content) continue;
+
+      const contentLower = material.content.toLowerCase();
+      const contentLength = material.content.length;
+      
+      // Calculate portion of material to assign to this lesson
+      const portionSize = Math.ceil(contentLength / totalLessons);
+      const startIndex = lessonIndex * portionSize;
+      const endIndex = Math.min(startIndex + portionSize + 2000, contentLength); // Add overlap
+      
+      // Get the portion for this lesson
+      let lessonPortion = material.content.substring(startIndex, endIndex);
+      
+      // Also check if any search terms appear in the full content
+      const hasRelevantContent = searchTerms.some(term => 
+        contentLower.includes(term.split(' ')[0]) // Check first word of each term
+      );
+      
+      // If content is relevant to this lesson's topic, include more context
+      if (hasRelevantContent) {
+        // Find sections that match the lesson topic
+        const paragraphs = material.content.split(/\n\n+/);
+        const relevantParagraphs = paragraphs.filter(p => 
+          searchTerms.some(term => p.toLowerCase().includes(term.split(' ')[0]))
+        );
+        
+        if (relevantParagraphs.length > 0) {
+          lessonPortion = relevantParagraphs.join('\n\n').substring(0, 8000);
+        }
+      }
+      
+      // Limit each material portion to 8000 chars to stay within API limits
+      if (lessonPortion.length > 0) {
+        relevantMaterials.push({
+          title: material.title,
+          content: lessonPortion.substring(0, 8000),
+        });
+      }
+    }
+
+    return relevantMaterials;
+  };
+
   const startGeneration = async () => {
     if (!course || lessons.length === 0) return;
 
@@ -110,6 +178,16 @@ export function GenerateLessons() {
           continue;
         }
 
+        // Get relevant materials for this specific lesson
+        const lessonMaterials = getRelevantMaterials(
+          lesson.title,
+          lesson.objectives || [],
+          module.title,
+          course.materials_json,
+          i,
+          lessons.length
+        );
+
         await generateLesson({
           courseId: course.id,
           lessonId: lesson.id,
@@ -120,6 +198,7 @@ export function GenerateLessons() {
             topic: course.topic,
             level: course.level,
           },
+          materials: lessonMaterials.length > 0 ? lessonMaterials : undefined,
         });
 
         await new Promise(resolve => setTimeout(resolve, 1000));

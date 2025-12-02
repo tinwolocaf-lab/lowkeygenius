@@ -230,6 +230,14 @@ export function Onboarding() {
         throw new Error('User not authenticated');
       }
 
+      // Prepare materials for storage (full content)
+      const materialsForStorage = data.attachments
+        .filter(att => att.content && att.content.length > 0)
+        .map(att => ({
+          title: att.title,
+          content: att.content,
+        }));
+
       const { data: course, error: courseError } = await supabase
         .from('courses')
         .insert({
@@ -240,6 +248,7 @@ export function Onboarding() {
           level: data.level!,
           intensity: data.intensity!,
           status: 'draft_outline',
+          materials_json: materialsForStorage.length > 0 ? materialsForStorage : null,
         })
         .select()
         .single();
@@ -248,9 +257,10 @@ export function Onboarding() {
         throw courseError;
       }
 
+      // Send content summary for outline generation (up to 10k chars per material)
       const materials = data.attachments.map(att => ({
         title: att.title,
-        summary: att.content?.substring(0, 500),
+        summary: att.content?.substring(0, 10000),
       }));
 
       // Pass profile context if available (Requirements 6.3)

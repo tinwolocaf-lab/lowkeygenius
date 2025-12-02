@@ -57,9 +57,28 @@ Deno.serve(async (req: Request) => {
     const requestData: LessonRequest = await req.json();
     const { lessonId, moduleTitle, lessonTitle, objectives, courseContext, materials } = requestData;
 
-    const materialsContext = materials && materials.length > 0
-      ? `\n\nRelevant course materials:\n${materials.map(m => `- ${m.title}${m.content ? '\n  ' + m.content.substring(0, 500) + '...' : ''}`).join('\n\n')}`
-      : '';
+    // Build comprehensive materials context for lesson generation
+    let materialsContext = '';
+    if (materials && materials.length > 0) {
+      const materialsWithContent = materials.filter(m => m.content && m.content.length > 100);
+      
+      if (materialsWithContent.length > 0) {
+        materialsContext = `\n\n=== USER-PROVIDED REFERENCE MATERIALS ===
+IMPORTANT: Use the following materials as the PRIMARY source for this lesson's content.
+Base your explanations, examples, and concepts on this material.
+
+${materialsWithContent.map((m, i) => `--- Source ${i + 1}: ${m.title} ---
+${m.content}
+`).join('\n')}
+=== END OF REFERENCE MATERIALS ===
+
+Instructions for using materials:
+- Structure the lesson content based on the information in these materials
+- Use terminology, examples, and explanations from the provided materials
+- Expand on the concepts found in the materials with additional context
+- Ensure all key points from the materials relevant to this lesson are covered`;
+      }
+    }
 
     const prompt = `You are an expert instructor creating a comprehensive lesson. Create detailed lesson content for:
 

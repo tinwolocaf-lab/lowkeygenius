@@ -21,11 +21,11 @@ export function AttachmentsPanel({
   const [textInput, setTextInput] = useState('');
   const [textTitle, setTextTitle] = useState('');
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    Array.from(files).forEach((file) => {
+    for (const file of Array.from(files)) {
       const extension = file.name.split('.').pop()?.toLowerCase();
       let type: 'pdf' | 'docx' | 'pptx' | 'text' = 'text';
 
@@ -33,12 +33,57 @@ export function AttachmentsPanel({
       else if (extension === 'docx' || extension === 'doc') type = 'docx';
       else if (extension === 'pptx' || extension === 'ppt') type = 'pptx';
 
-      onAddAttachment({
-        type,
-        title: file.name,
-        uploading: true,
-      });
-    });
+      try {
+        // Read file content as text for supported formats
+        const content = await readFileContent(file);
+        
+        onAddAttachment({
+          type,
+          title: file.name,
+          content: content || undefined,
+          uploading: false,
+        });
+      } catch (error) {
+        console.error('Error reading file:', error);
+        onAddAttachment({
+          type,
+          title: file.name,
+          error: 'Failed to read file content',
+          uploading: false,
+        });
+      }
+    }
+  };
+
+  const readFileContent = async (file: File): Promise<string | null> => {
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    
+    // For text-based files, read directly
+    if (extension === 'txt' || extension === 'md') {
+      return await file.text();
+    }
+    
+    // For PDF, DOCX, PPTX - read as text (basic extraction)
+    // Note: Full parsing would require server-side processing or specialized libraries
+    if (extension === 'pdf') {
+      // PDFs need special handling - for now, we'll note that it's a PDF
+      // and encourage users to paste key content as text
+      return `[PDF Document: ${file.name}] - For best results, please also paste key sections as text.`;
+    }
+    
+    // For Office documents, try to read as text (works for some formats)
+    try {
+      const text = await file.text();
+      // Filter out binary garbage and extract readable text
+      const cleanText = text.replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (cleanText.length > 100) {
+        return cleanText.substring(0, 50000); // Limit to 50k chars
+      }
+    } catch {
+      // Ignore read errors
+    }
+    
+    return `[${extension?.toUpperCase()} Document: ${file.name}] - For best results, please also paste key sections as text.`;
   };
 
   const handleAddUrl = () => {
@@ -114,12 +159,12 @@ export function AttachmentsPanel({
             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-neutral-border rounded-lg cursor-pointer hover:bg-neutral-surface transition-colors">
               <Upload className="w-8 h-8 text-neutral-text-muted mb-2" />
               <span className="font-body text-sm text-neutral-text-muted">
-                Click to upload PDF, DOCX, or PPTX
+                Click to upload PDF, DOCX, PPTX, Markdown, or Text files
               </span>
               <input
                 type="file"
                 className="hidden"
-                accept=".pdf,.doc,.docx,.ppt,.pptx"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.md,.markdown,.txt"
                 multiple
                 onChange={handleFileUpload}
               />

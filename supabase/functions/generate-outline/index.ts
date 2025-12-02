@@ -99,9 +99,33 @@ Deno.serve(async (req: Request) => {
     const moduleCount = intensity === 'short' ? 3 : intensity === 'standard' ? 5 : 8;
     const lessonsPerModule = intensity === 'short' ? 2 : intensity === 'standard' ? 3 : 4;
 
-    const materialsContext = materials && materials.length > 0
-      ? `\n\nAvailable learning materials:\n${materials.map(m => `- ${m.title}${m.summary ? ': ' + m.summary : ''}`).join('\n')}`
-      : '';
+    // Build comprehensive materials context with full content
+    let materialsContext = '';
+    if (materials && materials.length > 0) {
+      const materialsWithContent = materials.filter(m => m.summary && m.summary.length > 50);
+      const materialsWithoutContent = materials.filter(m => !m.summary || m.summary.length <= 50);
+      
+      if (materialsWithContent.length > 0) {
+        materialsContext = `\n\n=== USER-PROVIDED LEARNING MATERIALS ===
+IMPORTANT: Use the following materials as the PRIMARY source for structuring the course content. 
+The course outline should be based on and aligned with these materials.
+
+${materialsWithContent.map((m, i) => `--- Material ${i + 1}: ${m.title} ---
+${m.summary}
+`).join('\n')}
+=== END OF MATERIALS ===
+
+Instructions for using materials:
+- Structure the course modules and lessons to cover the topics from these materials
+- Use the terminology and concepts from the provided materials
+- Ensure the course progression follows the logical flow of the materials
+- Include all key topics mentioned in the materials`;
+      }
+      
+      if (materialsWithoutContent.length > 0) {
+        materialsContext += `\n\nAdditional referenced materials (titles only):\n${materialsWithoutContent.map(m => `- ${m.title}`).join('\n')}`;
+      }
+    }
 
     // Build learner background section - prefer profile data over onboarding background
     const buildLearnerBackground = (): string => {
