@@ -99,24 +99,8 @@ export function GenerateLessons() {
     loadCourseAndLessons();
   }, [loadCourseAndLessons]);
 
-  // Auto-start generation if navigated from outline page with autoStart state
-  useEffect(() => {
-    const state = location.state as LocationState | null;
-    if (
-      state?.autoStart &&
-      !autoStartHandled.current &&
-      course &&
-      lessons.length > 0 &&
-      !generating &&
-      !completed
-    ) {
-      autoStartHandled.current = true;
-      // Clear the state to prevent re-triggering
-      navigate(location.pathname, { replace: true, state: null });
-      // Start generation
-      startGeneration();
-    }
-  }, [course, lessons, generating, completed, location.state, location.pathname, navigate]);
+  // Store startGeneration in a ref so we can call it from useEffect
+  const startGenerationRef = useRef<(() => Promise<void>) | null>(null);
 
   // Extract relevant material sections for a specific lesson based on title and objectives
   const getRelevantMaterials = (
@@ -260,6 +244,29 @@ export function GenerateLessons() {
     setGenerating(false);
     setCompleted(true);
   };
+
+  // Update ref when startGeneration changes
+  startGenerationRef.current = startGeneration;
+
+  // Auto-start generation if navigated from outline page with autoStart state
+  useEffect(() => {
+    const state = location.state as LocationState | null;
+    if (
+      state?.autoStart &&
+      !autoStartHandled.current &&
+      course &&
+      lessons.length > 0 &&
+      !generating &&
+      !completed &&
+      startGenerationRef.current
+    ) {
+      autoStartHandled.current = true;
+      // Clear the state to prevent re-triggering
+      navigate(location.pathname, { replace: true, state: null });
+      // Start generation
+      startGenerationRef.current();
+    }
+  }, [course, lessons, generating, completed, location.state, location.pathname, navigate]);
 
   const handleContinueToPreview = () => {
     navigate(`/courses/${courseId}/preview`);

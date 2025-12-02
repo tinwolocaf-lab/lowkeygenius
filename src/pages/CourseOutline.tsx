@@ -209,27 +209,41 @@ export function CourseOutline() {
     setGenerating(true);
 
     try {
-      const outline = course.outline_json;
+      // Check if lessons already exist for this course
+      const { data: existingLessons, error: checkError } = await supabase
+        .from('lessons')
+        .select('id')
+        .eq('course_id', courseId)
+        .limit(1);
 
-      for (let moduleIndex = 0; moduleIndex < outline.modules.length; moduleIndex++) {
-        const module = outline.modules[moduleIndex];
+      if (checkError) {
+        console.error('Error checking existing lessons:', checkError);
+      }
 
-        for (let lessonInModuleIndex = 0; lessonInModuleIndex < module.lessons.length; lessonInModuleIndex++) {
-          const lesson = module.lessons[lessonInModuleIndex];
+      // Only create lessons if none exist
+      if (!existingLessons || existingLessons.length === 0) {
+        const outline = course.outline_json;
 
-          const { error: insertError } = await supabase
-            .from('lessons')
-            .insert({
-              course_id: courseId,
-              module_index: moduleIndex,
-              lesson_index: lessonInModuleIndex,
-              title: lesson.title,
-              objectives: lesson.objectives,
-              markdown_content: null,
-            });
+        for (let moduleIndex = 0; moduleIndex < outline.modules.length; moduleIndex++) {
+          const module = outline.modules[moduleIndex];
 
-          if (insertError) {
-            console.error('Error creating lesson:', insertError);
+          for (let lessonInModuleIndex = 0; lessonInModuleIndex < module.lessons.length; lessonInModuleIndex++) {
+            const lesson = module.lessons[lessonInModuleIndex];
+
+            const { error: insertError } = await supabase
+              .from('lessons')
+              .insert({
+                course_id: courseId,
+                module_index: moduleIndex,
+                lesson_index: lessonInModuleIndex,
+                title: lesson.title,
+                objectives: lesson.objectives,
+                markdown_content: null,
+              });
+
+            if (insertError) {
+              console.error('Error creating lesson:', insertError);
+            }
           }
         }
       }
