@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { AuthError } from '@supabase/supabase-js';
 
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Card } from '../components/Card';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
 
 export function Login() {
   const navigate = useNavigate();
@@ -93,6 +95,19 @@ export function Login() {
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
+
+          {/* Divider with "or" text */}
+          <div className="flex items-center gap-4 my-6">
+            <div className="flex-1 h-px bg-neutral-border" />
+            <span className="font-body text-body-sm text-neutral-text-muted">or</span>
+            <div className="flex-1 h-px bg-neutral-border" />
+          </div>
+
+          {/* Google Sign-In Button */}
+          <GoogleSignInButton
+            mode="signin"
+            onError={(err: AuthError) => setError(err.message)}
+          />
 
           <div className="mt-6 text-center">
             <p className="font-body text-neutral-text-muted">

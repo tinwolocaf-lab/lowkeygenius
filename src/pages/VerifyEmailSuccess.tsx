@@ -1,14 +1,25 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CheckCircle, ArrowRight } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { CheckCircle, ArrowRight, Link2 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 
 const COUNTDOWN_SECONDS = 3;
 
+interface LocationState {
+  linkedAccount?: boolean;
+  isOAuth?: boolean;
+  isFirstTimeLinking?: boolean;
+}
+
 export function VerifyEmailSuccess() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS);
+  
+  // Get state passed from AuthCallback
+  const state = location.state as LocationState | null;
+  const isLinkedAccount = state?.linkedAccount && state?.isFirstTimeLinking;
 
   // Countdown timer for auto-redirect
   useEffect(() => {
@@ -28,26 +39,45 @@ export function VerifyEmailSuccess() {
     navigate('/dashboard', { replace: true });
   };
 
+  // Determine heading and message based on whether accounts were linked
+  const getHeading = (): string => {
+    if (isLinkedAccount) {
+      return 'Accounts Linked Successfully!';
+    }
+    return 'Registration Successful!';
+  };
+
+  const getMessage = (): string => {
+    if (isLinkedAccount) {
+      return 'Your Google account has been linked to your existing email account. You can now sign in with either method.';
+    }
+    return 'Your email has been verified and your account is now active. Welcome to Progent!';
+  };
+
   return (
     <div className="min-h-screen bg-neutral-bg flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <Card>
           <div className="text-center">
-            {/* Success Checkmark Icon */}
+            {/* Success Icon - different icon for linked accounts */}
             <div className="flex justify-center mb-6">
               <div className="bg-accent-green/10 rounded-full p-6">
-                <CheckCircle className="w-12 h-12 text-accent-green" />
+                {isLinkedAccount ? (
+                  <Link2 className="w-12 h-12 text-accent-green" />
+                ) : (
+                  <CheckCircle className="w-12 h-12 text-accent-green" />
+                )}
               </div>
             </div>
 
             {/* Heading */}
             <h2 className="font-display text-display-md text-neutral-text mb-2">
-              Email Verified!
+              {getHeading()}
             </h2>
 
             {/* Success Confirmation Message */}
             <p className="font-body text-body-md text-neutral-text-muted mb-6">
-              Your email has been successfully verified. You can now access all features of your account.
+              {getMessage()}
             </p>
 
             {/* Countdown Timer Display */}

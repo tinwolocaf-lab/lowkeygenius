@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This document specifies the requirements for an optional flashcard and quiz generation feature in LearnSelf. The feature allows users to generate AI-powered flashcards and quizzes based on lesson content at any time during their learning journey. Flashcards help with memorization through spaced repetition, while quizzes test comprehension and reinforce learning. The feature is designed to be non-intrusive and available on-demand.
+This document specifies the requirements for an optional flashcard and quiz generation feature in Progent. The feature allows users to generate AI-powered flashcards and quizzes based on lesson content at any time during their learning journey. Flashcards help with memorization through spaced repetition, while quizzes test comprehension and reinforce learning. The feature is designed to be non-intrusive and available on-demand.
 
 ## Glossary
 

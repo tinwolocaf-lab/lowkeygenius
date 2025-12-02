@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design document describes the architecture and implementation of an optional flashcard and quiz generation feature for LearnSelf. The feature leverages Google Gemini AI to generate educational flashcards and quizzes from lesson content, providing users with interactive study tools to reinforce their learning.
+This design document describes the architecture and implementation of an optional flashcard and quiz generation feature for Progent. The feature leverages Google Gemini AI to generate educational flashcards and quizzes from lesson content, providing users with interactive study tools to reinforce their learning.
 
 The feature is designed to be:
 - **Optional**: Users can generate flashcards/quizzes at any time, not required for course completion
