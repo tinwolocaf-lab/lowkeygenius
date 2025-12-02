@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, BookOpen, TrendingUp, Clock, AlertCircle, Crown } from 'lucide-react';
+import { Plus, BookOpen, TrendingUp, Clock, AlertCircle, Crown, ImageIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/Button';
@@ -15,6 +15,40 @@ interface Course {
   status: string;
   estimated_duration_hours: number | null;
   created_at: string;
+  thumbnail_url: string | null;
+}
+
+function CourseThumbnail({ url, title }: { url: string; title: string }) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) {
+    return (
+      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+        <ImageIcon className="w-12 h-12 text-primary/30" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {isLoading && (
+        <div className="absolute inset-0 bg-neutral-surface animate-pulse" />
+      )}
+      <img
+        src={url}
+        alt={`${title} thumbnail`}
+        className={`w-full h-full object-cover transition-opacity duration-300 ${
+          isLoading ? 'opacity-0' : 'opacity-100'
+        }`}
+        onLoad={() => setIsLoading(false)}
+        onError={() => {
+          setIsLoading(false);
+          setHasError(true);
+        }}
+      />
+    </>
+  );
 }
 
 export function Dashboard() {
@@ -22,12 +56,14 @@ export function Dashboard() {
   const { profile, user } = useAuth();
   const subscription = useSubscription();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [totalCourses, setTotalCourses] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const loadDashboardData = useCallback(async () => {
     if (!user) return;
 
+    // Fetch recent courses for display (limited to 3)
     const { data: coursesData, error: coursesError } = await supabase
       .from('courses')
       .select('*')
@@ -39,6 +75,18 @@ export function Dashboard() {
       console.error('Error loading courses:', coursesError);
     } else {
       setCourses(coursesData || []);
+    }
+
+    // Fetch total course count separately
+    const { count, error: countError } = await supabase
+      .from('courses')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_id', user.id);
+
+    if (countError) {
+      console.error('Error loading course count:', countError);
+    } else {
+      setTotalCourses(count || 0);
     }
 
     setLoading(false);
@@ -120,7 +168,7 @@ export function Dashboard() {
             </div>
             <div>
               <p className="font-body text-sm text-neutral-text-muted font-semibold uppercase">
-                Courses This Month
+                {subscription.planType === 'FREE' ? 'Courses Used' : 'Courses This Period'}
               </p>
               <p className="font-display text-2xl font-bold text-neutral-text">
                 {subscription.isLoading ? '...' : `${subscription.coursesUsed} / ${subscription.coursesLimit === Infinity ? '∞' : subscription.coursesLimit}`}
@@ -143,7 +191,7 @@ export function Dashboard() {
             <div>
               <p className="font-body text-sm text-neutral-text-muted font-semibold uppercase">Total Courses</p>
               <p className="font-display text-2xl font-bold text-neutral-text">
-                {loading ? '...' : courses.length}
+                {loading ? '...' : totalCourses}
               </p>
             </div>
           </div>
@@ -217,7 +265,7 @@ export function Dashboard() {
               </button>
             </div>
             <p className="text-neutral-text-muted mb-6">
-              You've reached your {subscription.planType} plan limit of {subscription.coursesLimit} course{subscription.coursesLimit > 1 ? 's' : ''} this month.
+              You've reached your {subscription.planType} plan limit of {subscription.coursesLimit} course{subscription.coursesLimit > 1 ? 's' : ''}.
               Upgrade to create more courses and unlock additional features.
             </p>
             <div className="flex gap-3">
@@ -279,8 +327,19 @@ export function Dashboard() {
                 key={course.id}
                 hover
                 onClick={() => handleCourseClick(course)}
-                className="cursor-pointer"
+                className="cursor-pointer overflow-hidden"
               >
+                {/* Course Thumbnail */}
+                <div className="relative -mx-6 -mt-6 mb-4 h-40 overflow-hidden">
+                  {course.thumbnail_url ? (
+                    <CourseThumbnail url={course.thumbnail_url} title={course.title} />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                      <ImageIcon className="w-12 h-12 text-primary/30" />
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-start justify-between mb-3">
                   {getStatusBadge(course.status)}
                   <div className="flex items-center gap-1 text-neutral-text-muted">

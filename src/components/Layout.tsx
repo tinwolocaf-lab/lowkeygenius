@@ -44,7 +44,7 @@ export function Layout() {
           <div className={`p-6 border-b-2 border-neutral-border ${sidebarCollapsed ? 'flex justify-center' : ''}`}>
             <div className={`flex items-center gap-3 ${sidebarCollapsed ? 'flex-col' : ''}`}>
               <div className="" style={{ padding: '8px' }}>
-                <img src="/logo.png" alt="Progent" className="w-9 h-9 object-contain" />
+                <img src="/logo.png" alt="Progent" className={`object-contain ${sidebarCollapsed ? 'w-12 h-12' : 'w-9 h-9'}`} />
               </div>
               {!sidebarCollapsed && (
                 <h1 className="font-display text-2xl font-bold text-primary">Progent</h1>

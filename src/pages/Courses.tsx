@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, Plus, MoreVertical, Pencil, Trash2, Volume2, Globe, AlertTriangle, LogOut, ImageIcon } from 'lucide-react';
+import { BookOpen, Clock, Plus, MoreVertical, Pencil, Trash2, Volume2, Globe, AlertTriangle, ImageIcon } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
 import { useAuth } from '../contexts/AuthContext';
 import { useCoursePublishing } from '../hooks/useCoursePublishing';
-import { useEnrollment } from '../hooks/useEnrollment';
 import { supabase } from '../lib/supabase';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -73,7 +72,6 @@ export function Courses() {
   const { user } = useAuth();
   const { isAudioEnabled } = useSubscription();
   const { publishCourse, requestDeletion, isLoading: isPublishingLoading } = useCoursePublishing();
-  const { unenrollFromCourse, isLoading: isUnenrolling } = useEnrollment();
   const [activeTab, setActiveTab] = useState<'created' | 'learning'>('created');
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +82,6 @@ export function Courses() {
   const [deletionMessage, setDeletionMessage] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newThumbnailUrl, setNewThumbnailUrl] = useState<string | null>(null);
-  const [unenrollModal, setUnenrollModal] = useState<{ courseId: string; title: string } | null>(null);
 
   const loadCourses = useCallback(async () => {
     if (!user) return;
@@ -327,35 +324,6 @@ export function Courses() {
     }
   };
 
-  /**
-   * Open unenroll confirmation modal
-   * Requirements: 7.1
-   */
-  const openUnenrollModal = (course: Course, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setUnenrollModal({ courseId: course.id, title: course.title });
-    setShowMenu(null);
-  };
-
-  /**
-   * Handle unenrolling from a course
-   * Requirements: 7.1
-   */
-  const handleUnenroll = async () => {
-    if (!unenrollModal) return;
-
-    const result = await unenrollFromCourse(unenrollModal.courseId);
-    
-    if (result.success) {
-      toast.success('Successfully unenrolled from course');
-      // Remove course from local state
-      setCourses(courses.filter(c => c.id !== unenrollModal.courseId));
-      setUnenrollModal(null);
-    } else {
-      toast.error(result.error || 'Failed to unenroll from course');
-    }
-  };
-
   if (loading) {
     return (
       <div className="p-4 md:p-8 max-w-7xl mx-auto">
@@ -451,8 +419,8 @@ export function Courses() {
                       {course.estimated_duration_hours || '?'}h
                     </span>
                   </div>
-                  {/* Show menu for created courses OR enrolled courses in learning tab */}
-                  {(activeTab === 'created' || (activeTab === 'learning' && course.isEnrolled)) && (
+                  {/* Show menu for created courses only */}
+                  {activeTab === 'created' && (
                   <div className="relative">
                     <button
                       onClick={(e) => {
@@ -465,21 +433,7 @@ export function Courses() {
                     </button>
                     {showMenu === course.id && (
                       <div className="absolute right-0 top-full mt-1 bg-neutral-bg shadow-soft rounded-2xl border-2 border-neutral-border z-10 py-2 w-48">
-                        {/* Unenroll option - show only for enrolled courses in learning tab (Requirement 7.1) */}
-                        {activeTab === 'learning' && course.isEnrolled && (
-                          <button
-                            onClick={(e) => openUnenrollModal(course, e)}
-                            disabled={isUnenrolling}
-                            className="w-full px-4 py-2 text-left hover:bg-accent-red/10 text-accent-red flex items-center gap-2 font-body text-sm disabled:opacity-50"
-                          >
-                            <LogOut className="w-4 h-4" />
-                            Unenroll
-                          </button>
-                        )}
-                        {/* Options for created courses only */}
-                        {activeTab === 'created' && (
-                          <>
-                            {isAudioEnabled && course.status === 'published' && (
+                        {isAudioEnabled && course.status === 'published' && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -520,17 +474,15 @@ export function Courses() {
                                 Delete
                               </button>
                             )}
-                            {/* Request Deletion option - show only for public courses owned by user (Requirement 5.1) */}
-                            {course.is_public && (
-                              <button
-                                onClick={(e) => openDeletionRequestModal(course, e)}
-                                className="w-full px-4 py-2 text-left hover:bg-accent-yellow/10 text-accent-yellow flex items-center gap-2 font-body text-sm"
-                              >
-                                <AlertTriangle className="w-4 h-4" />
-                                Request Deletion
-                              </button>
-                            )}
-                          </>
+                        {/* Request Deletion option - show only for public courses owned by user (Requirement 5.1) */}
+                        {course.is_public && (
+                          <button
+                            onClick={(e) => openDeletionRequestModal(course, e)}
+                            className="w-full px-4 py-2 text-left hover:bg-accent-yellow/10 text-accent-yellow flex items-center gap-2 font-body text-sm"
+                          >
+                            <AlertTriangle className="w-4 h-4" />
+                            Request Deletion
+                          </button>
                         )}
                       </div>
                     )}
@@ -712,36 +664,6 @@ export function Courses() {
         </div>
       )}
 
-      {/* Unenroll Confirmation Modal (Requirement 7.1) */}
-      {unenrollModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="max-w-md w-full">
-            <h3 className="font-display text-xl font-bold text-neutral-text mb-4">
-              Unenroll from Course
-            </h3>
-            <p className="font-body text-neutral-text-muted mb-6">
-              Are you sure you want to unenroll from "{unenrollModal.title}"? 
-              Your progress will be removed, but your notes and definitions will be preserved.
-            </p>
-            <div className="flex gap-3">
-              <Button
-                onClick={handleUnenroll}
-                disabled={isUnenrolling}
-                className="flex-1 bg-accent-red hover:bg-accent-red/90"
-              >
-                {isUnenrolling ? 'Unenrolling...' : 'Unenroll'}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => setUnenrollModal(null)}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }

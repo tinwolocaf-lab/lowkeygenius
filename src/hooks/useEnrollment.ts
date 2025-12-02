@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { getPlanLimit, isPlanMonthlyLimit, PlanType } from '../lib/polar';
+import { getPlanLimit, isPlanBillingCycleLimit, PlanType } from '../lib/polar';
 
 export interface EnrollmentResult {
   success: boolean;
@@ -22,7 +22,6 @@ export interface CanEnrollResult {
 
 interface UseEnrollmentReturn {
   enrollInCourse: (courseId: string) => Promise<EnrollmentResult>;
-  unenrollFromCourse: (courseId: string) => Promise<EnrollmentResult>;
   getEnrollmentStatus: (courseId: string) => Promise<EnrollmentStatus>;
   canEnroll: (courseId?: string) => Promise<CanEnrollResult>;
   isLoading: boolean;
@@ -35,20 +34,26 @@ export function useEnrollment(): UseEnrollmentReturn {
   const planType = (profile?.plan_type || 'FREE') as PlanType;
   const isProMax = planType === 'PRO_MAX';
   const coursesLimit = getPlanLimit(planType);
-  const isMonthlyLimit = isPlanMonthlyLimit(planType);
+  const isBillingCycleLimit = isPlanBillingCycleLimit(planType);
+  
+  // Get subscription period start for billing cycle calculations
+  const subscriptionPeriodStart = useMemo(() => 
+    profile?.subscription_period_start 
+      ? new Date(profile.subscription_period_start) 
+      : null,
+    [profile?.subscription_period_start]
+  );
 
   /**
    * Get the current count of courses (created + enrolled) for limit checking
+   * - FREE users: count ALL courses (lifetime limit)
+   * - Subscribed users: count courses from subscription period start
    */
   const getCurrentCourseCount = useCallback(async (): Promise<number> => {
     if (!user) return 0;
 
-    // PRO_MAX users have unlimited enrollments
+    // PRO_MAX users have unlimited
     if (isProMax) return 0;
-
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
 
     // Get courses created count
     let createdQuery = supabase
@@ -56,11 +61,9 @@ export function useEnrollment(): UseEnrollmentReturn {
       .select('id', { count: 'exact', head: true })
       .eq('owner_id', user.id);
 
-    if (isMonthlyLimit) {
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-      createdQuery = createdQuery.gte('created_at', startOfMonth.toISOString());
+    // For billing cycle plans, count from subscription period start
+    if (isBillingCycleLimit && subscriptionPeriodStart) {
+      createdQuery = createdQuery.gte('created_at', subscriptionPeriodStart.toISOString());
     }
 
     const { count: createdCount, error: createdError } = await createdQuery;
@@ -69,38 +72,25 @@ export function useEnrollment(): UseEnrollmentReturn {
       return 0;
     }
 
-    // Get enrolled courses count from usage_counters
-    let enrolledCount = 0;
-    if (isMonthlyLimit) {
-      const { data: usageData, error: usageError } = await supabase
-        .from('usage_counters')
-        .select('courses_enrolled')
-        .eq('user_id', user.id)
-        .eq('month', currentMonth)
-        .eq('year', currentYear)
-        .maybeSingle();
+    // Get enrolled courses count
+    let enrolledQuery = supabase
+      .from('course_enrollments')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id);
 
-      if (usageError) {
-        console.error('Error fetching usage counters:', usageError);
-      } else {
-        enrolledCount = usageData?.courses_enrolled || 0;
-      }
-    } else {
-      // For FREE plan (non-monthly), count all enrollments
-      const { count, error } = await supabase
-        .from('course_enrollments')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error fetching enrollments:', error);
-      } else {
-        enrolledCount = count || 0;
-      }
+    // For billing cycle plans, count enrollments from subscription period start
+    if (isBillingCycleLimit && subscriptionPeriodStart) {
+      enrolledQuery = enrolledQuery.gte('enrolled_at', subscriptionPeriodStart.toISOString());
     }
 
-    return (createdCount || 0) + enrolledCount;
-  }, [user, isProMax, isMonthlyLimit]);
+    const { count: enrolledCount, error: enrolledError } = await enrolledQuery;
+    if (enrolledError) {
+      console.error('Error fetching enrollments:', enrolledError);
+      return (createdCount || 0);
+    }
+
+    return (createdCount || 0) + (enrolledCount || 0);
+  }, [user, isProMax, isBillingCycleLimit, subscriptionPeriodStart]);
 
 
   /**
@@ -221,7 +211,7 @@ export function useEnrollment(): UseEnrollmentReturn {
         };
       }
 
-      // Create enrollment record (Requirement 3.1)
+      // Create enrollment record
       const { error: enrollError } = await supabase
         .from('course_enrollments')
         .insert({
@@ -238,41 +228,6 @@ export function useEnrollment(): UseEnrollmentReturn {
         return { success: false, error: 'Failed to enroll in course' };
       }
 
-      // Update usage counter for non-PRO_MAX users (Requirements 3.2, 3.3)
-      if (!isProMax) {
-        const now = new Date();
-        const currentMonth = now.getMonth() + 1;
-        const currentYear = now.getFullYear();
-
-        // Try to update existing counter, or insert new one
-        const { data: existingCounter } = await supabase
-          .from('usage_counters')
-          .select('id, courses_enrolled')
-          .eq('user_id', user.id)
-          .eq('month', currentMonth)
-          .eq('year', currentYear)
-          .maybeSingle();
-
-        if (existingCounter) {
-          await supabase
-            .from('usage_counters')
-            .update({ 
-              courses_enrolled: existingCounter.courses_enrolled + 1,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', existingCounter.id);
-        } else {
-          await supabase
-            .from('usage_counters')
-            .insert({
-              user_id: user.id,
-              month: currentMonth,
-              year: currentYear,
-              courses_enrolled: 1,
-            });
-        }
-      }
-
       return { success: true };
     } catch (error) {
       console.error('Error enrolling in course:', error);
@@ -282,98 +237,8 @@ export function useEnrollment(): UseEnrollmentReturn {
     }
   }, [user, isProMax, canEnroll]);
 
-
-  /**
-   * Unenroll user from a course
-   * Requirements: 7.1, 7.2, 7.3, 7.4
-   */
-  const unenrollFromCourse = useCallback(async (courseId: string): Promise<EnrollmentResult> => {
-    if (!user) {
-      return { success: false, error: 'Not authenticated' };
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Check if enrolled
-      const { data: enrollment, error: checkError } = await supabase
-        .from('course_enrollments')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('course_id', courseId)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error('Error checking enrollment:', checkError);
-        return { success: false, error: 'Failed to check enrollment status' };
-      }
-
-      if (!enrollment) {
-        return { success: false, error: 'You are not enrolled in this course' };
-      }
-
-      // Delete user progress for this course (Requirement 7.4)
-      // Note: inline_wiki_entries and notes are preserved (Requirement 7.3)
-      const { error: progressError } = await supabase
-        .from('user_progress')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('course_id', courseId);
-
-      if (progressError) {
-        console.error('Error deleting progress:', progressError);
-        // Continue with unenrollment even if progress deletion fails
-      }
-
-      // Delete enrollment record (Requirement 7.1)
-      const { error: unenrollError } = await supabase
-        .from('course_enrollments')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('course_id', courseId);
-
-      if (unenrollError) {
-        console.error('Error removing enrollment:', unenrollError);
-        return { success: false, error: 'Failed to unenroll from course' };
-      }
-
-      // Decrement usage counter for non-PRO_MAX users (Requirement 7.2)
-      if (!isProMax) {
-        const now = new Date();
-        const currentMonth = now.getMonth() + 1;
-        const currentYear = now.getFullYear();
-
-        const { data: existingCounter } = await supabase
-          .from('usage_counters')
-          .select('id, courses_enrolled')
-          .eq('user_id', user.id)
-          .eq('month', currentMonth)
-          .eq('year', currentYear)
-          .maybeSingle();
-
-        if (existingCounter && existingCounter.courses_enrolled > 0) {
-          await supabase
-            .from('usage_counters')
-            .update({ 
-              courses_enrolled: existingCounter.courses_enrolled - 1,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', existingCounter.id);
-        }
-      }
-
-      return { success: true };
-    } catch (error) {
-      console.error('Error unenrolling from course:', error);
-      return { success: false, error: 'An unexpected error occurred' };
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, isProMax]);
-
   return {
     enrollInCourse,
-    unenrollFromCourse,
     getEnrollmentStatus,
     canEnroll,
     isLoading,

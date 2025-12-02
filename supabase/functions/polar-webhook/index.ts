@@ -11,6 +11,7 @@ interface PolarSubscriptionData {
   id: string;
   product_id: string;
   status: string;
+  current_period_start: string;
   current_period_end: string;
   metadata?: Record<string, string>;
 }
@@ -134,6 +135,7 @@ Deno.serve(async (req: Request) => {
         } else {
           updates.polar_subscription_id = subscriptionData.id;
           updates.subscription_status = subscriptionData.status;
+          updates.subscription_period_start = subscriptionData.current_period_start;
           updates.subscription_ends_at = subscriptionData.current_period_end;
           updates.billing_cycle = billingCycle;
 
@@ -186,6 +188,7 @@ Deno.serve(async (req: Request) => {
         } else {
           updates.polar_subscription_id = null;
           updates.subscription_status = null;
+          updates.subscription_period_start = null;
           updates.subscription_ends_at = null;
           updates.billing_cycle = null;
           updates.plan_type = 'FREE';

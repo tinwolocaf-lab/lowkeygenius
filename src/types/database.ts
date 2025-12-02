@@ -64,6 +64,7 @@ export type Database = {
           polar_subscription_id: string | null
           subscription_status: string | null
           subscription_ends_at: string | null
+          subscription_period_start: string | null
           audio_addon_enabled: boolean
           audio_addon_trial_used: boolean
           audio_addon_expires_at: string | null
@@ -85,6 +86,7 @@ export type Database = {
           polar_subscription_id?: string | null
           subscription_status?: string | null
           subscription_ends_at?: string | null
+          subscription_period_start?: string | null
           audio_addon_enabled?: boolean
           audio_addon_trial_used?: boolean
           audio_addon_expires_at?: string | null
@@ -106,6 +108,7 @@ export type Database = {
           polar_subscription_id?: string | null
           subscription_status?: string | null
           subscription_ends_at?: string | null
+          subscription_period_start?: string | null
           audio_addon_enabled?: boolean
           audio_addon_trial_used?: boolean
           audio_addon_expires_at?: string | null

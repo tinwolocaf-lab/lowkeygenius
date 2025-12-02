@@ -64,10 +64,10 @@ export async function openCustomerPortal(): Promise<void> {
 }
 
 export const PLAN_LIMITS = {
-  FREE: { courses: 1, isMonthly: false },
-  PLUS: { courses: 5, isMonthly: true },
-  PRO: { courses: 30, isMonthly: true },
-  PRO_MAX: { courses: Infinity, isMonthly: false },
+  FREE: { courses: 1, isBillingCycle: false },  // Lifetime limit
+  PLUS: { courses: 5, isBillingCycle: true },   // Per billing cycle
+  PRO: { courses: 30, isBillingCycle: true },   // Per billing cycle
+  PRO_MAX: { courses: Infinity, isBillingCycle: false },
 } as const;
 
 export type PlanType = keyof typeof PLAN_LIMITS;
@@ -76,6 +76,6 @@ export function getPlanLimit(planType: PlanType): number {
   return PLAN_LIMITS[planType].courses;
 }
 
-export function isPlanMonthlyLimit(planType: PlanType): boolean {
-  return PLAN_LIMITS[planType].isMonthly;
+export function isPlanBillingCycleLimit(planType: PlanType): boolean {
+  return PLAN_LIMITS[planType].isBillingCycle;
 }
