@@ -10,7 +10,7 @@ import { ThemeSelector } from '../components/ThemeSelector';
 import { ProfileSettings } from '../components/ProfileSettings';
 import { useSubscription } from '../hooks/useSubscription';
 import { openCustomerPortal, initiateCheckout } from '../lib/polar';
-import { Crown, Sparkles, Gift, Zap, Calendar, CreditCard, Palette, LogOut, User, BookOpen, Volume2 } from 'lucide-react';
+import { Crown, Gift, Zap, Calendar, CreditCard, Palette, LogOut, User, BookOpen, Volume2, Star } from 'lucide-react';
 
 export function Settings() {
   const { profile, signOut } = useAuth();
@@ -61,7 +61,7 @@ export function Settings() {
       case 'PRO':
         return <Zap className="w-6 h-6 text-secondary" />;
       case 'PLUS':
-        return <Sparkles className="w-6 h-6 text-accent-green" />;
+        return <Star className="w-6 h-6 text-accent-green" />;
       default:
         return <Gift className="w-6 h-6 text-neutral-text-muted" />;
     }
@@ -102,14 +102,14 @@ export function Settings() {
         return [
           { icon: BookOpen, text: 'Unlimited courses per month' },
           { icon: Volume2, text: 'Unlimited audio generation included' },
-          { icon: Sparkles, text: 'Priority AI generation' },
+          { icon: Star, text: 'Priority AI generation' },
           { icon: Crown, text: 'Early access to new features' },
         ];
       case 'PRO':
         return [
           { icon: BookOpen, text: '20 courses per month' },
           { icon: Volume2, text: 'Audio add-on available ($10/mo)' },
-          { icon: Sparkles, text: 'Advanced AI generation' },
+          { icon: Star, text: 'Advanced AI generation' },
         ];
       case 'PLUS':
         return [
@@ -305,7 +305,7 @@ export function Settings() {
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-start gap-3">
                 <div className="p-2 bg-accent-yellow/30 rounded-lg">
-                  <Sparkles className="w-6 h-6 text-accent-orange" />
+                  <Star className="w-6 h-6 text-accent-orange" />
                 </div>
                 <div>
                   <h3 className="font-display text-lg font-bold text-neutral-text mb-1">

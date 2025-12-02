@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeft, ChevronDown, ChevronRight, Plus, Trash2, Edit2, Sparkles, Play, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronRight, Plus, Trash2, Edit2, Play, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { updateCourseOutline } from '../lib/api';
 import { Card } from '../components/Card';
@@ -534,7 +534,6 @@ export function CourseOutline() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-5 h-5" />
                   Generate All Lessons
                 </>
               )}

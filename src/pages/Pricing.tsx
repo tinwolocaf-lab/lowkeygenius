@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Sparkles, Zap, Crown, Gift } from 'lucide-react';
+import { Check, Zap, Crown, Gift, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,7 +50,7 @@ export default function Pricing() {
       description: 'For regular learners',
       monthlyPrice: 10,
       yearlyPrice: 96,
-      icon: <Sparkles className="w-6 h-6" />,
+      icon: <Star className="w-6 h-6" />,
       planType: 'PLUS',
       badge: 'Most Popular',
       highlighted: true,
@@ -284,9 +284,6 @@ export default function Pricing() {
 
         <Card className="p-8 bg-accent-yellow/10 border border-accent-yellow/30 mb-16">
           <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-accent-yellow/30 rounded-lg">
-              <Sparkles className="w-8 h-8 text-accent-orange" />
-            </div>
             <div>
               <h3 className="text-2xl font-bold text-neutral-text">Audio Add-on</h3>
               <p className="text-neutral-text-muted">Available as separate subscription</p>
@@ -314,7 +311,6 @@ export default function Pricing() {
                     disabled={loading === 'audio'}
                     className="flex items-center gap-2"
                   >
-                    <Sparkles className="w-4 h-4" />
                     {loading === 'audio' ? 'Processing...' : 'Add Audio Generation'}
                   </Button>
                 )}

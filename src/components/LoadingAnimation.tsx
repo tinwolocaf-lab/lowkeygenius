@@ -1,4 +1,4 @@
-import { Sparkles, BookOpen, Lightbulb, Zap } from 'lucide-react';
+import { BookOpen, Lightbulb, Zap } from 'lucide-react';
 
 interface LoadingAnimationProps {
   message?: string;
@@ -11,12 +11,6 @@ export function LoadingAnimation({ message = 'Generating your course...' }: Load
         <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping"></div>
         <div className="absolute inset-2 rounded-full bg-primary/20 animate-ping" style={{ animationDelay: '0.2s' }}></div>
         <div className="absolute inset-4 rounded-full bg-primary/30 animate-ping" style={{ animationDelay: '0.4s' }}></div>
-
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative w-24 h-24 bg-primary rounded-full flex items-center justify-center shadow-tile animate-bounce-soft">
-            <Sparkles className="w-12 h-12 text-white animate-pulse" />
-          </div>
-        </div>
 
         <div className="absolute -top-2 -right-2 bg-accent-yellow rounded-full p-2 shadow-soft animate-bounce" style={{ animationDelay: '0.1s' }}>
           <Lightbulb className="w-5 h-5 text-white" />

@@ -4,7 +4,7 @@ import { DemoChatBubble } from './DemoChatBubble';
 import { CourseGenerationStep } from './CourseGenerationStep';
 import { DemoCourseCard } from './DemoCourseCard';
 import { ConfettiEffect } from './ConfettiEffect';
-import { Sparkles, Headphones } from 'lucide-react';
+import { Headphones } from 'lucide-react';
 
 type AnimationPhase =
   | 'intro'
@@ -187,11 +187,6 @@ export function AnimatedCourseDemo() {
             <div className="flex flex-col items-center justify-center min-h-[500px] md:min-h-[550px] lg:min-h-[600px]">
               <div className="relative w-24 h-24 mb-6">
                 <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center animate-bounce-soft">
-                    <Sparkles className="w-10 h-10 text-white animate-pulse" />
-                  </div>
-                </div>
               </div>
               <h3 className="font-display text-xl font-bold text-neutral-text mb-2 animate-pulse">
                 Generating Course Outline...
@@ -231,9 +226,6 @@ export function AnimatedCourseDemo() {
             <div className="max-w-2xl mx-auto min-h-[500px] md:min-h-[550px] lg:min-h-[600px]">
               {!showModules && (
                 <div className="flex flex-col items-center justify-center py-12 animate-fade-in">
-                  <div className="w-16 h-16 bg-accent-green rounded-full flex items-center justify-center mb-4 animate-bounce-soft">
-                    <Sparkles className="w-8 h-8 text-white" />
-                  </div>
                   <h3 className="font-display text-xl font-bold text-neutral-text animate-pulse">
                     Publishing Course...
                   </h3>

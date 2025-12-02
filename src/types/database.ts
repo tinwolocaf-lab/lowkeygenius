@@ -14,6 +14,7 @@ export type CourseStatus = 'draft_outline' | 'generating_lessons' | 'ready' | 'p
 export type FileSourceType = 'pdf' | 'docx' | 'pptx' | 'url' | 'text';
 export type AudioStatus = 'none' | 'generating' | 'ready' | 'failed';
 export type AudioJobStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type LessonGenerationJobStatus = 'pending' | 'in_progress' | 'paused' | 'completed' | 'failed';
 export type VoiceType = 'male' | 'female';
 export type DeletionRequestStatus = 'pending' | 'approved' | 'rejected';
 export type InputMethod = 'text' | 'voice' | 'conversation';
@@ -777,6 +778,54 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_generation_jobs: {
+        Row: {
+          id: string
+          course_id: string
+          user_id: string
+          status: LessonGenerationJobStatus
+          total_lessons: number
+          completed_lessons: number
+          current_lesson_index: number
+          error_message: string | null
+          started_at: string | null
+          paused_at: string | null
+          completed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          course_id: string
+          user_id: string
+          status?: LessonGenerationJobStatus
+          total_lessons: number
+          completed_lessons?: number
+          current_lesson_index?: number
+          error_message?: string | null
+          started_at?: string | null
+          paused_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          course_id?: string
+          user_id?: string
+          status?: LessonGenerationJobStatus
+          total_lessons?: number
+          completed_lessons?: number
+          current_lesson_index?: number
+          error_message?: string | null
+          started_at?: string | null
+          paused_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -810,3 +859,4 @@ export type FlashcardSession = Database['public']['Tables']['flashcard_sessions'
 export type Quiz = Database['public']['Tables']['quizzes']['Row']
 export type QuizQuestion = Database['public']['Tables']['quiz_questions']['Row']
 export type QuizAttempt = Database['public']['Tables']['quiz_attempts']['Row']
+export type LessonGenerationJob = Database['public']['Tables']['lesson_generation_jobs']['Row']

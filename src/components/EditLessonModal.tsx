@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { Input } from './Input';
-import { Sparkles, Plus, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 
 interface Lesson {
   title: string;
@@ -115,7 +115,6 @@ export function EditLessonModal({
                 onClick={() => setShowRegenerateInput(true)}
                 className="flex items-center gap-2"
               >
-                <Sparkles className="w-4 h-4" />
                 Regenerate with AI
               </Button>
             ) : (
@@ -135,7 +134,6 @@ export function EditLessonModal({
                     onClick={handleRegenerate}
                     className="flex items-center gap-2"
                   >
-                    <Sparkles className="w-4 h-4" />
                     Regenerate
                   </Button>
                   <Button

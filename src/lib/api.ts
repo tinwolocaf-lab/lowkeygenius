@@ -54,19 +54,22 @@ export async function generateCourseOutline(data: {
   return response.json();
 }
 
-export async function generateLesson(data: {
-  courseId: string;
-  lessonId: string;
-  moduleTitle: string;
-  lessonTitle: string;
-  objectives: string[];
-  courseContext: {
-    topic: string;
-    level: string;
-    background?: string;
-  };
-  materials?: Array<{ title: string; content?: string }>;
-}) {
+export async function generateLesson(
+  data: {
+    courseId: string;
+    lessonId: string;
+    moduleTitle: string;
+    lessonTitle: string;
+    objectives: string[];
+    courseContext: {
+      topic: string;
+      level: string;
+      background?: string;
+    };
+    materials?: Array<{ title: string; content?: string }>;
+  },
+  signal?: AbortSignal
+) {
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session) {
@@ -80,6 +83,7 @@ export async function generateLesson(data: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(data),
+    signal,
   });
 
   if (!response.ok) {

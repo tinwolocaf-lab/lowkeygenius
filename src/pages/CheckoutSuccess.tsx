@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Sparkles } from 'lucide-react';
+import { CheckCircle, Star } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 
@@ -45,7 +45,7 @@ export default function CheckoutSuccess() {
 
         <Card className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Sparkles className="w-6 h-6 text-purple-600" />
+            <Star className="w-6 h-6 text-purple-600" />
             <h2 className="text-xl font-bold text-gray-900">Getting Started</h2>
           </div>
           <ul className="text-left space-y-3 text-gray-700">

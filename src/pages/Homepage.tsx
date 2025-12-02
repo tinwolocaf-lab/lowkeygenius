@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Headphones, ArrowRight, CheckCircle2, Target, Brain, Layers, Share2 } from 'lucide-react';
+import { Headphones, ArrowRight, CheckCircle2, Target, Brain, Layers, Share2, Star } from 'lucide-react';
 import { PublicHeader } from '../components/PublicHeader';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -59,7 +59,7 @@ export function Homepage() {
       description: 'A central place for all your learning. No more scattered notes across different platforms.',
     },
     {
-      icon: <Sparkles className="w-8 h-8" />,
+      icon: <Star className="w-8 h-8" />,
       title: 'Personalized Onboarding',
       description: 'We analyze your background (e.g., university major, work experience) to tailor content specifically for you.',
     },

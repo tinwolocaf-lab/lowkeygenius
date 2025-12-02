@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Sparkles, Award, Star, Zap } from 'lucide-react';
+import { Award, Star, Zap } from 'lucide-react';
 
 interface Particle {
   id: number;
@@ -9,7 +9,7 @@ interface Particle {
   scale: number;
   duration: number;
   delay: number;
-  icon: 'sparkles' | 'award' | 'star' | 'zap';
+  icon: 'award' | 'star' | 'zap';
 }
 
 export function ConfettiEffect() {
@@ -17,7 +17,7 @@ export function ConfettiEffect() {
 
   useEffect(() => {
     const newParticles: Particle[] = [];
-    const icons: Array<'sparkles' | 'award' | 'star' | 'zap'> = ['sparkles', 'award', 'star', 'zap'];
+    const icons: Array<'award' | 'star' | 'zap'> = [ 'award', 'star', 'zap'];
 
     for (let i = 0; i < 30; i++) {
       newParticles.push({
@@ -37,8 +37,6 @@ export function ConfettiEffect() {
 
   const renderIcon = (icon: string, className: string) => {
     switch (icon) {
-      case 'sparkles':
-        return <Sparkles className={className} />;
       case 'award':
         return <Award className={className} />;
       case 'star':
@@ -46,7 +44,7 @@ export function ConfettiEffect() {
       case 'zap':
         return <Zap className={className} />;
       default:
-        return <Sparkles className={className} />;
+        return <Zap className={className} />;
     }
   };
 

@@ -1015,7 +1015,7 @@ import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import {
   GraduationCap,
-  Sparkles,
+  Star,
   Target,
   FileText,
   Headphones,
@@ -1033,7 +1033,7 @@ export function LandingScreen() {
 
   const features = [
     {
-      icon: Sparkles,
+      icon: Star,
       title: 'AI-Powered Generation',
       description: 'Create comprehensive courses on any topic using advanced AI technology.',
     },
@@ -1108,7 +1108,7 @@ export function LandingScreen() {
 
           {/* Badge */}
           <View style={[styles.badge, { backgroundColor: colors.neutralSurface, borderColor: colors.neutralBorder }]}>
-            <Sparkles size={16} color={colors.primary} />
+            <Star size={16} color={colors.primary} />
             <Text style={[typography.bodySm, { color: colors.primary, fontWeight: '700', marginLeft: 8 }]}>
               AI-Powered Personalized Learning
             </Text>

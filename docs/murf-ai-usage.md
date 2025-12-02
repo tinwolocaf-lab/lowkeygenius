@@ -844,7 +844,7 @@ A link to the audio file will be returned in the response. You can use this link
 </Card>
 <Card
   title="WebSockets"
-  icon="sparkles"
+  icon="star"
   iconPosition="left"
   href="/api/docs/text-to-speech/web-sockets"
 >
@@ -1116,7 +1116,7 @@ In addition to HTTP [streaming endpoint](/api/docs/api-reference/text-to-speech/
 
 <Card
   title="WebSockets"
-  icon="sparkles"
+  icon="star"
   iconPosition="left"
   href="/api/docs/text-to-speech/web-sockets"
 >

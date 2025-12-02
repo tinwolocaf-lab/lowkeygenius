@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { Input } from './Input';
-import { Sparkles } from 'lucide-react';
 
 interface Module {
   title: string;
@@ -86,7 +85,6 @@ export function EditModuleModal({
                 onClick={() => setShowRegenerateInput(true)}
                 className="flex items-center gap-2"
               >
-                <Sparkles className="w-4 h-4" />
                 Regenerate with AI
               </Button>
             ) : (
@@ -106,7 +104,6 @@ export function EditModuleModal({
                     onClick={handleRegenerate}
                     className="flex items-center gap-2"
                   >
-                    <Sparkles className="w-4 h-4" />
                     Regenerate
                   </Button>
                   <Button

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Check, CheckCircle, Circle, Edit2, Sparkles, Save, X, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle, Circle, Edit2, Save, X, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { regenerateLesson } from '../lib/api';
 import { Button } from '../components/Button';
@@ -396,7 +396,6 @@ export function LessonPreview() {
                     disabled={regenerating}
                     className="flex items-center gap-2"
                   >
-                    <Sparkles className="w-4 h-4" />
                     {regenerating ? 'Regenerating...' : 'Regenerate with AI'}
                   </Button>
                   {currentLesson.lesson_status !== 'approved' && (
@@ -512,7 +511,6 @@ export function LessonPreview() {
                 Cancel
               </Button>
               <Button onClick={handleRegenerateLesson} className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
                 Regenerate
               </Button>
             </div>
