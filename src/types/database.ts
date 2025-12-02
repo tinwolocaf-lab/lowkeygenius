@@ -13,7 +13,7 @@ export type CourseIntensity = 'short' | 'standard' | 'deep';
 export type CourseStatus = 'draft_outline' | 'generating_lessons' | 'ready' | 'published';
 export type FileSourceType = 'pdf' | 'docx' | 'pptx' | 'url' | 'text';
 export type AudioStatus = 'none' | 'generating' | 'ready' | 'failed';
-export type AudioJobStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type AudioJobStatus = 'pending' | 'processing' | 'paused' | 'completed' | 'failed';
 export type LessonGenerationJobStatus = 'pending' | 'in_progress' | 'paused' | 'completed' | 'failed';
 export type VoiceType = 'male' | 'female';
 export type DeletionRequestStatus = 'pending' | 'approved' | 'rejected';
@@ -458,8 +458,10 @@ export type Database = {
           total_lessons: number
           completed_lessons: number
           failed_lessons: number
+          current_lesson_index: number
           error_message: string | null
           started_at: string | null
+          paused_at: string | null
           completed_at: string | null
           created_at: string
         }
@@ -472,8 +474,10 @@ export type Database = {
           total_lessons: number
           completed_lessons?: number
           failed_lessons?: number
+          current_lesson_index?: number
           error_message?: string | null
           started_at?: string | null
+          paused_at?: string | null
           completed_at?: string | null
           created_at?: string
         }
@@ -486,8 +490,10 @@ export type Database = {
           total_lessons?: number
           completed_lessons?: number
           failed_lessons?: number
+          current_lesson_index?: number
           error_message?: string | null
           started_at?: string | null
+          paused_at?: string | null
           completed_at?: string | null
           created_at?: string
         }

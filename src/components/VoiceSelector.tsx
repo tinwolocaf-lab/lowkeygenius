@@ -42,9 +42,9 @@ export function VoiceSelector({
                 ${
                   isSelected
                     ? 'bg-primary text-white shadow-tile border-2 border-primary'
-                    : 'bg-white border-2 border-neutral-border text-neutral-text hover:border-primary hover:bg-primary-light/20'
+                    : 'bg-neutral-bg border-2 border-neutral-border text-neutral-text hover:border-primary hover:bg-primary-light/20'
                 }
-                ${disabled && !isSelected ? 'hover:border-neutral-border hover:bg-white' : ''}
+                ${disabled && !isSelected ? 'hover:border-neutral-border hover:bg-neutral-bg' : ''}
               `}
               aria-pressed={isSelected}
               aria-label={`Select ${option.label}`}
