@@ -660,13 +660,13 @@ export function GenerateAudio() {
             {generating && !paused && (
               <div className="space-y-6">
                 <LoadingAnimation
-                  message={`Generating audio for lesson ${currentLessonIndex + 1} of ${lessonsNeedingAudio.length}`}
+                  message={`Generating audio for lesson ${currentLessonIndex + 1} of ${job?.total_lessons ?? lessonsNeedingAudio.length}`}
                 />
                 <div className="w-full bg-neutral-surface rounded-full h-4 overflow-hidden">
                   <div
                     className="bg-primary h-full transition-all duration-500 rounded-full"
                     style={{
-                      width: `${((currentLessonIndex + 1) / lessonsNeedingAudio.length) * 100}%`,
+                      width: `${((currentLessonIndex + 1) / (job?.total_lessons ?? lessonsNeedingAudio.length)) * 100}%`,
                     }}
                   />
                 </div>
