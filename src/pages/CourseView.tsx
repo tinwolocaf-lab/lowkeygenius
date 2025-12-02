@@ -1,12 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ChevronRight, ChevronLeft, CheckCircle, Circle, BookOpen, Menu, X, Headphones, Volume2, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ChevronLeft, CheckCircle, Circle, BookOpen, Menu, X, Headphones, Volume2, PanelLeftClose, PanelLeft, History } from 'lucide-react';
 import { CourseAudioPlayer } from '../components/CourseAudioPlayer';
+import { FlashcardButton } from '../components/FlashcardButton';
+import { FlashcardStudy } from '../components/FlashcardStudy';
+import { QuizButton } from '../components/QuizButton';
+import { QuizTake } from '../components/QuizTake';
+import { QuizHistory } from '../components/QuizHistory';
+import { QuizService, QuizWithQuestions } from '../lib/quizService';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
+import type { Flashcard, QuizAttempt, CourseLevel } from '../types/database';
 
 interface Lesson {
   id: string;
@@ -33,6 +40,7 @@ interface Course {
   outline_json: CourseOutlineJson | null;
   status: string;
   owner_id: string;
+  level: CourseLevel;
 }
 
 interface Progress {
@@ -44,6 +52,13 @@ interface Progress {
 interface LocationState {
   lessonId?: string;
   autoPlayAudio?: boolean;
+}
+
+// Track which lessons have flashcards/quizzes
+interface LessonStudyContent {
+  hasFlashcards: boolean;
+  hasQuiz: boolean;
+  quizId: string | null;
 }
 
 export function CourseView() {
@@ -59,6 +74,15 @@ export function CourseView() {
   const [loading, setLoading] = useState(true);
   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
   const [initialNavigationHandled, setInitialNavigationHandled] = useState(false);
+  
+  // Flashcard and Quiz state
+  const [lessonStudyContent, setLessonStudyContent] = useState<Record<string, LessonStudyContent>>({});
+  const [showFlashcardStudy, setShowFlashcardStudy] = useState(false);
+  const [currentFlashcards, setCurrentFlashcards] = useState<Flashcard[]>([]);
+  const [showQuizTake, setShowQuizTake] = useState(false);
+  const [currentQuizData, setCurrentQuizData] = useState<QuizWithQuestions | null>(null);
+  const [showQuizHistory, setShowQuizHistory] = useState(false);
+  const [quizAttempts, setQuizAttempts] = useState<QuizAttempt[]>([]);
 
   // Derive currentLesson from state
   const currentLesson = lessons[currentLessonIndex];
@@ -82,11 +106,51 @@ export function CourseView() {
       setCourse({
         ...courseResult.data,
         outline_json: courseResult.data.outline_json as CourseOutlineJson | null,
+        level: courseResult.data.level as CourseLevel,
       });
       const loadedLessons = lessonsResult.data || [];
       setLessons(loadedLessons);
       const loadedProgress = progressResult.data || [];
       setProgress(loadedProgress);
+      
+      // Load flashcard and quiz existence for all lessons
+      if (loadedLessons.length > 0) {
+        const lessonIds = loadedLessons.map(l => l.id);
+        
+        const [flashcardsResult, quizzesResult] = await Promise.all([
+          supabase.from('flashcards').select('lesson_id').in('lesson_id', lessonIds),
+          supabase.from('quizzes').select('id, lesson_id').in('lesson_id', lessonIds),
+        ]);
+        
+        const studyContent: Record<string, LessonStudyContent> = {};
+        
+        // Initialize all lessons with no content
+        lessonIds.forEach(id => {
+          studyContent[id] = { hasFlashcards: false, hasQuiz: false, quizId: null };
+        });
+        
+        // Mark lessons with flashcards
+        if (flashcardsResult.data) {
+          const lessonsWithFlashcards = new Set(flashcardsResult.data.map(f => f.lesson_id));
+          lessonsWithFlashcards.forEach(lessonId => {
+            if (studyContent[lessonId]) {
+              studyContent[lessonId].hasFlashcards = true;
+            }
+          });
+        }
+        
+        // Mark lessons with quizzes
+        if (quizzesResult.data) {
+          quizzesResult.data.forEach(quiz => {
+            if (studyContent[quiz.lesson_id]) {
+              studyContent[quiz.lesson_id].hasQuiz = true;
+              studyContent[quiz.lesson_id].quizId = quiz.id;
+            }
+          });
+        }
+        
+        setLessonStudyContent(studyContent);
+      }
 
       // Restore last viewed lesson position (only if no navigation state)
       const state = location.state as LocationState | null;
@@ -108,7 +172,7 @@ export function CourseView() {
     } finally {
       setLoading(false);
     }
-  }, [courseId, user, navigate]);
+  }, [courseId, user, location.state, navigate]);
 
   const markAsViewed = useCallback(async (lesson: Lesson | undefined) => {
     if (!lesson || !user || !courseId) return;
@@ -177,6 +241,90 @@ export function CourseView() {
       )
     );
   }, [currentLesson]);
+
+  /**
+   * Handle flashcard study navigation.
+   * Requirements: 1.1, 1.5
+   */
+  const handleStudyFlashcards = useCallback((flashcards: Flashcard[]) => {
+    setCurrentFlashcards(flashcards);
+    setShowFlashcardStudy(true);
+  }, []);
+
+  /**
+   * Handle flashcard generation completion.
+   * Updates local state to reflect new flashcards.
+   */
+  const handleFlashcardsGenerated = useCallback((flashcards: Flashcard[]) => {
+    if (!currentLesson) return;
+    setLessonStudyContent(prev => ({
+      ...prev,
+      [currentLesson.id]: {
+        ...prev[currentLesson.id],
+        hasFlashcards: flashcards.length > 0,
+      },
+    }));
+  }, [currentLesson]);
+
+  /**
+   * Handle flashcard study completion.
+   */
+  const handleFlashcardStudyComplete = useCallback(() => {
+    setShowFlashcardStudy(false);
+    setCurrentFlashcards([]);
+  }, []);
+
+  /**
+   * Handle quiz take navigation.
+   * Requirements: 3.1, 3.5
+   */
+  const handleTakeQuiz = useCallback((quizData: QuizWithQuestions) => {
+    setCurrentQuizData(quizData);
+    setShowQuizTake(true);
+  }, []);
+
+  /**
+   * Handle quiz generation completion.
+   * Updates local state to reflect new quiz.
+   */
+  const handleQuizGenerated = useCallback((quizData: QuizWithQuestions) => {
+    if (!currentLesson) return;
+    setLessonStudyContent(prev => ({
+      ...prev,
+      [currentLesson.id]: {
+        ...prev[currentLesson.id],
+        hasQuiz: true,
+        quizId: quizData.quiz.id,
+      },
+    }));
+  }, [currentLesson]);
+
+  /**
+   * Handle quiz completion.
+   */
+  const handleQuizComplete = useCallback(() => {
+    setShowQuizTake(false);
+    setCurrentQuizData(null);
+  }, []);
+
+  /**
+   * Handle viewing quiz history.
+   * Requirements: 6.2
+   */
+  const handleViewQuizHistory = useCallback(async () => {
+    if (!currentLesson || !user) return;
+    
+    const studyContent = lessonStudyContent[currentLesson.id];
+    if (!studyContent?.quizId) return;
+    
+    try {
+      const attempts = await QuizService.getQuizAttempts(studyContent.quizId, user.id);
+      setQuizAttempts(attempts);
+      setShowQuizHistory(true);
+    } catch (error) {
+      console.error('Failed to load quiz history:', error);
+    }
+  }, [currentLesson, user, lessonStudyContent]);
 
   const markAsComplete = async () => {
     if (!currentLesson || !user || !courseId) return;
@@ -406,6 +554,41 @@ export function CourseView() {
                   </ul>
                 </Card>
               )}
+              
+              {/* Flashcard and Quiz Buttons - Requirements: 1.1, 1.5, 3.1, 3.5 */}
+              {currentLesson.markdown_content && course && (
+                <div className="flex flex-wrap items-center gap-3 mt-4">
+                  <FlashcardButton
+                    lessonId={currentLesson.id}
+                    lessonTitle={currentLesson.title}
+                    lessonContent={currentLesson.markdown_content}
+                    courseLevel={course.level}
+                    hasFlashcards={lessonStudyContent[currentLesson.id]?.hasFlashcards ?? false}
+                    onStudy={handleStudyFlashcards}
+                    onGenerated={handleFlashcardsGenerated}
+                  />
+                  <QuizButton
+                    lessonId={currentLesson.id}
+                    lessonTitle={currentLesson.title}
+                    lessonContent={currentLesson.markdown_content}
+                    courseLevel={course.level}
+                    hasQuiz={lessonStudyContent[currentLesson.id]?.hasQuiz ?? false}
+                    onTake={handleTakeQuiz}
+                    onGenerated={handleQuizGenerated}
+                  />
+                  {/* View History button - Requirement 6.2 */}
+                  {lessonStudyContent[currentLesson.id]?.hasQuiz && (
+                    <button
+                      onClick={handleViewQuizHistory}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-text-muted hover:text-neutral-text hover:bg-neutral-surface rounded-lg transition-colors"
+                      title="View quiz history"
+                    >
+                      <History className="w-4 h-4" />
+                      <span>Quiz History</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {currentLesson.markdown_content ? (
@@ -498,6 +681,48 @@ export function CourseView() {
 
       {/* Spacer for fixed audio player */}
       {showAudioPlayer && <div className="h-28" />}
+
+      {/* Flashcard Study Modal */}
+      {showFlashcardStudy && currentLesson && currentFlashcards.length > 0 && (
+        <FlashcardStudy
+          lessonId={currentLesson.id}
+          lessonTitle={currentLesson.title}
+          flashcards={currentFlashcards}
+          onComplete={handleFlashcardStudyComplete}
+          onClose={() => {
+            setShowFlashcardStudy(false);
+            setCurrentFlashcards([]);
+          }}
+        />
+      )}
+
+      {/* Quiz Take Modal */}
+      {showQuizTake && currentLesson && currentQuizData && (
+        <QuizTake
+          lessonId={currentLesson.id}
+          lessonTitle={currentLesson.title}
+          quiz={currentQuizData.quiz}
+          questions={currentQuizData.questions}
+          onComplete={handleQuizComplete}
+          onClose={() => {
+            setShowQuizTake(false);
+            setCurrentQuizData(null);
+          }}
+        />
+      )}
+
+      {/* Quiz History Modal - Requirement 6.2 */}
+      {showQuizHistory && currentLesson && (
+        <QuizHistory
+          lessonId={currentLesson.id}
+          lessonTitle={currentLesson.title}
+          attempts={quizAttempts}
+          onClose={() => {
+            setShowQuizHistory(false);
+            setQuizAttempts([]);
+          }}
+        />
+      )}
     </div>
   );
 }

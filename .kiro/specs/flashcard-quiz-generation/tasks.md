@@ -145,29 +145,29 @@
     - Show improvement trends (score changes over time)
     - _Requirements: 6.2, 6.3_
 
-- [-] 12. Generation buttons and integration
-  - [ ] 12.1 Create FlashcardButton component
+- [x] 12. Generation buttons and integration
+  - [x] 12.1 Create FlashcardButton component
     - Show "Generate Flashcards" or "Study Flashcards" based on existence
     - Handle loading state during generation
     - Display error messages with retry option
     - _Requirements: 1.1, 1.2, 1.4, 1.5_
-  - [ ] 12.2 Create QuizButton component
+  - [x] 12.2 Create QuizButton component
     - Show "Generate Quiz" or "Take Quiz" based on existence
     - Handle loading state during generation
     - Display error messages with retry option
     - _Requirements: 3.1, 3.2, 3.4, 3.5_
-  - [ ] 12.3 Add regeneration functionality with confirmation
+  - [x] 12.3 Add regeneration functionality with confirmation
     - Add regenerate option to existing flashcards/quizzes
     - Show confirmation dialog before regenerating
     - _Requirements: 5.1, 5.2, 5.3_
 
-- [ ] 13. CourseView integration
-  - [ ] 13.1 Integrate flashcard and quiz buttons into CourseView
+- [x] 13. CourseView integration
+  - [x] 13.1 Integrate flashcard and quiz buttons into CourseView
     - Add FlashcardButton and QuizButton to lesson view
     - Wire up navigation to FlashcardStudy and QuizTake
     - Handle state management for generation status
     - _Requirements: 1.1, 1.5, 3.1, 3.5_
-  - [ ] 13.2 Add quiz history access from lesson view
+  - [x] 13.2 Add quiz history access from lesson view
     - Add "View History" option for quizzes with attempts
     - Navigate to QuizHistory component
     - _Requirements: 6.2_
