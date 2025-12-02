@@ -20,6 +20,7 @@ interface PublicCourse {
   published_at: string | null;
   enrollment_count: number;
   owner_id: string;
+  thumbnail_url: string | null;
 }
 
 interface EnrollmentStatusMap {
@@ -52,7 +53,7 @@ export function Marketplace() {
     try {
       const { data: coursesData, error: coursesError } = await supabase
         .from('courses')
-        .select('id, title, description, topic, level, estimated_duration_hours, creator_display_name, published_at, owner_id')
+        .select('id, title, description, topic, level, estimated_duration_hours, creator_display_name, published_at, owner_id, thumbnail_url')
         .eq('is_public', true)
         .order('published_at', { ascending: false });
 
