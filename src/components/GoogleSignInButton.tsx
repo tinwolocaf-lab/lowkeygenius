@@ -29,7 +29,7 @@ export function GoogleSignInButton({ mode, onError }: GoogleSignInButtonProps) {
       type="button"
       onClick={handleClick}
       disabled={loading}
-      className="w-full flex items-center justify-center gap-3 px-7 py-4 bg-white border-2 border-neutral-border rounded-2xl font-display font-bold text-base text-neutral-text transition-all duration-200 hover:border-neutral-text-muted hover:shadow-soft active:scale-95 active:translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:active:translate-y-0"
+      className="w-full flex items-center justify-center gap-3 px-7 py-4 bg-white border-2 border-neutral-border rounded-2xl font-display font-bold text-base text-gray-800 transition-all duration-200 hover:border-neutral-text-muted hover:shadow-soft active:scale-95 active:translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:active:translate-y-0"
     >
       {/* Google Logo SVG - Official Google "G" logo colors */}
       <svg

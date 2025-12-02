@@ -149,7 +149,7 @@ export function Dashboard() {
               <BookOpen className="w-7 h-7 text-white" />
             </div>
             <div>
-              <p className="font-body text-sm text-neutral-text-muted font-semibold uppercase">Current Plan</p>
+              <p className="font-body text-sm text-neutral-text-muted font-semibold uppercase whitespace-nowrap">Current Plan</p>
               <p className="font-display text-2xl font-bold text-neutral-text">{subscription.planType}</p>
             </div>
           </div>
@@ -167,7 +167,7 @@ export function Dashboard() {
               <TrendingUp className="w-7 h-7 text-white" />
             </div>
             <div>
-              <p className="font-body text-sm text-neutral-text-muted font-semibold uppercase">
+              <p className="font-body text-sm text-neutral-text-muted font-semibold uppercase whitespace-nowrap">
                 {subscription.planType === 'FREE' ? 'Courses Used' : 'Courses This Period'}
               </p>
               <p className="font-display text-2xl font-bold text-neutral-text">
@@ -189,7 +189,7 @@ export function Dashboard() {
               <BookOpen className="w-7 h-7 text-white" />
             </div>
             <div>
-              <p className="font-body text-sm text-neutral-text-muted font-semibold uppercase">Total Courses</p>
+              <p className="font-body text-sm text-neutral-text-muted font-semibold uppercase whitespace-nowrap">Total Courses</p>
               <p className="font-display text-2xl font-bold text-neutral-text">
                 {loading ? '...' : totalCourses}
               </p>
