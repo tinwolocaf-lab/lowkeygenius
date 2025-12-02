@@ -118,8 +118,8 @@ export function Layout() {
         </main>
       </div>
 
-      <div className="md:hidden flex flex-col h-screen">
-        <header className="bg-neutral-bg border-b border-neutral-border shadow-soft p-4 flex items-center justify-between">
+      <div className="md:hidden flex flex-col min-h-screen">
+        <header className="sticky top-0 z-40 bg-neutral-bg border-b border-neutral-border shadow-soft p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="p-1">
               <img src="/logo.png" alt="Progent" className="w-8 h-8 object-contain" />
@@ -172,12 +172,12 @@ export function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto pb-20">
           <Outlet />
         </main>
 
-        <nav className="bg-neutral-bg shadow-soft border-t-2 border-neutral-border">
-          <div className="flex items-center justify-around p-2">
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-neutral-bg shadow-soft border-t-2 border-neutral-border">
+          <div className="flex items-center justify-around p-2 pb-safe">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = isActivePath(item.path);

@@ -16,13 +16,13 @@ const THEME_STORAGE_KEY = 'theme-preference';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { user, profile } = useAuth();
-  const [theme, setThemeState] = useState<Theme>('pink-light');
+  const [theme, setThemeState] = useState<Theme>('blue-light');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initializeTheme = async () => {
       try {
-        let initialTheme: Theme = 'pink-light';
+        let initialTheme: Theme = 'blue-light';
 
         if (user && profile?.theme_preference) {
           initialTheme = profile.theme_preference as Theme;
@@ -103,7 +103,7 @@ function applyThemeToDOM(theme: Theme) {
 
   root.classList.remove('theme-pink-light', 'theme-blue-light', 'theme-pink-dark', 'theme-blue-dark');
 
-  if (theme !== 'pink-light') {
+  if (theme !== 'blue-light') {
     root.classList.add(`theme-${theme}`);
   }
 

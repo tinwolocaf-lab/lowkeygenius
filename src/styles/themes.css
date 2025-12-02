@@ -2,45 +2,8 @@
   --transition-theme: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
+/* Blue Light - Default Theme */
 :root,
-.theme-pink-light {
-  --color-primary: #1CB0F6;
-  --color-primary-soft: #7DD8FF;
-  --color-primary-light: #B8E9FF;
-  --color-primary-dark: #0098DB;
-  --color-primary-darker: #0080BD;
-
-  --color-secondary: #FF6DAA;
-  --color-secondary-light: #FF9FC7;
-  --color-secondary-dark: #E94E92;
-
-  --color-accent-yellow: #FFC800;
-  --color-accent-orange: #FF9600;
-  --color-accent-green: #58CC02;
-  --color-accent-red: #FF4B4B;
-
-  --color-neutral-text: #3C3C3C;
-  --color-neutral-text-muted: #777777;
-  --color-neutral-bg: #FFFFFF;
-  --color-neutral-surface: #F7F7F7;
-  --color-neutral-surface-dark: #E5E5E5;
-  --color-neutral-border: #E5E5E5;
-
-  --color-code-bg: #f6f8fa;
-  --color-code-text: #24292f;
-  --color-code-keyword: #cf222e;
-  --color-code-string: #0a3069;
-  --color-code-comment: #6e7781;
-  --color-code-function: #8250df;
-  --color-code-number: #0550ae;
-
-  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-tile: 0 6px 16px rgba(0, 0, 0, 0.1);
-  --shadow-tile-hover: 0 8px 20px rgba(0, 0, 0, 0.12);
-  --shadow-button: 0 4px 0 rgba(0, 0, 0, 0.12);
-  --shadow-button-hover: 0 6px 0 rgba(0, 0, 0, 0.12);
-}
-
 .theme-blue-light {
   --color-primary: #1CB0F6;
   --color-primary-soft: #7DD8FF;
@@ -79,7 +42,47 @@
   --shadow-button-hover: 0 6px 0 rgba(0, 0, 0, 0.12);
 }
 
-.theme-pink-dark {
+/* Pink Light - Secondary Theme */
+.theme-pink-light {
+  --color-primary: #FF6DAA;
+  --color-primary-soft: #FF9FC7;
+  --color-primary-light: #FFD4E5;
+  --color-primary-dark: #E94E92;
+  --color-primary-darker: #D13A7E;
+
+  --color-secondary: #1CB0F6;
+  --color-secondary-light: #7DD8FF;
+  --color-secondary-dark: #0098DB;
+
+  --color-accent-yellow: #FFC800;
+  --color-accent-orange: #FF9600;
+  --color-accent-green: #58CC02;
+  --color-accent-red: #FF4B4B;
+
+  --color-neutral-text: #3C3C3C;
+  --color-neutral-text-muted: #777777;
+  --color-neutral-bg: #FFFFFF;
+  --color-neutral-surface: #F7F7F7;
+  --color-neutral-surface-dark: #E5E5E5;
+  --color-neutral-border: #E5E5E5;
+
+  --color-code-bg: #f6f8fa;
+  --color-code-text: #24292f;
+  --color-code-keyword: #cf222e;
+  --color-code-string: #0a3069;
+  --color-code-comment: #6e7781;
+  --color-code-function: #8250df;
+  --color-code-number: #0550ae;
+
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-tile: 0 6px 16px rgba(0, 0, 0, 0.1);
+  --shadow-tile-hover: 0 8px 20px rgba(0, 0, 0, 0.12);
+  --shadow-button: 0 4px 0 rgba(0, 0, 0, 0.12);
+  --shadow-button-hover: 0 6px 0 rgba(0, 0, 0, 0.12);
+}
+
+/* Blue Dark */
+.theme-blue-dark {
   --color-primary: #1CB0F6;
   --color-primary-soft: #7DD8FF;
   --color-primary-light: #B8E9FF;
@@ -117,16 +120,17 @@
   --shadow-button-hover: 0 6px 0 rgba(0, 0, 0, 0.3);
 }
 
-.theme-blue-dark {
-  --color-primary: #1CB0F6;
-  --color-primary-soft: #7DD8FF;
-  --color-primary-light: #B8E9FF;
-  --color-primary-dark: #0098DB;
-  --color-primary-darker: #0080BD;
+/* Pink Dark */
+.theme-pink-dark {
+  --color-primary: #FF6DAA;
+  --color-primary-soft: #FF9FC7;
+  --color-primary-light: #FFD4E5;
+  --color-primary-dark: #E94E92;
+  --color-primary-darker: #D13A7E;
 
-  --color-secondary: #FF6DAA;
-  --color-secondary-light: #FF9FC7;
-  --color-secondary-dark: #E94E92;
+  --color-secondary: #1CB0F6;
+  --color-secondary-light: #7DD8FF;
+  --color-secondary-dark: #0098DB;
 
   --color-accent-yellow: #FFC800;
   --color-accent-orange: #FF9600;

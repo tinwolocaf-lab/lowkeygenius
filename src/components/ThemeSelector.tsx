@@ -9,20 +9,20 @@ interface ThemeOption {
 
 const themeOptions: ThemeOption[] = [
   {
-    value: 'pink-light',
-    label: 'Pink Light',
-  },
-  {
     value: 'blue-light',
     label: 'Blue Light',
   },
   {
-    value: 'pink-dark',
-    label: 'Pink Dark',
+    value: 'pink-light',
+    label: 'Pink Light',
   },
   {
     value: 'blue-dark',
     label: 'Blue Dark',
+  },
+  {
+    value: 'pink-dark',
+    label: 'Pink Dark',
   },
 ];
 

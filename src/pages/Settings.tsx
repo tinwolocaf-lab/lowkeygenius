@@ -6,6 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Card } from '../components/Card';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { Modal } from '../components/Modal';
 import { ThemeSelector } from '../components/ThemeSelector';
 import { ProfileSettings } from '../components/ProfileSettings';
 import { useSubscription } from '../hooks/useSubscription';
@@ -18,8 +19,14 @@ export function Settings() {
   const subscription = useSubscription();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
-  const handleSignOut = async () => {
+  const handleSignOutClick = () => {
+    setShowSignOutModal(true);
+  };
+
+  const handleSignOutConfirm = async () => {
+    setShowSignOutModal(false);
     await signOut();
     navigate('/login');
   };
@@ -130,7 +137,7 @@ export function Settings() {
 
       <div className="space-y-6">
         <Card>
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
                 {profile?.full_name ? (
@@ -154,8 +161,8 @@ export function Settings() {
             </div>
             <Button
               variant="secondary"
-              onClick={handleSignOut}
-              className="flex items-center gap-2 text-accent-red hover:bg-accent-red/10"
+              onClick={handleSignOutClick}
+              className="flex items-center justify-center gap-2 text-accent-red hover:bg-accent-red/10 w-full md:w-auto"
             >
               <LogOut className="w-4 h-4" />
               Sign Out
@@ -374,6 +381,33 @@ export function Settings() {
           </Card>
         )}
       </div>
+
+      <Modal
+        isOpen={showSignOutModal}
+        onClose={() => setShowSignOutModal(false)}
+        title="Sign Out"
+        size="sm"
+      >
+        <div className="space-y-6">
+          <p className="text-neutral-text font-body">
+            Are you sure you want to sign out of your account?
+          </p>
+          <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+            <Button
+              variant="secondary"
+              onClick={() => setShowSignOutModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSignOutConfirm}
+              className="bg-accent-red hover:bg-accent-red/90"
+            >
+              Sign Out
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
