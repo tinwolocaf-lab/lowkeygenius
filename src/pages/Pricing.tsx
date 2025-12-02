@@ -23,7 +23,7 @@ interface PricingTier {
 }
 
 export default function Pricing() {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
   const [loading, setLoading] = useState<string | null>(null);
   const { user, profile } = useAuth();
   const navigate = useNavigate();
