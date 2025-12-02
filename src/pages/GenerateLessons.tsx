@@ -1,11 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle, Clock, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { generateLesson } from '../lib/api';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { LoadingAnimation } from '../components/LoadingAnimation';
+
+interface LocationState {
+  autoStart?: boolean;
+}
 
 interface Lesson {
   id: string;
@@ -45,13 +49,14 @@ interface Course {
 export function GenerateLessons() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [generating, setGenerating] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const autoStartHandled = useRef(false);
 
   const loadCourseAndLessons = useCallback(async () => {
     if (!courseId) return;
@@ -93,6 +98,25 @@ export function GenerateLessons() {
   useEffect(() => {
     loadCourseAndLessons();
   }, [loadCourseAndLessons]);
+
+  // Auto-start generation if navigated from outline page with autoStart state
+  useEffect(() => {
+    const state = location.state as LocationState | null;
+    if (
+      state?.autoStart &&
+      !autoStartHandled.current &&
+      course &&
+      lessons.length > 0 &&
+      !generating &&
+      !completed
+    ) {
+      autoStartHandled.current = true;
+      // Clear the state to prevent re-triggering
+      navigate(location.pathname, { replace: true, state: null });
+      // Start generation
+      startGeneration();
+    }
+  }, [course, lessons, generating, completed, location.state, location.pathname, navigate]);
 
   // Extract relevant material sections for a specific lesson based on title and objectives
   const getRelevantMaterials = (

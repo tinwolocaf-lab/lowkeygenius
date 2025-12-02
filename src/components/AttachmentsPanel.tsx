@@ -197,7 +197,7 @@ export function AttachmentsPanel({
               placeholder="Paste your text content here..."
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border-2 border-neutral-border font-body text-neutral-text placeholder:text-neutral-text-muted focus:outline-none focus:border-primary transition-colors resize-none"
+              className="w-full px-4 py-3 rounded-lg border-2 border-neutral-border bg-neutral-surface font-body text-neutral-text placeholder:text-neutral-text-muted focus:outline-none focus:border-primary focus:bg-neutral-bg transition-colors resize-none"
               rows={6}
             />
             <Button onClick={handleAddText} disabled={!textInput.trim() || !textTitle.trim()}>

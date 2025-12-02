@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Paperclip, ArrowLeft } from 'lucide-react';
+import { Send, ArrowLeft, Mic, Square } from 'lucide-react';
 import { ChatMessage } from '../components/ChatMessage';
 import { QuickReplies } from '../components/QuickReplies';
 import { AttachmentsPanel } from '../components/AttachmentsPanel';
@@ -45,6 +45,13 @@ export function Onboarding() {
     level: null,
     intensity: null,
   });
+  
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   // Store profile context for course generation (Requirements 1.3, 1.4)
   const profileContextRef = useRef<ExtractedContext | null>(null);
@@ -341,6 +348,95 @@ export function Onboarding() {
     handleStep('continue');
   };
 
+  // Auto-resize textarea
+  const adjustTextareaHeight = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const maxHeight = 5 * 24; // 5 lines * ~24px line height
+      textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+    }
+  }, []);
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [inputValue, adjustTextareaHeight]);
+
+  // Voice recording functions
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await transcribeAudio(audioBlob);
+      };
+
+      mediaRecorder.start(1000);
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Error accessing microphone:', err);
+      addAssistantMessage("Could not access microphone. Please check your browser permissions.");
+    }
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      setIsTranscribing(true);
+    }
+  }, [isRecording]);
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const base64Audio = btoa(
+        new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+
+      const response = await supabase.functions.invoke('speech-to-text', {
+        body: {
+          audioBase64: base64Audio,
+          mimeType: 'audio/webm',
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Transcription failed');
+      }
+
+      const responseData = response.data as { success: boolean; transcription?: string; error?: string };
+
+      if (!responseData.success || !responseData.transcription) {
+        throw new Error(responseData.error || 'Failed to transcribe audio');
+      }
+
+      setInputValue(responseData.transcription);
+      setIsTranscribing(false);
+    } catch (err) {
+      console.error('Transcription error:', err);
+      addAssistantMessage("Failed to transcribe audio. Please try again or type your response.");
+      setIsTranscribing(false);
+    }
+  };
+
   // Show loading while checking profile status
   if (isProfileLoading) {
     return (
@@ -448,21 +544,45 @@ export function Onboarding() {
 
       {!showQuickReplies && !showAttachments && step !== 'welcome' && (
         <div className="bg-neutral-bg border-t-2 border-neutral-border p-4 shadow-soft">
-          <div className="max-w-4xl mx-auto flex gap-3">
-            <button className="p-4 hover:bg-neutral-surface rounded-2xl transition-all active:scale-95">
-              <Paperclip className="w-5 h-5 text-neutral-text-muted" />
+          <div className="max-w-4xl mx-auto flex gap-3 items-end">
+            {/* Voice input button */}
+            <button
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isTranscribing}
+              className={`p-4 rounded-2xl transition-all active:scale-95 ${
+                isRecording 
+                  ? 'bg-accent-red text-white animate-pulse' 
+                  : 'hover:bg-neutral-surface'
+              } ${isTranscribing ? 'opacity-50 cursor-not-allowed' : ''}`}
+              title={isRecording ? 'Stop recording' : 'Start voice input'}
+            >
+              {isRecording ? (
+                <Square className="w-5 h-5" />
+              ) : isTranscribing ? (
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Mic className="w-5 h-5 text-neutral-text-muted" />
+              )}
             </button>
-            <input
-              type="text"
+            {/* Auto-expanding textarea */}
+            <textarea
+              ref={textareaRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
               placeholder="Type your answer..."
-              className="flex-1 px-5 py-4 rounded-2xl border-2 border-neutral-border bg-neutral-surface font-body text-neutral-text placeholder:text-neutral-text-muted focus:outline-none focus:border-primary focus:bg-neutral-bg focus:shadow-soft transition-all"
+              rows={1}
+              className="flex-1 px-5 py-4 rounded-2xl border-2 border-neutral-border bg-neutral-surface font-body text-neutral-text placeholder:text-neutral-text-muted focus:outline-none focus:border-primary focus:bg-neutral-bg focus:shadow-soft transition-all resize-none overflow-hidden"
+              style={{ minHeight: '56px', maxHeight: '120px' }}
             />
             <button
               onClick={handleSendMessage}
-              disabled={!inputValue.trim()}
+              disabled={!inputValue.trim() || isRecording || isTranscribing}
               className="p-4 bg-primary text-white rounded-2xl hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-button active:scale-95 active:translate-y-1"
             >
               <Send className="w-6 h-6" />

@@ -243,7 +243,7 @@ export function CourseOutline() {
         console.error('Error updating course status:', updateError);
       }
 
-      navigate(`/courses/${courseId}/generate`);
+      navigate(`/courses/${courseId}/generate`, { state: { autoStart: true } });
     } catch (error) {
       console.error('Error generating lessons:', error);
       setGenerating(false);
@@ -309,180 +309,188 @@ export function CourseOutline() {
 
   return (
     <div className="min-h-screen bg-neutral-surface">
-      <header className="bg-neutral-bg border-b border-neutral-border shadow-soft p-4 md:p-6">
+      <header className="bg-neutral-bg border-b border-neutral-border shadow-soft px-3 py-4 md:px-6 md:py-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-start gap-4 mb-4">
+          <div className="flex items-start gap-2 md:gap-4 mb-4">
             <button
               onClick={() => navigate('/courses')}
-              className="p-3 hover:bg-neutral-surface rounded-2xl transition-all active:scale-95 flex-shrink-0"
+              className="p-2 md:p-3 hover:bg-neutral-surface rounded-xl transition-all active:scale-95 flex-shrink-0"
             >
-              <ArrowLeft className="w-6 h-6 text-neutral-text" />
+              <ArrowLeft className="w-5 h-5 md:w-6 md:h-6 text-neutral-text" />
             </button>
-            <div className="flex-1 flex flex-col md:flex-row gap-6">
-              <div className="flex-1 min-w-0">
-                <h1 className="font-display text-display-md text-neutral-text">{course.title}</h1>
-                <p className="font-body text-neutral-text-muted">{course.description}</p>
-              </div>
-              <div className="w-full md:w-64 flex-shrink-0">
-                <ThumbnailUpload
-                  courseId={course.id}
-                  currentThumbnailUrl={course.thumbnail_url}
-                  onUploadComplete={handleThumbnailUploadComplete}
-                  disabled={generating || saving}
-                />
-              </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-display text-xl md:text-display-md text-neutral-text leading-tight">{course.title}</h1>
+              <p className="font-body text-sm md:text-base text-neutral-text-muted mt-1 line-clamp-2">{course.description}</p>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <span className="font-body text-sm text-neutral-text-muted">Level:</span>
-              <span className="px-4 py-2 bg-primary-light text-primary rounded-pill font-body font-bold text-sm border-2 border-primary/20">
+          {/* Thumbnail - full width on mobile */}
+          <div className="mb-4">
+            <ThumbnailUpload
+              courseId={course.id}
+              currentThumbnailUrl={course.thumbnail_url}
+              onUploadComplete={handleThumbnailUploadComplete}
+              disabled={generating || saving}
+            />
+          </div>
+
+          {/* Stats - horizontal scroll on mobile */}
+          <div className="flex gap-2 md:gap-4 overflow-x-auto pb-1 -mx-1 px-1">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="font-body text-xs md:text-sm text-neutral-text-muted hidden md:inline">Level:</span>
+              <span className="px-2.5 py-1.5 md:px-4 md:py-2 bg-primary-light text-primary rounded-full font-body font-bold text-xs md:text-sm border border-primary/20">
                 {course.level}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="font-body text-sm text-neutral-text-muted">Duration:</span>
-              <span className="px-4 py-2 bg-gradient-to-br from-accent-yellow/30 to-accent-orange/30 text-neutral-text rounded-pill font-body font-bold text-sm border-2 border-accent-yellow/30">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="font-body text-xs md:text-sm text-neutral-text-muted hidden md:inline">Duration:</span>
+              <span className="px-2.5 py-1.5 md:px-4 md:py-2 bg-gradient-to-br from-accent-yellow/30 to-accent-orange/30 text-neutral-text rounded-full font-body font-bold text-xs md:text-sm border border-accent-yellow/30">
                 {outline.estimatedDurationHours || 0}h
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="font-body text-sm text-neutral-text-muted">Lessons:</span>
-              <span className="px-4 py-2 bg-secondary-light/50 text-secondary-dark rounded-pill font-body font-bold text-sm border-2 border-secondary/20">
-                {outline.estimatedLessonsCount || 0}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="font-body text-xs md:text-sm text-neutral-text-muted hidden md:inline">Lessons:</span>
+              <span className="px-2.5 py-1.5 md:px-4 md:py-2 bg-secondary-light/50 text-secondary-dark rounded-full font-body font-bold text-xs md:text-sm border border-secondary/20">
+                {outline.estimatedLessonsCount || 0} lessons
               </span>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-4 md:p-8">
-        <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
-          <h2 className="font-display text-display-sm text-neutral-text">Course Outline</h2>
-          <div className="flex items-center gap-3">
+      <div className="max-w-7xl mx-auto px-3 py-4 md:px-8 md:py-8">
+        <div className="mb-4 md:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <h2 className="font-display text-lg md:text-display-sm text-neutral-text">Course Outline</h2>
+          <div className="flex items-center gap-2 md:gap-3">
             <Button
               variant="secondary"
               onClick={handleAddModule}
               disabled={saving}
-              className="flex items-center gap-2"
+              size="sm"
+              className="flex items-center gap-1.5 text-sm md:text-base"
             >
               <Plus className="w-4 h-4" />
-              Add Module
+              <span className="hidden sm:inline">Add</span> Module
             </Button>
             <Button
               onClick={handleGenerateLessons}
               disabled={generating || saving}
-              className="flex items-center gap-2"
+              size="sm"
+              className="flex items-center gap-1.5 text-sm md:text-base"
             >
               {generating ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  Generating...
+                  <span className="hidden sm:inline">Generating...</span>
                 </>
               ) : (
                 <>
-                  <Play className="w-5 h-5" />
-                  Generate Lessons
+                  <Play className="w-4 h-4" />
+                  Generate
                 </>
               )}
             </Button>
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {outline.modules.map((module, moduleIndex) => (
-            <Card key={moduleIndex} className="overflow-hidden">
-              <div className="flex items-start gap-4">
+            <Card key={moduleIndex} className="overflow-hidden !p-3 md:!p-6">
+              <div className="flex items-start gap-2 md:gap-4">
                 <button
                   onClick={() => toggleModule(moduleIndex)}
-                  className="flex-shrink-0 mt-1 p-2 hover:bg-neutral-surface rounded-lg transition-colors"
+                  className="flex-shrink-0 p-1.5 md:p-2 hover:bg-neutral-surface rounded-lg transition-colors"
                 >
                   {expandedModules.has(moduleIndex) ? (
-                    <ChevronDown className="w-5 h-5 text-primary" />
+                    <ChevronDown className="w-4 h-4 md:w-5 md:h-5 text-primary" />
                   ) : (
-                    <ChevronRight className="w-5 h-5 text-neutral-text-muted" />
+                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-neutral-text-muted" />
                   )}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="px-4 py-2 bg-primary rounded-pill text-white font-body font-bold text-sm shadow-soft">
+                  <div className="flex items-center justify-between gap-2 mb-1.5 md:mb-2">
+                    <span className="px-2.5 py-1 md:px-4 md:py-2 bg-primary rounded-full text-white font-body font-bold text-xs md:text-sm shadow-soft">
                       Module {moduleIndex + 1}
                     </span>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => setEditingModule({ index: moduleIndex, module })}
+                        className="p-1.5 md:p-2 hover:bg-primary-light/20 text-primary rounded-lg transition-colors"
+                        title="Edit module"
+                      >
+                        <Edit2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteModuleConfirm(moduleIndex)}
+                        className="p-1.5 md:p-2 hover:bg-accent-red/10 text-accent-red rounded-lg transition-colors"
+                        title="Delete module"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <h3 className="font-display text-xl font-bold text-neutral-text mb-2">
+                  <h3 className="font-display text-base md:text-xl font-bold text-neutral-text mb-1 md:mb-2">
                     {module.title}
                   </h3>
-                  <p className="font-body text-neutral-text-muted">{module.description}</p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => setEditingModule({ index: moduleIndex, module })}
-                    className="p-2 hover:bg-primary-light/20 text-primary rounded-lg transition-colors"
-                    title="Edit module"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setDeleteModuleConfirm(moduleIndex)}
-                    className="p-2 hover:bg-accent-red/10 text-accent-red rounded-lg transition-colors"
-                    title="Delete module"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <p className="font-body text-sm md:text-base text-neutral-text-muted line-clamp-2">{module.description}</p>
                 </div>
               </div>
 
               {expandedModules.has(moduleIndex) && (
-                <div className="mt-4 pt-4 border-t-2 border-neutral-border space-y-3">
+                <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-neutral-border space-y-2 md:space-y-3">
                   {module.lessons.map((lesson, lessonIndex) => (
                     <div
                       key={lessonIndex}
-                      className="flex items-start gap-3 p-4 bg-neutral-surface rounded-lg transition-colors"
+                      className="flex items-start gap-2 md:gap-3 p-2.5 md:p-4 bg-neutral-surface rounded-lg transition-colors"
                     >
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-light flex items-center justify-center">
-                        <span className="font-body font-bold text-sm text-primary">
+                      <div className="flex-shrink-0 w-6 h-6 md:w-8 md:h-8 rounded-full bg-primary-light flex items-center justify-center">
+                        <span className="font-body font-bold text-xs md:text-sm text-primary">
                           {lessonIndex + 1}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-body font-semibold text-neutral-text mb-2">
+                        <h4 className="font-body font-semibold text-sm md:text-base text-neutral-text mb-1 md:mb-2">
                           {lesson.title}
                         </h4>
                         {lesson.objectives && lesson.objectives.length > 0 && (
-                          <ul className="space-y-1">
-                            {lesson.objectives.map((objective, objIndex) => (
-                              <li key={objIndex} className="font-body text-sm text-neutral-text-muted flex items-start gap-2">
-                                <span className="text-primary mt-1">•</span>
-                                <span>{objective}</span>
+                          <ul className="space-y-0.5 md:space-y-1 hidden md:block">
+                            {lesson.objectives.slice(0, 2).map((objective, objIndex) => (
+                              <li key={objIndex} className="font-body text-xs md:text-sm text-neutral-text-muted flex items-start gap-1.5">
+                                <span className="text-primary mt-0.5">•</span>
+                                <span className="line-clamp-1">{objective}</span>
                               </li>
                             ))}
+                            {lesson.objectives.length > 2 && (
+                              <li className="font-body text-xs text-neutral-text-muted">
+                                +{lesson.objectives.length - 2} more objectives
+                              </li>
+                            )}
                           </ul>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-0.5 md:gap-2 flex-shrink-0">
                         <button
                           onClick={() => setEditingLesson({ moduleIndex, lessonIndex, lesson })}
-                          className="p-2 hover:bg-primary-light/20 text-primary rounded-lg transition-colors"
+                          className="p-1.5 md:p-2 hover:bg-primary-light/20 text-primary rounded-lg transition-colors"
                           title="Edit lesson"
                         >
-                          <Edit2 className="w-3 h-3" />
+                          <Edit2 className="w-3 h-3 md:w-4 md:h-4" />
                         </button>
                         <button
                           onClick={() => setDeleteLessonConfirm({ moduleIndex, lessonIndex })}
-                          className="p-2 hover:bg-accent-red/10 text-accent-red rounded-lg transition-colors"
+                          className="p-1.5 md:p-2 hover:bg-accent-red/10 text-accent-red rounded-lg transition-colors"
                           title="Delete lesson"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                         </button>
                       </div>
                     </div>
                   ))}
                   <button
                     onClick={() => handleAddLesson(moduleIndex)}
-                    className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-neutral-border hover:border-primary hover:bg-primary-light/10 rounded-lg transition-colors text-neutral-text-muted hover:text-primary font-body font-semibold"
+                    className="w-full flex items-center justify-center gap-1.5 p-2.5 md:p-3 border-2 border-dashed border-neutral-border hover:border-primary hover:bg-primary-light/10 rounded-lg transition-colors text-neutral-text-muted hover:text-primary font-body font-semibold text-sm"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />
                     Add Lesson
                   </button>
                 </div>
@@ -491,19 +499,19 @@ export function CourseOutline() {
           ))}
         </div>
 
-        <Card className="mt-8 bg-primary-light border-3 border-primary/30">
+        <Card className="mt-6 md:mt-8 bg-primary-light border-2 md:border-3 border-primary/30 !p-4 md:!p-6">
           <div className="text-center">
-            <h3 className="font-display text-display-md text-neutral-text mb-3">
+            <h3 className="font-display text-lg md:text-display-md text-neutral-text mb-2 md:mb-3">
               Ready to Generate Content?
             </h3>
-            <p className="font-body text-body-lg text-neutral-text-muted mb-6">
-              This will create detailed lesson content for all {outline.estimatedLessonsCount} lessons using AI.
+            <p className="font-body text-sm md:text-body-lg text-neutral-text-muted mb-4 md:mb-6">
+              Create detailed content for all {outline.estimatedLessonsCount} lessons using AI.
             </p>
             <Button
               onClick={handleGenerateLessons}
               disabled={generating}
               size="lg"
-              className="flex items-center gap-2 mx-auto"
+              className="flex items-center gap-2 mx-auto w-full sm:w-auto"
             >
               {generating ? (
                 <>
