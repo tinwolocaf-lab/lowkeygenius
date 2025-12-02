@@ -96,7 +96,7 @@ export function Homepage() {
   const pricingTiers = [
     { name: 'Free', price: '0', courses: '1 course', popular: false },
     { name: 'Plus', price: '10', courses: '5 courses/month', popular: true },
-    { name: 'Pro', price: '20', courses: '30 courses/month', popular: false },
+    { name: 'Pro', price: '20', courses: '20 courses/month', popular: false },
     { name: 'Pro Max', price: '40', courses: 'Unlimited', popular: false },
   ];
 

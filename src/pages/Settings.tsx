@@ -120,12 +120,12 @@ export function Settings() {
         ];
       case 'PLUS':
         return [
-          { icon: BookOpen, text: '10 courses per month' },
+          { icon: BookOpen, text: '5 courses per month' },
           { icon: Volume2, text: 'Audio add-on available ($10/mo)' },
         ];
       default:
         return [
-          { icon: BookOpen, text: '3 courses per month' },
+          { icon: BookOpen, text: '1 course per account' },
           { icon: Gift, text: 'Basic features included' },
         ];
     }

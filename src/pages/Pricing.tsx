@@ -75,7 +75,7 @@ export default function Pricing() {
       productIdMonthly: import.meta.env.VITE_POLAR_PRODUCT_PRO_MONTHLY,
       productIdYearly: import.meta.env.VITE_POLAR_PRODUCT_PRO_YEARLY,
       features: [
-        '30 courses per month',
+        '20 courses per month',
         'AI-generated course outlines',
         'AI-generated lessons',
         'Markdown export',

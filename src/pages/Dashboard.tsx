@@ -208,7 +208,7 @@ export function Dashboard() {
                   Unlock More Courses
                 </h3>
                 <p className="font-body text-neutral-text-muted">
-                  Upgrade to create 5-30+ courses per month with advanced features
+                  Upgrade to create 5-20+ courses per month with advanced features
                 </p>
               </div>
             </div>

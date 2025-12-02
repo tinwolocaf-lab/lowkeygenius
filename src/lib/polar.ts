@@ -66,7 +66,7 @@ export async function openCustomerPortal(): Promise<void> {
 export const PLAN_LIMITS = {
   FREE: { courses: 1, isBillingCycle: false },  // Lifetime limit
   PLUS: { courses: 5, isBillingCycle: true },   // Per billing cycle
-  PRO: { courses: 30, isBillingCycle: true },   // Per billing cycle
+  PRO: { courses: 20, isBillingCycle: true },   // Per billing cycle
   PRO_MAX: { courses: Infinity, isBillingCycle: false },
 } as const;
 
