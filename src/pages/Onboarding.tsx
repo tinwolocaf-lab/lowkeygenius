@@ -297,6 +297,8 @@ export function Onboarding() {
       const { error: updateError } = await supabase
         .from('courses')
         .update({
+          title: outline.title || course.title,
+          description: outline.description || course.description,
           outline_json: outline,
           estimated_duration_hours: outline.estimatedDurationHours,
           status: 'ready',

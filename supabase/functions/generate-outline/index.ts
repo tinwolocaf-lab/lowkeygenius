@@ -45,6 +45,8 @@ interface Module {
 }
 
 interface OutlineResponse {
+  title: string;
+  description: string;
   modules: Module[];
   estimatedDurationHours: number;
   estimatedLessonsCount: number;
@@ -194,6 +196,8 @@ Create a course with approximately ${moduleCount} modules, each with ${lessonsPe
 
 IMPORTANT: Respond ONLY with valid JSON in this exact format (no markdown, no code blocks, just raw JSON):
 {
+  "title": "A compelling, professional course title that captures the essence of the topic",
+  "description": "A brief 1-2 sentence description of what the learner will achieve",
   "modules": [
     {
       "title": "Module title",
@@ -209,6 +213,8 @@ IMPORTANT: Respond ONLY with valid JSON in this exact format (no markdown, no co
   "estimatedDurationHours": 10,
   "estimatedLessonsCount": 15
 }
+
+Generate a creative, engaging course title that goes beyond just restating the topic. The title should be professional and appealing.
 
 Make the course comprehensive, practical, and tailored to the learner's background and level.`;
 
