@@ -14,7 +14,7 @@ export function ChatMessage({ type, content }: ChatMessageProps) {
             <img src="/favicon.png" alt="AI" className="w-full h-full object-cover" />
           </div>
         </div>
-        <div className="flex-1 bg-white rounded-3xl rounded-tl-lg p-5 shadow-soft max-w-2xl">
+        <div className="flex-1 bg-neutral-bg rounded-3xl rounded-tl-lg p-5 shadow-soft max-w-2xl">
           <p className="font-body text-base text-neutral-text whitespace-pre-wrap leading-relaxed">{content}</p>
         </div>
       </div>

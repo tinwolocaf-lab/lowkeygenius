@@ -76,7 +76,7 @@ export function ProfileTextInput({ onSubmit, onBack }: ProfileTextInputProps) {
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Start typing here..."
-          className="w-full h-48 px-4 py-3 rounded-xl border-2 border-neutral-border bg-neutral-surface font-body text-neutral-text placeholder:text-neutral-text-muted focus:outline-none focus:border-primary focus:bg-white focus:shadow-soft transition-all resize-none"
+          className="w-full h-48 px-4 py-3 rounded-xl border-2 border-neutral-border bg-neutral-surface font-body text-neutral-text placeholder:text-neutral-text-muted focus:outline-none focus:border-primary focus:bg-neutral-bg focus:shadow-soft transition-all resize-none"
           aria-label="Background information"
         />
 
