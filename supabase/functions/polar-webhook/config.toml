@@ -1,0 +1,4 @@
+# Disable JWT verification for webhook endpoint
+# Polar webhooks use their own signature verification via POLAR_WEBHOOK_SECRET
+[function]
+verify_jwt = false
