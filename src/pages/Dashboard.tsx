@@ -315,7 +315,12 @@ export function Dashboard() {
               <p className="font-body text-body-lg text-neutral-text-muted mb-6">
                 You haven't created any courses yet
               </p>
-              <Button variant="primary" size="lg" onClick={() => navigate('/onboarding')}>
+              <Button 
+                variant="primary" 
+                size="lg" 
+                onClick={handleNewCourse}
+                disabled={!subscription.canCreateCourse}
+              >
                 Create Your First Course
               </Button>
             </div>

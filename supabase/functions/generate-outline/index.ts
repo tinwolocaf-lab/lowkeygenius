@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { validateUserQuota } from './quota-validation.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -76,6 +77,27 @@ Deno.serve(async (req: Request) => {
 
     if (userError || !user) {
       throw new Error('Invalid user token');
+    }
+
+    // Validate user quota before processing (Requirements 2.1, 2.2, 4.1)
+    const quotaResult = await validateUserQuota(supabase, user.id);
+    
+    if (!quotaResult.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: quotaResult.error || 'Course limit reached. Please upgrade your plan.',
+          currentCount: quotaResult.currentCount,
+          limit: quotaResult.limit,
+          planType: quotaResult.planType,
+        }),
+        {
+          status: 403,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
     }
 
     const requestData: OutlineRequest = await req.json();

@@ -7,8 +7,10 @@ import { AttachmentsPanel } from '../components/AttachmentsPanel';
 import { LoadingAnimation } from '../components/LoadingAnimation';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { useSubscription } from '../hooks/useSubscription';
 import { supabase } from '../lib/supabase';
 import { generateCourseOutline } from '../lib/api';
+import toast from 'react-hot-toast';
 import type { Message, OnboardingData, Attachment } from '../types/onboarding';
 import type { ExtractedContext } from '../types/database';
 
@@ -29,6 +31,7 @@ export function Onboarding() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { hasProfile, extractedContext, isLoading: isProfileLoading } = useUserProfile();
+  const { canCreateCourse, isLoading: isSubscriptionLoading, coursesUsed, coursesLimit, planType } = useSubscription();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
   const [step, setStep] = useState<OnboardingStep>('welcome');
@@ -68,6 +71,17 @@ export function Onboarding() {
       navigate('/profile-onboarding', { replace: true });
     }
   }, [isProfileLoading, hasProfile, navigate]);
+
+  // Redirect to dashboard if quota exceeded (Requirements 1.3, 3.2)
+  useEffect(() => {
+    if (!isSubscriptionLoading && !canCreateCourse) {
+      toast.error(
+        `Course limit reached (${coursesUsed}/${coursesLimit === Infinity ? '∞' : coursesLimit} on ${planType} plan). Please upgrade to create more courses.`,
+        { duration: 5000 }
+      );
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isSubscriptionLoading, canCreateCourse, coursesUsed, coursesLimit, planType, navigate]);
 
   const addMessage = useCallback((type: 'assistant' | 'user' | 'system', content: string) => {
     setMessages((prev) => [
@@ -437,8 +451,8 @@ export function Onboarding() {
     }
   };
 
-  // Show loading while checking profile status
-  if (isProfileLoading) {
+  // Show loading while checking profile and subscription status
+  if (isProfileLoading || isSubscriptionLoading) {
     return (
       <div className="min-h-screen bg-neutral-surface flex items-center justify-center">
         <LoadingAnimation message="Loading..." />

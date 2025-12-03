@@ -34,7 +34,7 @@ function stripMarkdown(text: string): string {
     return '';
   }
 
-  let result = text
+  const result = text
     // Replace mermaid diagrams with spoken placeholder
     .replace(/```mermaid[\s\S]*?```/g, 'There is a diagram here illustrating this concept.')
     // Replace code blocks with a spoken placeholder (keep some context)

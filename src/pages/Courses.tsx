@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, Plus, MoreVertical, Pencil, Trash2, Volume2, Globe, AlertTriangle, ImageIcon } from 'lucide-react';
+import { BookOpen, Clock, Plus, MoreVertical, Pencil, Trash2, Volume2, Globe, AlertTriangle, ImageIcon, AlertCircle } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
 import { useAuth } from '../contexts/AuthContext';
 import { useCoursePublishing } from '../hooks/useCoursePublishing';
@@ -70,7 +70,8 @@ function CourseThumbnail({ url, title }: { url: string; title: string }) {
 export function Courses() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isAudioEnabled } = useSubscription();
+  const subscription = useSubscription();
+  const { isAudioEnabled } = subscription;
   const { publishCourse, requestDeletion, isLoading: isPublishingLoading } = useCoursePublishing();
   const [activeTab, setActiveTab] = useState<'created' | 'learning'>('created');
   const [courses, setCourses] = useState<Course[]>([]);
@@ -82,6 +83,7 @@ export function Courses() {
   const [deletionMessage, setDeletionMessage] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newThumbnailUrl, setNewThumbnailUrl] = useState<string | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const loadCourses = useCallback(async () => {
     if (!user) return;
@@ -324,6 +326,18 @@ export function Courses() {
     }
   };
 
+  /**
+   * Handle new course creation with quota check
+   * Requirements: 1.1, 3.2, 3.3 - Check quota before navigating to onboarding
+   */
+  const handleNewCourse = () => {
+    if (!subscription.canCreateCourse) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    navigate('/onboarding');
+  };
+
   if (loading) {
     return (
       <div className="p-4 md:p-8 max-w-7xl mx-auto">
@@ -339,7 +353,7 @@ export function Courses() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display text-display-lg text-neutral-text">My Courses</h1>
         <Button
-          onClick={() => navigate('/onboarding')}
+          onClick={handleNewCourse}
           className="flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -384,7 +398,7 @@ export function Courses() {
                 : 'No courses in progress. Start learning by exploring available courses!'}
             </p>
             {activeTab === 'created' && (
-              <Button onClick={() => navigate('/onboarding')}>
+              <Button onClick={handleNewCourse}>
                 Create Your First Course
               </Button>
             )}
@@ -655,6 +669,51 @@ export function Courses() {
                   setDeletionRequestModal(null);
                   setDeletionMessage('');
                 }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Upgrade Modal - Requirements 1.1, 3.2, 3.3 */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-orange-100 rounded-lg">
+                  <AlertCircle className="w-6 h-6 text-orange-600" />
+                </div>
+                <h3 className="font-display text-xl font-bold text-neutral-text">
+                  Course Limit Reached
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-neutral-text-muted mb-2">
+              You've used {subscription.coursesUsed} / {subscription.coursesLimit === Infinity ? '∞' : subscription.coursesLimit} courses on your {subscription.planType} plan.
+            </p>
+            <p className="text-neutral-text-muted mb-6">
+              Upgrade to create more courses and unlock additional features.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => navigate('/pricing')}
+                className="flex-1 bg-accent-green hover:bg-accent-green/90"
+              >
+                View Plans
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setShowUpgradeModal(false)}
                 className="flex-1"
               >
                 Cancel
