@@ -2,11 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Home, BookOpen, StickyNote, ChevronLeft, ChevronRight, User, Settings, LogOut, Store } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useHorrorTheme } from '../hooks/useHorrorTheme';
+import { HorrorDecorations, HorrorLogo, SidebarDecorations } from './horror';
 
 export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, signOut } = useAuth();
+  const { isHorror } = useHorrorTheme();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -40,14 +43,26 @@ export function Layout() {
   return (
     <div className="min-h-screen bg-neutral-surface">
       <div className="hidden md:flex h-screen">
-        <aside className={`relative bg-neutral-bg border-r border-neutral-border shadow-soft flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
+        <aside className={`relative bg-neutral-bg border-r border-neutral-border shadow-soft flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'} ${isHorror ? 'horror-sidebar' : ''}`}>
+          {/* Horror sidebar decorations */}
+          {isHorror && <SidebarDecorations collapsed={sidebarCollapsed} />}
+          
           <div className={`p-6 border-b-2 border-neutral-border ${sidebarCollapsed ? 'flex justify-center' : ''}`}>
             <div className={`flex items-center gap-3 ${sidebarCollapsed ? 'flex-col' : ''}`}>
-              <div className="" style={{ padding: '8px' }}>
-                <img src="/logo.png" alt="Progent" className={`object-contain ${sidebarCollapsed ? 'w-12 h-12' : 'w-9 h-9'}`} />
-              </div>
-              {!sidebarCollapsed && (
-                <h1 className="font-display text-2xl font-bold text-primary">Progent</h1>
+              {isHorror ? (
+                <HorrorLogo 
+                  size={sidebarCollapsed ? 'md' : 'sm'} 
+                  showText={!sidebarCollapsed}
+                />
+              ) : (
+                <>
+                  <div className="" style={{ padding: '8px' }}>
+                    <img src="/logo.png" alt="Progent" className={`object-contain ${sidebarCollapsed ? 'w-12 h-12' : 'w-9 h-9'}`} />
+                  </div>
+                  {!sidebarCollapsed && (
+                    <h1 className="font-display text-2xl font-bold text-primary">Progent</h1>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -113,18 +128,26 @@ export function Layout() {
           </button>
         </aside>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto relative">
+          {/* Horror decorations for main content area */}
+          {isHorror && <HorrorDecorations />}
           <Outlet />
         </main>
       </div>
 
       <div className="md:hidden flex flex-col min-h-screen">
-        <header className="sticky top-0 z-40 bg-neutral-bg border-b border-neutral-border shadow-soft p-4 flex items-center justify-between">
+        <header className={`sticky top-0 z-40 bg-neutral-bg border-b border-neutral-border shadow-soft p-4 flex items-center justify-between ${isHorror ? 'horror-header' : ''}`}>
           <div className="flex items-center gap-2">
-            <div className="p-1">
-              <img src="/logo.png" alt="Progent" className="w-8 h-8 object-contain" />
-            </div>
-            <h1 className="font-display text-xl font-bold text-primary">Progent</h1>
+            {isHorror ? (
+              <HorrorLogo size="sm" showText />
+            ) : (
+              <>
+                <div className="p-1">
+                  <img src="/logo.png" alt="Progent" className="w-8 h-8 object-contain" />
+                </div>
+                <h1 className="font-display text-xl font-bold text-primary">Progent</h1>
+              </>
+            )}
           </div>
           <div className="relative" ref={accountMenuRef}>
             <button
@@ -172,11 +195,13 @@ export function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto pb-20">
+        <main className="flex-1 overflow-y-auto pb-20 relative">
+          {/* Horror decorations for mobile main content area */}
+          {isHorror && <HorrorDecorations />}
           <Outlet />
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-neutral-bg shadow-soft border-t-2 border-neutral-border">
+        <nav className={`fixed bottom-0 left-0 right-0 z-40 bg-neutral-bg shadow-soft border-t-2 border-neutral-border ${isHorror ? 'horror-nav' : ''}`}>
           <div className="flex items-center justify-around p-2 pb-safe">
             {navItems.map((item) => {
               const Icon = item.icon;

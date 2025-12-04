@@ -26,6 +26,7 @@ import { TermsOfService } from './pages/TermsOfService';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PublicRoute } from './components/PublicRoute';
+import { FaviconManager } from './components/FaviconManager';
 import { VerifyEmailPending } from './pages/VerifyEmailPending';
 import { VerifyEmailSuccess } from './pages/VerifyEmailSuccess';
 import { AuthCallback } from './pages/AuthCallback';
@@ -50,6 +51,7 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <ThemeProvider>
+          <FaviconManager />
           <Toaster
             position="top-right"
             toastOptions={{

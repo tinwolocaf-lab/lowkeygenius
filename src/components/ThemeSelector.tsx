@@ -24,6 +24,10 @@ const themeOptions: ThemeOption[] = [
     value: 'pink-dark',
     label: 'Pink Dark',
   },
+  {
+    value: 'horror',
+    label: '🎃 Horror',
+  },
 ];
 
 interface ThemeSelectorProps {

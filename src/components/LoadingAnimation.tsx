@@ -1,10 +1,19 @@
 import { BookOpen, Lightbulb, Zap } from 'lucide-react';
+import { useHorrorTheme } from '../hooks/useHorrorTheme';
+import { HorrorLoadingAnimation } from './horror/HorrorLoadingAnimation';
 
 interface LoadingAnimationProps {
   message?: string;
 }
 
 export function LoadingAnimation({ message = 'Generating your course...' }: LoadingAnimationProps) {
+  const { isHorror } = useHorrorTheme();
+
+  // Render horror-themed loading animation when horror theme is active
+  if (isHorror) {
+    return <HorrorLoadingAnimation text={message} size="lg" />;
+  }
+
   return (
     <div className="flex flex-col items-center justify-center p-8 my-6">
       <div className="relative w-32 h-32 mb-6">

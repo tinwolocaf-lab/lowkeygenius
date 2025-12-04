@@ -1,0 +1,166 @@
+# Implementation Plan
+
+- [x] 1. Set up horror theme foundation
+  - [x] 1.1 Add horror theme CSS custom properties to themes.css
+    - Define horror color palette (blood reds, deep blacks, ghostly whites)
+    - Define horror shadows with red/purple tints
+    - Define horror-specific CSS variables for decorations
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+  - [x] 1.2 Update ThemeContext to support horror theme
+    - Add 'horror' to Theme type union
+    - Update isValidTheme function
+    - Update applyThemeToDOM function to handle horror class
+    - _Requirements: 1.2, 8.2_
+  - [ ]* 1.3 Write property test for theme application
+    - **Property 1: Theme Application Correctness**
+    - **Validates: Requirements 1.2**
+  - [x] 1.4 Update ThemeSelector to include horror option
+    - Add horror theme to themeOptions array with 🎃 emoji
+    - _Requirements: 1.1, 8.3_
+  - [ ]* 1.5 Write property test for theme persistence
+    - **Property 3: Theme Persistence Round-Trip**
+    - **Validates: Requirements 1.4**
+
+- [x] 2. Implement horror typography
+  - [x] 2.1 Add horror fonts to the project
+    - Add Google Fonts link for Creepster (display) and Nosifer (accent)
+    - Update index.html with font preload
+    - _Requirements: 3.4_
+  - [x] 2.2 Define horror font CSS variables
+    - Add --font-horror-display and --font-horror-body variables
+    - Apply fonts conditionally in .theme-horror class
+    - _Requirements: 3.1, 3.2_
+  - [ ]* 2.3 Write property test for text contrast accessibility
+    - **Property 4: Text Contrast Accessibility**
+    - **Validates: Requirements 3.3**
+
+- [x] 3. Create horror decoration components
+  - [x] 3.1 Create useHorrorTheme custom hook
+    - Implement hook that returns isHorror boolean and horrorClass string
+    - Export from hooks directory
+    - _Requirements: 8.4_
+  - [x] 3.2 Create Cobweb SVG component
+    - Create SVG cobweb graphic with position variants (corners)
+    - Support size and opacity props
+    - _Requirements: 4.1_
+  - [x] 3.3 Create FogEffect component
+    - Implement CSS-based animated fog overlay
+    - Support intensity levels
+    - Respect prefers-reduced-motion
+    - _Requirements: 4.2, 5.4_
+  - [x] 3.4 Create FloatingBats component
+    - Create animated bat silhouettes
+    - Implement random floating animation paths
+    - Respect prefers-reduced-motion
+    - _Requirements: 4.4_
+  - [x] 3.5 Create HorrorDecorations wrapper component
+    - Combine Cobweb, FogEffect, and FloatingBats
+    - Only render when horror theme is active
+    - _Requirements: 4.1, 4.2, 4.4_
+  - [ ]* 3.6 Write property test for non-horror theme cleanliness
+    - **Property 5: Non-Horror Theme Cleanliness**
+    - **Validates: Requirements 4.5**
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 5. Implement horror branding and logo
+  - [x] 5.1 Create HorrorLogo component
+    - Design horror-styled variant of Progent logo
+    - Support size variants
+    - _Requirements: 7.1_
+  - [x] 5.2 Implement favicon switching logic
+    - Create horror favicon asset
+    - Add logic to swap favicon when horror theme is active
+    - _Requirements: 7.2_
+  - [ ]* 5.3 Write property test for theme switching cleanup
+    - **Property 2: Theme Switching Cleanup**
+    - **Validates: Requirements 1.3, 7.3**
+
+- [x] 6. Add horror animations and effects
+  - [x] 6.1 Create blood drip CSS effect
+    - Implement CSS pseudo-element for dripping effect
+    - Apply to buttons and cards in horror theme
+    - _Requirements: 4.3_
+  - [x] 6.2 Create glitch/flicker animation
+    - Implement CSS keyframe animation for glitch effect
+    - Apply to interactive elements on hover
+    - Respect prefers-reduced-motion
+    - _Requirements: 5.1, 5.4_
+  - [x] 6.3 Create HorrorLoadingAnimation component
+    - Design pulsing skull or dripping loading animation
+    - Integrate with existing LoadingAnimation component
+    - _Requirements: 5.3_
+
+- [x] 7. Update Layout and integrate decorations
+  - [x] 7.1 Update Layout component
+    - Import and conditionally render HorrorDecorations
+    - Add horror-specific sidebar decorations
+    - _Requirements: 4.4, 6.3_
+  - [x] 7.2 Update sidebar with horror elements
+    - Add skull or bat decorations to sidebar
+    - Conditionally show based on horror theme
+    - _Requirements: 4.4_
+
+- [x] 8. Apply horror styling to core components
+  - [x] 8.1 Update Button component for horror theme
+    - Add blood drip effect on hover
+    - Apply horror color scheme
+    - _Requirements: 4.3, 6.2_
+  - [x] 8.2 Update Card component for horror theme
+    - Add eerie shadow effects
+    - Apply horror border styling
+    - _Requirements: 6.2_
+  - [x] 8.3 Update Modal component for horror theme
+    - Apply horror backdrop and styling
+    - Add subtle horror decorations
+    - _Requirements: 6.2_
+  - [x] 8.4 Update Input component for horror theme
+    - Apply blood-red focus states
+    - Style placeholder text appropriately
+    - _Requirements: 6.4_
+
+- [-] 9. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 10. Apply horror styling to pages
+  - [ ] 10.1 Update Dashboard page for horror theme
+    - Apply horror styling to dashboard cards and stats
+    - _Requirements: 6.1_
+  - [ ] 10.2 Update Courses and CourseView pages
+    - Apply horror styling to course cards and lesson content
+    - _Requirements: 6.1_
+  - [ ] 10.3 Update Settings page for horror theme
+    - Ensure theme selector displays correctly
+    - Apply horror styling to settings panels
+    - _Requirements: 6.1_
+  - [ ] 10.4 Update remaining pages (Login, Signup, Homepage, etc.)
+    - Apply consistent horror styling across all pages
+    - _Requirements: 6.1_
+
+- [ ] 11. Create horror theme assets
+  - [ ] 11.1 Create horror logo SVG/image
+    - Design spooky variant of Progent logo
+    - Export in appropriate formats
+    - _Requirements: 7.1_
+  - [ ] 11.2 Create horror favicon
+    - Design 16x16 and 32x32 horror favicon
+    - Add to public directory
+    - _Requirements: 7.2_
+
+- [ ] 12. Final polish and accessibility
+  - [ ] 12.1 Verify all animations respect prefers-reduced-motion
+    - Test with reduced motion preference enabled
+    - Ensure graceful degradation
+    - _Requirements: 5.4_
+  - [ ] 12.2 Verify text contrast across all components
+    - Check all text/background combinations
+    - Ensure WCAG AA compliance (4.5:1 ratio)
+    - _Requirements: 3.3_
+  - [ ] 12.3 Test theme switching thoroughly
+    - Verify clean transitions between all themes
+    - Ensure no horror elements leak to other themes
+    - _Requirements: 1.3, 4.5_
+
+- [ ] 13. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
 
-export type Theme = 'pink-light' | 'blue-light' | 'pink-dark' | 'blue-dark';
+export type Theme = 'pink-light' | 'blue-light' | 'pink-dark' | 'blue-dark' | 'horror';
 
 interface ThemeContextType {
   theme: Theme;
@@ -95,19 +95,20 @@ export function useTheme() {
 }
 
 function isValidTheme(theme: string): boolean {
-  return ['pink-light', 'blue-light', 'pink-dark', 'blue-dark'].includes(theme);
+  return ['pink-light', 'blue-light', 'pink-dark', 'blue-dark', 'horror'].includes(theme);
 }
 
 function applyThemeToDOM(theme: Theme) {
   const root = document.documentElement;
 
-  root.classList.remove('theme-pink-light', 'theme-blue-light', 'theme-pink-dark', 'theme-blue-dark');
+  root.classList.remove('theme-pink-light', 'theme-blue-light', 'theme-pink-dark', 'theme-blue-dark', 'theme-horror');
 
   if (theme !== 'blue-light') {
     root.classList.add(`theme-${theme}`);
   }
 
-  if (theme.includes('dark')) {
+  // Horror theme is always dark
+  if (theme.includes('dark') || theme === 'horror') {
     root.classList.add('dark');
   } else {
     root.classList.remove('dark');

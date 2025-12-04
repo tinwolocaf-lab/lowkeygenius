@@ -1,4 +1,5 @@
 import React from 'react';
+import { useHorrorTheme } from '../hooks/useHorrorTheme';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost' | 'success' | 'warning';
@@ -14,6 +15,8 @@ export function Button({
   disabled,
   ...props
 }: ButtonProps) {
+  const { isHorror } = useHorrorTheme();
+
   const baseStyles = 'font-display font-bold transition-all duration-200 active:scale-95 active:translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:active:translate-y-0';
 
   const variantStyles = {
@@ -30,9 +33,12 @@ export function Button({
     lg: 'px-10 py-5 text-lg rounded-2xl',
   };
 
+  // Horror theme adds blood drip effect and glitch animation on hover
+  const horrorStyles = isHorror ? 'horror-blood-drip horror-glitch' : '';
+
   return (
     <button
-      className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
+      className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${horrorStyles} ${className}`}
       disabled={disabled}
       {...props}
     >

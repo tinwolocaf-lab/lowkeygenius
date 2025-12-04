@@ -159,6 +159,565 @@
   --shadow-button-hover: 0 6px 0 rgba(0, 0, 0, 0.3);
 }
 
+/* Horror Theme - Spooky Halloween aesthetic */
+.theme-horror {
+  /* Horror typography - Creepster for display, Nosifer for accent */
+  --font-horror-display: 'Creepster', cursive;
+  --font-horror-body: 'Nunito', sans-serif;
+  --font-horror-accent: 'Nosifer', cursive;
+
+  /* Primary colors - Blood reds */
+  --color-primary: #DC143C;
+  --color-primary-soft: #FF6B6B;
+  --color-primary-light: #FF8A8A;
+  --color-primary-dark: #8B0000;
+  --color-primary-darker: #4A0000;
+
+  /* Secondary colors - Dark magenta/purple */
+  --color-secondary: #8B008B;
+  --color-secondary-light: #BA55D3;
+  --color-secondary-dark: #4B0082;
+
+  /* Accent colors - Spooky highlights */
+  --color-accent-yellow: #FFC800;
+  --color-accent-orange: #FF6600;
+  --color-accent-green: #39FF14;
+  --color-accent-red: #FF0000;
+
+  /* Neutral colors - Deep blacks and ghostly whites */
+  --color-neutral-text: #E8E8E8;
+  --color-neutral-text-muted: #B0B0B0;
+  --color-neutral-bg: #0D0D0D;
+  --color-neutral-surface: #1A1A1A;
+  --color-neutral-surface-dark: #2D2D2D;
+  --color-neutral-border: #3D0000;
+
+  /* Code block colors - Dark with blood accents */
+  --color-code-bg: #0a0a0a;
+  --color-code-text: #E8E8E8;
+  --color-code-keyword: #FF6B6B;
+  --color-code-string: #39FF14;
+  --color-code-comment: #666666;
+  --color-code-function: #BA55D3;
+  --color-code-number: #FF6600;
+
+  /* Shadows with red/purple tints for eerie atmosphere */
+  --shadow-soft: 0 4px 12px rgba(139, 0, 0, 0.4);
+  --shadow-tile: 0 6px 16px rgba(139, 0, 0, 0.5);
+  --shadow-tile-hover: 0 8px 20px rgba(139, 0, 139, 0.6);
+  --shadow-button: 0 4px 0 rgba(139, 0, 0, 0.5);
+  --shadow-button-hover: 0 6px 0 rgba(139, 0, 139, 0.5);
+
+  /* Horror-specific decoration variables */
+  --horror-glow-color: rgba(220, 20, 60, 0.3);
+  --horror-fog-color: rgba(139, 0, 139, 0.1);
+  --horror-blood-drip-color: #8B0000;
+  --horror-ghost-color: rgba(232, 232, 232, 0.1);
+}
+
 * {
   transition: var(--transition-theme);
+}
+
+/* Horror theme typography application */
+.theme-horror h1,
+.theme-horror h2,
+.theme-horror h3,
+.theme-horror h4,
+.theme-horror h5,
+.theme-horror h6 {
+  font-family: var(--font-horror-display);
+  letter-spacing: 0.05em;
+}
+
+.theme-horror .horror-accent-text {
+  font-family: var(--font-horror-accent);
+}
+
+/* Ensure body text remains readable with slightly eerie feel */
+.theme-horror body,
+.theme-horror p,
+.theme-horror span,
+.theme-horror li,
+.theme-horror td,
+.theme-horror th,
+.theme-horror label,
+.theme-horror input,
+.theme-horror textarea,
+.theme-horror select,
+.theme-horror button {
+  font-family: var(--font-horror-body);
+}
+
+/* Horror Logo Styles */
+.theme-horror {
+  --horror-blood: #DC143C;
+  --horror-blood-dark: #8B0000;
+}
+
+.theme-horror .horror-logo {
+  position: relative;
+}
+
+.theme-horror .horror-logo-image {
+  transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+.theme-horror .horror-logo:hover .horror-logo-image {
+  filter: hue-rotate(-30deg) saturate(2) brightness(1.1);
+  transform: scale(1.05);
+}
+
+.theme-horror .horror-logo-text {
+  font-family: var(--font-horror-display);
+  transition: text-shadow 0.3s ease;
+}
+
+.theme-horror .horror-logo:hover .horror-logo-text {
+  text-shadow: 0 0 15px var(--horror-blood-dark), 0 0 25px var(--horror-blood), 2px 2px 4px rgba(0,0,0,0.7);
+}
+
+/* Blood drip animation for logo */
+.theme-horror .horror-drip-svg {
+  opacity: 0.8;
+}
+
+.theme-horror .horror-drip-1 {
+  animation: drip-1 3s ease-in-out infinite;
+}
+
+.theme-horror .horror-drip-2 {
+  animation: drip-2 4s ease-in-out infinite 0.5s;
+}
+
+.theme-horror .horror-drip-3 {
+  animation: drip-3 3.5s ease-in-out infinite 1s;
+}
+
+@keyframes drip-1 {
+  0%, 100% { transform: translateY(0); opacity: 0.8; }
+  50% { transform: translateY(3px); opacity: 1; }
+}
+
+@keyframes drip-2 {
+  0%, 100% { transform: translateY(0); opacity: 0.8; }
+  50% { transform: translateY(5px); opacity: 1; }
+}
+
+@keyframes drip-3 {
+  0%, 100% { transform: translateY(0); opacity: 0.8; }
+  50% { transform: translateY(2px); opacity: 1; }
+}
+
+/* ============================================
+   HORROR BLOOD DRIP EFFECT
+   ============================================ */
+
+/* Blood drip animation keyframes */
+@keyframes blood-drip {
+  0% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  10% {
+    transform: scaleY(0.3);
+    opacity: 0.8;
+  }
+  30% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  60% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  80% {
+    transform: scaleY(0.8);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+}
+
+@keyframes blood-drip-slow {
+  0%, 100% {
+    transform: scaleY(0.7) translateY(0);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scaleY(1) translateY(2px);
+    opacity: 1;
+  }
+}
+
+/* Blood drip container - applies to buttons and cards in horror theme */
+.theme-horror .horror-blood-drip {
+  position: relative;
+  overflow: visible;
+}
+
+.theme-horror .horror-blood-drip::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 15%;
+  width: 8px;
+  height: 12px;
+  background: linear-gradient(to bottom, var(--horror-blood-drip-color) 0%, #4A0000 100%);
+  border-radius: 0 0 50% 50%;
+  transform-origin: top center;
+  transform: scaleY(0);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.theme-horror .horror-blood-drip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 25%;
+  width: 6px;
+  height: 10px;
+  background: linear-gradient(to bottom, var(--horror-blood-drip-color) 0%, #4A0000 100%);
+  border-radius: 0 0 50% 50%;
+  transform-origin: top center;
+  transform: scaleY(0);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Animate blood drips on hover */
+.theme-horror .horror-blood-drip:hover::before {
+  animation: blood-drip 2s ease-in-out infinite;
+}
+
+.theme-horror .horror-blood-drip:hover::after {
+  animation: blood-drip 2.5s ease-in-out infinite 0.3s;
+}
+
+/* Static blood drip variant (always visible) */
+.theme-horror .horror-blood-drip-static::before,
+.theme-horror .horror-blood-drip-static::after {
+  transform: scaleY(1);
+  opacity: 0.8;
+  animation: blood-drip-slow 3s ease-in-out infinite;
+}
+
+.theme-horror .horror-blood-drip-static::after {
+  animation-delay: 0.5s;
+}
+
+/* Button-specific blood drip styling */
+.theme-horror button.horror-blood-drip,
+.theme-horror .btn.horror-blood-drip {
+  border-bottom: 2px solid var(--horror-blood-drip-color);
+}
+
+/* Card-specific blood drip styling */
+.theme-horror .card.horror-blood-drip {
+  border-top: 3px solid var(--horror-blood-drip-color);
+}
+
+.theme-horror .card.horror-blood-drip::before {
+  left: 10%;
+  width: 10px;
+  height: 16px;
+}
+
+.theme-horror .card.horror-blood-drip::after {
+  right: 20%;
+  width: 8px;
+  height: 14px;
+}
+
+/* Third drip for cards (using a wrapper element) */
+.theme-horror .horror-blood-drip-extra {
+  position: relative;
+}
+
+.theme-horror .horror-blood-drip-extra::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 7px;
+  height: 11px;
+  background: linear-gradient(to bottom, var(--horror-blood-drip-color) 0%, #4A0000 100%);
+  border-radius: 0 0 50% 50%;
+  transform-origin: top center;
+  transform: scaleY(0);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.theme-horror .horror-blood-drip-extra:hover::before {
+  animation: blood-drip 2.2s ease-in-out infinite 0.6s;
+}
+
+/* ============================================
+   HORROR GLITCH/FLICKER ANIMATION
+   ============================================ */
+
+/* Glitch animation keyframes */
+@keyframes horror-glitch {
+  0% {
+    transform: translate(0);
+    opacity: 1;
+  }
+  2% {
+    transform: translate(-2px, 1px);
+    opacity: 0.8;
+  }
+  4% {
+    transform: translate(2px, -1px);
+    opacity: 1;
+  }
+  6% {
+    transform: translate(-1px, 2px);
+    opacity: 0.9;
+  }
+  8% {
+    transform: translate(1px, -2px);
+    opacity: 1;
+  }
+  10%, 100% {
+    transform: translate(0);
+    opacity: 1;
+  }
+}
+
+@keyframes horror-flicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  3% {
+    opacity: 0.4;
+  }
+  6% {
+    opacity: 1;
+  }
+  7% {
+    opacity: 0.6;
+  }
+  8% {
+    opacity: 1;
+  }
+  9% {
+    opacity: 0.8;
+  }
+  10% {
+    opacity: 1;
+  }
+}
+
+@keyframes horror-text-glitch {
+  0% {
+    text-shadow: 2px 0 var(--color-primary), -2px 0 var(--color-secondary);
+    transform: translate(0);
+  }
+  2% {
+    text-shadow: -2px 0 var(--color-primary), 2px 0 var(--color-secondary);
+    transform: translate(2px, 0);
+  }
+  4% {
+    text-shadow: 2px 0 var(--color-primary), -2px 0 var(--color-secondary);
+    transform: translate(-2px, 0);
+  }
+  6% {
+    text-shadow: 0 2px var(--color-primary), 0 -2px var(--color-secondary);
+    transform: translate(0, 2px);
+  }
+  8% {
+    text-shadow: 2px 0 var(--color-primary), -2px 0 var(--color-secondary);
+    transform: translate(0);
+  }
+  10%, 100% {
+    text-shadow: none;
+    transform: translate(0);
+  }
+}
+
+/* Glitch effect class - apply to interactive elements */
+.theme-horror .horror-glitch {
+  position: relative;
+}
+
+.theme-horror .horror-glitch:hover {
+  animation: horror-glitch 0.5s ease-in-out;
+}
+
+/* Flicker effect class */
+.theme-horror .horror-flicker:hover {
+  animation: horror-flicker 0.3s ease-in-out;
+}
+
+/* Text glitch effect */
+.theme-horror .horror-text-glitch:hover {
+  animation: horror-text-glitch 0.4s ease-in-out;
+}
+
+/* Combined glitch + flicker for intense effect */
+.theme-horror .horror-glitch-intense:hover {
+  animation: horror-glitch 0.3s ease-in-out, horror-flicker 0.3s ease-in-out;
+}
+
+/* Subtle continuous glitch for background elements */
+@keyframes horror-glitch-subtle {
+  0%, 95%, 100% {
+    transform: translate(0);
+    filter: none;
+  }
+  96% {
+    transform: translate(-1px, 0);
+    filter: hue-rotate(10deg);
+  }
+  97% {
+    transform: translate(1px, 0);
+    filter: hue-rotate(-10deg);
+  }
+  98% {
+    transform: translate(0, 1px);
+    filter: none;
+  }
+}
+
+.theme-horror .horror-glitch-continuous {
+  animation: horror-glitch-subtle 5s ease-in-out infinite;
+}
+
+/* ============================================
+   RESPECT REDUCED MOTION PREFERENCE
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-horror .horror-drip-1,
+  .theme-horror .horror-drip-2,
+  .theme-horror .horror-drip-3 {
+    animation: none;
+  }
+  
+  .theme-horror .horror-logo-image,
+  .theme-horror .horror-logo-text {
+    transition: none;
+  }
+
+  /* Disable blood drip animations */
+  .theme-horror .horror-blood-drip::before,
+  .theme-horror .horror-blood-drip::after,
+  .theme-horror .horror-blood-drip-static::before,
+  .theme-horror .horror-blood-drip-static::after,
+  .theme-horror .horror-blood-drip-extra::before {
+    animation: none;
+    transform: scaleY(0.8);
+    opacity: 0.6;
+  }
+
+  /* Disable glitch/flicker animations */
+  .theme-horror .horror-glitch:hover,
+  .theme-horror .horror-flicker:hover,
+  .theme-horror .horror-text-glitch:hover,
+  .theme-horror .horror-glitch-intense:hover,
+  .theme-horror .horror-glitch-continuous {
+    animation: none;
+  }
+}
+
+
+/* ============================================
+   HORROR SIDEBAR DECORATIONS
+   ============================================ */
+
+/* Horror sidebar base styling */
+.theme-horror .horror-sidebar {
+  position: relative;
+  background: linear-gradient(180deg, var(--color-neutral-bg) 0%, #0a0a0a 100%);
+  border-color: var(--horror-blood-drip-color);
+}
+
+/* Horror sidebar bat decoration */
+.theme-horror .horror-sidebar-bat {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.theme-horror .horror-sidebar:hover .horror-sidebar-bat {
+  transform: translateY(-2px) rotate(-5deg);
+  opacity: 0.6;
+}
+
+/* Horror sidebar skull decoration */
+.theme-horror .horror-sidebar-skull {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.theme-horror .horror-sidebar:hover .horror-sidebar-skull {
+  transform: scale(1.1);
+  opacity: 0.4;
+}
+
+/* Horror sidebar drip animation */
+@keyframes sidebar-drip {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.2;
+  }
+  90% {
+    opacity: 0.1;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+.theme-horror .horror-sidebar-drip {
+  animation: sidebar-drip 8s ease-in-out infinite;
+}
+
+/* Horror color utility classes */
+.theme-horror .text-horror-blood {
+  color: var(--horror-blood, #DC143C);
+}
+
+.theme-horror .text-horror-ghost {
+  color: var(--color-neutral-text);
+}
+
+.theme-horror .bg-horror-blood {
+  background-color: var(--horror-blood, #DC143C);
+}
+
+/* Horror header styling for mobile */
+.theme-horror .horror-header {
+  background: linear-gradient(90deg, var(--color-neutral-bg) 0%, #0a0a0a 50%, var(--color-neutral-bg) 100%);
+  border-color: var(--horror-blood-drip-color);
+}
+
+/* Horror nav styling for mobile */
+.theme-horror .horror-nav {
+  background: linear-gradient(0deg, var(--color-neutral-bg) 0%, #0a0a0a 100%);
+  border-color: var(--horror-blood-drip-color);
+}
+
+/* Respect reduced motion for sidebar decorations */
+@media (prefers-reduced-motion: reduce) {
+  .theme-horror .horror-sidebar-bat,
+  .theme-horror .horror-sidebar-skull {
+    transition: none;
+  }
+  
+  .theme-horror .horror-sidebar-drip {
+    animation: none;
+    opacity: 0.15;
+  }
 }
