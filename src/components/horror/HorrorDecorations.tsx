@@ -2,6 +2,7 @@ import { useHorrorTheme } from '../../hooks/useHorrorTheme';
 import { Cobweb } from './Cobweb';
 import { FogEffect } from './FogEffect';
 import { FloatingBats } from './FloatingBats';
+import { Ghost } from './Ghost';
 
 interface HorrorDecorationsProps {
   children?: React.ReactNode;
@@ -10,7 +11,7 @@ interface HorrorDecorationsProps {
 /**
  * Wrapper component that renders horror-specific decorative elements.
  * Only renders decorations when the horror theme is active.
- * Combines Cobweb, FogEffect, and FloatingBats components.
+ * Combines Cobweb, FogEffect, FloatingBats, and Ghost components.
  */
 export function HorrorDecorations({ children }: HorrorDecorationsProps) {
   const { isHorror } = useHorrorTheme();
@@ -24,15 +25,18 @@ export function HorrorDecorations({ children }: HorrorDecorationsProps) {
     <>
       {/* Fog effect in background */}
       <FogEffect intensity="light" />
-      
+
       {/* Cobwebs in corners */}
       <Cobweb position="top-left" size="lg" opacity={0.5} />
       <Cobweb position="top-right" size="md" opacity={0.4} />
       <Cobweb position="bottom-left" size="sm" opacity={0.3} />
-      
+
       {/* Floating bats */}
       <FloatingBats count={4} />
-      
+
+      {/* Occasional ghost */}
+      <Ghost />
+
       {children}
     </>
   );

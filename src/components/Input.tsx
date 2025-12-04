@@ -12,7 +12,7 @@ export function Input({ label, error, className = '', labelClassName = '', ...pr
 
   // Horror theme applies blood-red focus states and eerie styling
   const horrorInputStyles = isHorror
-    ? 'focus:border-[var(--horror-blood-drip-color)] focus:shadow-[0_0_15px_rgba(139,0,0,0.4)] placeholder:text-neutral-text-muted/70 border-[var(--color-neutral-border)]'
+    ? `focus:border-[var(--horror-blood-drip-color)] focus:shadow-[0_0_15px_rgba(139,0,0,0.4)] placeholder:text-neutral-text-muted/70 border-[var(--color-neutral-border)] ${error ? 'animate-[horror-shake_0.5s_ease-in-out]' : ''}`
     : '';
 
   const horrorLabelStyles = isHorror

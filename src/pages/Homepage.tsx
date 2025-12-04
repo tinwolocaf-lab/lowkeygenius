@@ -155,7 +155,7 @@ export function Homepage() {
               </h1>
 
               <p className="font-body text-xl text-neutral-text-muted mb-8 max-w-2xl mx-auto leading-relaxed">
-                {isHorror 
+                {isHorror
                   ? 'Abandon scattered learning. Progent is your dark guide to summoning grimoires, mastering forbidden arts, and building an interconnected web of arcane knowledge.'
                   : 'Stop learning from scattered sources. Progent is the professional agent that helps you create courses, learn independently, and build a connected knowledge base using AI.'
                 }
@@ -228,7 +228,7 @@ export function Homepage() {
                 )}
                 {isVideoInView && (
                   <video
-                    src="/videos/Mascot_Animation_Video_Generation.mp4"
+                    src="/videos/scary-curious.mp4"
                     autoPlay
                     loop
                     muted
@@ -298,7 +298,7 @@ export function Homepage() {
                 )}
                 {isAudioVideoInView && (
                   <video
-                    src="/videos/Mascot_Listening_To_Knowledge_Animation.mp4"
+                    src="/videos/scary.mp4"
                     autoPlay
                     loop
                     muted
@@ -321,7 +321,7 @@ export function Homepage() {
               {isHorror ? 'More Than Just Dark Magic' : 'More Than Just a Chatbot'}
             </h2>
             <p className="font-body text-xl text-neutral-text-muted max-w-2xl mx-auto">
-              {isHorror 
+              {isHorror
                 ? 'Progent is a complete arcane academy designed for mastery of forbidden arts.'
                 : 'Progent is a complete learning platform designed for mastery, not just quick answers.'
               }
@@ -488,7 +488,7 @@ export function Homepage() {
             {isHorror ? 'Ready to Embrace the Darkness?' : 'Ready to Start Learning?'}
           </h2>
           <p className="font-body text-xl text-white/90 mb-10 max-w-2xl mx-auto">
-            {isHorror 
+            {isHorror
               ? 'Join the coven of seekers summoning forbidden knowledge with dark AI. Begin your first grimoire today.'
               : 'Join thousands of learners creating personalized courses with AI. Start your first course free today.'
             }

@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { HorrorLogo } from './horror/HorrorLogo';
 
 export function PublicFooter() {
   const navigate = useNavigate();
@@ -7,8 +8,8 @@ export function PublicFooter() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div className="space-y-3">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/') }>
-              <img src="/logo-full.png" alt="Progent" className="w-32 h-auto object-contain" />
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+              <HorrorLogo showText={true} size="lg" />
             </div>
             <p className="font-body text-sm text-neutral-text-muted">
               Progent builds personalized, structured courses with audio, quizzes, and tracking.

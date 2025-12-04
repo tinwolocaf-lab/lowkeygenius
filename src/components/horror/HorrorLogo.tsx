@@ -31,10 +31,10 @@ export function HorrorLogo({ size = 'md', showText = false, className = '' }: Ho
     // Return regular logo when not in horror theme
     return (
       <div className={`flex items-center gap-3 ${className}`}>
-        <img 
-          src="/logo.png" 
-          alt="Progent" 
-          className={`object-contain ${sizeConfig.icon}`} 
+        <img
+          src="/logo.png"
+          alt="Progent"
+          className={`object-contain ${sizeConfig.icon}`}
         />
         {showText && (
           <span className={`font-display font-bold text-primary ${sizeConfig.text}`}>
@@ -49,14 +49,14 @@ export function HorrorLogo({ size = 'md', showText = false, className = '' }: Ho
     <div className={`flex items-center gap-3 horror-logo ${className}`}>
       {/* Horror logo using dedicated SVG asset */}
       <div className="horror-logo-icon relative">
-        <img 
-          src="/logo-horror.svg" 
-          alt="Progent Horror" 
+        <img
+          src="/logo-horror.png"
+          alt="Progent Horror"
           className={`object-contain ${sizeConfig.icon} horror-logo-image`}
         />
-        
+
         {/* Subtle glow effect */}
-        <div 
+        <div
           className="absolute inset-0 rounded-full opacity-30 pointer-events-none"
           style={{
             boxShadow: '0 0 15px var(--horror-blood, #DC143C)',
@@ -65,7 +65,7 @@ export function HorrorLogo({ size = 'md', showText = false, className = '' }: Ho
       </div>
 
       {showText && (
-        <span 
+        <span
           className={`font-horror-display font-bold ${sizeConfig.text} horror-logo-text`}
           style={{
             color: 'var(--horror-blood, #DC143C)',
