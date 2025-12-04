@@ -1,4 +1,6 @@
 import './LegalPages.css';
+import { PublicHeader } from '../components/PublicHeader';
+import { PublicFooter } from '../components/PublicFooter';
 
 const sections = [
   {
@@ -34,7 +36,7 @@ const sections = [
   {
     title: '7. Your Choices',
     content:
-      'You can update profile information, manage marketing preferences, and request access or deletion of your data by contacting support@progent.ai. Verification may be required.',
+      'You can update profile information, manage marketing preferences, and request access or deletion of your data by contacting contact@progent.study. Verification may be required.',
   },
   {
     title: '8. International Transfers',
@@ -53,27 +55,31 @@ const sections = [
   },
   {
     title: '11. Contact',
-    content: 'For privacy questions or requests, contact support@progent.ai.',
+    content: 'For privacy questions or requests, contact contact@progent.study.',
   },
 ];
 
 export function PrivacyPolicy() {
   return (
-    <div className="legal-container">
-      <div className="legal-card">
-        <h1 className="legal-title">Privacy Policy</h1>
-        <p className="legal-intro">
-          This Privacy Policy explains how Progent collects, uses, and protects your information.
-        </p>
-        <div className="legal-sections">
-          {sections.map((section) => (
-            <section key={section.title} className="legal-section">
-              <h2 className="legal-section-title">{section.title}</h2>
-              <p className="legal-section-body">{section.content}</p>
-            </section>
-          ))}
+    <>
+      <PublicHeader />
+      <div className="legal-container">
+        <div className="legal-card">
+          <h1 className="legal-title">Privacy Policy</h1>
+          <p className="legal-intro">
+            This Privacy Policy explains how Progent collects, uses, and protects your information.
+          </p>
+          <div className="legal-sections">
+            {sections.map((section) => (
+              <section key={section.title} className="legal-section">
+                <h2 className="legal-section-title">{section.title}</h2>
+                <p className="legal-section-body">{section.content}</p>
+              </section>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+      <PublicFooter />
+    </>
   );
 }

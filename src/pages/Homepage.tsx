@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Headphones, ArrowRight, CheckCircle2, Target, Brain, Layers, Share2, Star } from 'lucide-react';
 import { PublicHeader } from '../components/PublicHeader';
 import { Button } from '../components/Button';

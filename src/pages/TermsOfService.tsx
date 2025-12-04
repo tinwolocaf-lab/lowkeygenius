@@ -1,4 +1,6 @@
 import './LegalPages.css';
+import { PublicHeader } from '../components/PublicHeader';
+import { PublicFooter } from '../components/PublicFooter';
 
 const sections = [
   {
@@ -63,27 +65,31 @@ const sections = [
   },
   {
     title: '13. Contact',
-    content: 'For questions about these Terms, contact us at support@progent.ai.',
+    content: 'For questions about these Terms, contact us at contact@progent.study.',
   },
 ];
 
 export function TermsOfService() {
   return (
-    <div className="legal-container">
-      <div className="legal-card">
-        <h1 className="legal-title">Terms of Service</h1>
-        <p className="legal-intro">
-          Welcome to Progent. These Terms of Service govern your use of the platform.
-        </p>
-        <div className="legal-sections">
-          {sections.map((section) => (
-            <section key={section.title} className="legal-section">
-              <h2 className="legal-section-title">{section.title}</h2>
-              <p className="legal-section-body">{section.content}</p>
-            </section>
-          ))}
+    <>
+      <PublicHeader />
+      <div className="legal-container">
+        <div className="legal-card">
+          <h1 className="legal-title">Terms of Service</h1>
+          <p className="legal-intro">
+            Welcome to Progent. These Terms of Service govern your use of the platform.
+          </p>
+          <div className="legal-sections">
+            {sections.map((section) => (
+              <section key={section.title} className="legal-section">
+                <h2 className="legal-section-title">{section.title}</h2>
+                <p className="legal-section-body">{section.content}</p>
+              </section>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+      <PublicFooter />
+    </>
   );
 }
