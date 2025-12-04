@@ -9,7 +9,12 @@
     @apply font-body text-neutral-text antialiased;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-display;
   }
 }
@@ -24,6 +29,7 @@
       opacity: 0;
       transform: translateY(10px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -39,6 +45,7 @@
       opacity: 0;
       transform: translateY(20px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -54,6 +61,7 @@
       opacity: 0;
       transform: scale(0.8);
     }
+
     to {
       opacity: 1;
       transform: scale(1);
@@ -65,9 +73,12 @@
   }
 
   @keyframes bounceSoft {
-    0%, 100% {
+
+    0%,
+    100% {
       transform: translateY(0);
     }
+
     50% {
       transform: translateY(-10px);
     }
@@ -82,6 +93,7 @@
       transform: translateY(0) rotate(0deg);
       opacity: 1;
     }
+
     100% {
       transform: translateY(120vh) rotate(720deg);
       opacity: 0;
@@ -96,6 +108,7 @@
     from {
       width: 0;
     }
+
     to {
       width: 100%;
     }
@@ -378,5 +391,25 @@
 
   .mermaid-diagram-content .messageText {
     font-size: 13px !important;
+  }
+}
+
+/* Horror Theme Specifics */
+@layer components {
+  .horror-bg {
+    @apply bg-neutral-950;
+    background-image: radial-gradient(circle at center, #2a0a0a 0%, #000000 100%);
+  }
+
+  .horror-card {
+    @apply bg-black/80 backdrop-blur-md border border-red-900/50 shadow-2xl shadow-red-900/20;
+  }
+
+  .horror-input {
+    @apply bg-black/50 border-red-900/30 text-red-100 placeholder-red-900/50 focus:border-red-600 focus:ring-red-900/20;
+  }
+
+  .horror-text-shadow {
+    text-shadow: 0 0 10px rgba(220, 38, 38, 0.5);
   }
 }

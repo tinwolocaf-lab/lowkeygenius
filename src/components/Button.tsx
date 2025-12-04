@@ -2,7 +2,7 @@ import React from 'react';
 import { useHorrorTheme } from '../hooks/useHorrorTheme';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'success' | 'warning';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'success' | 'warning' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   children: React.ReactNode;
 }
@@ -25,6 +25,7 @@ export function Button({
     ghost: 'bg-transparent text-primary hover:bg-primary-light/30',
     success: 'bg-accent-green text-white hover:brightness-110 shadow-button hover:shadow-button-hover',
     warning: 'bg-accent-yellow text-neutral-text hover:brightness-110 shadow-button hover:shadow-button-hover',
+    danger: 'bg-accent-red text-white hover:brightness-110 shadow-button hover:shadow-button-hover',
   };
 
   const sizeStyles = {

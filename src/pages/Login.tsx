@@ -44,11 +44,16 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-bg flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className={`min-h-screen flex items-center justify-center p-4 ${isHorror ? 'horror-bg' : 'bg-neutral-bg'}`}>
+      {/* Overlay for horror mode to darken background if needed */}
+      {isHorror && <div className="absolute inset-0 bg-black/40 pointer-events-none" />}
+
+      <div className="w-full max-w-md relative z-10">
         <div className="flex justify-center mb-8">
           {isHorror ? (
-            <HorrorLogo size="lg" />
+            <div className="transform hover:scale-105 transition-transform duration-300">
+              <HorrorLogo size="lg" />
+            </div>
           ) : (
             <div className="flex items-center gap-3">
               <div className="p-2">
@@ -59,11 +64,11 @@ export function Login() {
           )}
         </div>
 
-        <Card className={isHorror ? 'horror-blood-drip-static' : ''}>
-          <h2 className={`font-display text-display-md text-neutral-text mb-2 text-center ${isHorror ? 'horror-text-glitch' : ''}`}>
-            {isHorror ? 'Return to the Darkness...' : 'Welcome back!'}
+        <Card className={isHorror ? 'horror-card border-red-900/50' : ''}>
+          <h2 className={`font-display text-display-md text-neutral-text mb-2 text-center ${isHorror ? 'text-red-500 horror-text-shadow tracking-wider' : ''}`}>
+            {isHorror ? 'RETURN TO DARKNESS' : 'Welcome back!'}
           </h2>
-          <p className="font-body text-body-lg text-neutral-text-muted mb-8 text-center">
+          <p className={`font-body text-body-lg mb-8 text-center ${isHorror ? 'text-red-200/70' : 'text-neutral-text-muted'}`}>
             {isHorror ? 'Enter your credentials to continue your dark studies' : 'Sign in to continue learning'}
           </p>
 
@@ -75,6 +80,8 @@ export function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              className={isHorror ? 'horror-input' : ''}
+              labelClassName={isHorror ? 'text-red-200/80' : ''}
             />
 
             <Input
@@ -84,44 +91,48 @@ export function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              className={isHorror ? 'horror-input' : ''}
+              labelClassName={isHorror ? 'text-red-200/80' : ''}
             />
 
             {error && (
-              <div className="bg-accent-red/10 border-2 border-accent-red/30 rounded-2xl p-4">
-                <p className="text-sm text-accent-red font-body font-semibold">{error}</p>
+              <div className={`${isHorror ? 'bg-red-950/50 border-red-800/50' : 'bg-accent-red/10 border-accent-red/30'} border-2 rounded-2xl p-4`}>
+                <p className={`text-sm font-body font-semibold ${isHorror ? 'text-red-400' : 'text-accent-red'}`}>{error}</p>
               </div>
             )}
 
             <Button
               type="submit"
-              variant="primary"
+              variant={isHorror ? 'danger' : 'primary'}
               size="lg"
-              className={`w-full ${isHorror ? 'horror-blood-drip horror-glitch' : ''}`}
+              className={`w-full ${isHorror ? 'horror-blood-drip horror-glitch bg-red-900 hover:bg-red-800 border-red-950' : ''}`}
               disabled={loading}
             >
-              {loading ? (isHorror ? 'Opening the portal...' : 'Signing in...') : (isHorror ? 'Enter the Realm' : 'Sign In')}
+              {loading ? (isHorror ? 'OPENING PORTAL...' : 'Signing in...') : (isHorror ? 'ENTER THE REALM' : 'Sign In')}
             </Button>
           </form>
 
           {/* Divider with "or" text */}
           <div className="flex items-center gap-4 my-6">
-            <div className="flex-1 h-px bg-neutral-border" />
-            <span className="font-body text-body-sm text-neutral-text-muted">or</span>
-            <div className="flex-1 h-px bg-neutral-border" />
+            <div className={`flex-1 h-px ${isHorror ? 'bg-red-900/30' : 'bg-neutral-border'}`} />
+            <span className={`font-body text-body-sm ${isHorror ? 'text-red-900/50' : 'text-neutral-text-muted'}`}>or</span>
+            <div className={`flex-1 h-px ${isHorror ? 'bg-red-900/30' : 'bg-neutral-border'}`} />
           </div>
 
           {/* Google Sign-In Button */}
-          <GoogleSignInButton
-            mode="signin"
-            onError={(err: AuthError) => setError(err.message)}
-          />
+          <div className={isHorror ? 'opacity-80 hover:opacity-100 transition-opacity' : ''}>
+            <GoogleSignInButton
+              mode="signin"
+              onError={(err: AuthError) => setError(err.message)}
+            />
+          </div>
 
           <div className="mt-6 text-center">
-            <p className="font-body text-neutral-text-muted">
+            <p className={`font-body ${isHorror ? 'text-red-200/60' : 'text-neutral-text-muted'}`}>
               {isHorror ? 'New to the darkness?' : "Don't have an account?"}{' '}
               <button
                 onClick={() => navigate('/signup')}
-                className={`text-primary font-bold hover:underline ${isHorror ? 'horror-flicker' : ''}`}
+                className={`font-bold hover:underline ${isHorror ? 'text-red-500 hover:text-red-400 horror-flicker' : 'text-primary'}`}
               >
                 {isHorror ? 'Join the coven' : 'Sign up'}
               </button>
