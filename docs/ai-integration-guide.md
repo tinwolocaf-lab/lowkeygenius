@@ -1151,7 +1151,7 @@ export function GenerateAudioScreen() {
 ```typescript
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { Audio } from 'expo-av';
+import { Audio } from 'expo-video';
 import { Headphones, Play, Pause } from '../components/icons';
 
 export function CourseViewScreen() {

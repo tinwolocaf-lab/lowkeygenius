@@ -512,8 +512,8 @@ export function Homepage() {
             <div>
               <h4 className="font-display font-bold mb-4 text-neutral-text">Legal</h4>
               <ul className="space-y-2 font-body text-sm text-neutral-text-muted">
-                <li><a href="#" className="hover:text-neutral-text transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-neutral-text transition-colors">Terms of Service</a></li>
+                <li><Link to="/privacy" className="hover:text-neutral-text transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="hover:text-neutral-text transition-colors">Terms of Service</Link></li>
               </ul>
             </div>
           </div>

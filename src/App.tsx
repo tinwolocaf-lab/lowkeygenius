@@ -22,6 +22,8 @@ import CheckoutCancel from './pages/CheckoutCancel';
 import { LessonPreview } from './pages/LessonPreview';
 import { GenerateAudio } from './pages/GenerateAudio';
 import { Marketplace } from './pages/Marketplace';
+import { TermsOfService } from './pages/TermsOfService';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PublicRoute } from './components/PublicRoute';
 import { VerifyEmailPending } from './pages/VerifyEmailPending';
@@ -134,6 +136,8 @@ function App() {
 
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/checkout/cancel" element={<CheckoutCancel />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
 
           <Route
             path="/onboarding"
