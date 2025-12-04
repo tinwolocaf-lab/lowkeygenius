@@ -397,12 +397,45 @@
 /* Horror Theme Specifics */
 @layer components {
   .horror-bg {
-    @apply bg-neutral-950;
-    background-image: radial-gradient(circle at center, #2a0a0a 0%, #000000 100%);
+    @apply bg-neutral-950 relative overflow-hidden;
+    background-image:
+      radial-gradient(circle at 14% 18%, rgba(220, 38, 38, 0.25), transparent 32%),
+      radial-gradient(circle at 80% 12%, rgba(109, 40, 217, 0.2), transparent 30%),
+      radial-gradient(circle at center, #1a0000 0%, #000000 85%);
+    background-attachment: fixed;
+  }
+
+  .horror-bg::before {
+    content: '';
+    position: absolute;
+    inset: -10%;
+    background-image:
+      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(0deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0, rgba(255, 255, 255, 0.05) 2px, transparent 2px, transparent 6px);
+    background-size: 120px 120px, 120px 120px, 16px 16px;
+    opacity: 0.08;
+    mix-blend-mode: screen;
+    pointer-events: none;
+    z-index: 0;
   }
 
   .horror-card {
     @apply bg-black/80 backdrop-blur-md border border-red-900/50 shadow-2xl shadow-red-900/20;
+  }
+
+  .horror-photo-frame {
+    @apply relative overflow-hidden rounded-3xl border;
+    border-color: var(--horror-blood-drip-color);
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.55), 0 0 25px rgba(139, 0, 139, 0.35);
+  }
+
+  .horror-photo-frame::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.35));
+    pointer-events: none;
   }
 
   .horror-input {
@@ -411,5 +444,13 @@
 
   .horror-text-shadow {
     text-shadow: 0 0 10px rgba(220, 38, 38, 0.5);
+  }
+
+  .horror-tag {
+    @apply inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs uppercase tracking-widest font-bold;
+    border-color: var(--horror-blood-drip-color);
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.22), rgba(10, 10, 10, 0.8));
+    color: var(--color-neutral-text);
+    box-shadow: 0 0 15px rgba(139, 0, 0, 0.3);
   }
 }

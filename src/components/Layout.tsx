@@ -41,7 +41,7 @@ export function Layout() {
   const isActivePath = (path: string) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-neutral-surface">
+    <div className={`min-h-screen ${isHorror ? 'horror-bg text-neutral-text' : 'bg-neutral-surface'}`}>
       <div className="hidden md:flex h-screen">
         <aside className={`relative bg-neutral-bg border-r border-neutral-border shadow-soft flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'} ${isHorror ? 'horror-sidebar' : ''}`}>
           {/* Horror sidebar decorations */}

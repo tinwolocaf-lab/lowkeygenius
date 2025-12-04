@@ -6,6 +6,7 @@ import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { AnimatedCourseDemo } from '../components/AnimatedCourseDemo';
 import { useHorrorTheme } from '../hooks/useHorrorTheme';
+import { HorrorDecorations } from '../components/horror';
 
 export function Homepage() {
   const navigate = useNavigate();
@@ -132,6 +133,8 @@ export function Homepage() {
   return (
     <div className="min-h-screen bg-neutral-surface">
       <PublicHeader />
+      {isHorror && <HorrorDecorations />}
+
 
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-neutral-surface py-12 sm:py-20 lg:py-24">
