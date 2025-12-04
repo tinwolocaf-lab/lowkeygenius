@@ -3,6 +3,7 @@ import { Check, Zap, Crown, Gift, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
+import { useHorrorTheme } from '../hooks/useHorrorTheme';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { PublicHeader } from '../components/PublicHeader';
@@ -26,6 +27,7 @@ export default function Pricing() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
   const [loading, setLoading] = useState<string | null>(null);
   const { user, profile } = useAuth();
+  const { isHorror } = useHorrorTheme();
   const navigate = useNavigate();
 
   const tiers: PricingTier[] = [
@@ -169,11 +171,11 @@ export default function Pricing() {
     <div className="py-16 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-neutral-text mb-4">
-            Choose Your Learning Adventure
+          <h1 className={`text-5xl font-bold text-neutral-text mb-4 ${isHorror ? 'horror-text-glitch' : ''}`}>
+            {isHorror ? 'Choose Your Dark Pact' : 'Choose Your Learning Adventure'}
           </h1>
           <p className="text-xl text-neutral-text-muted mb-8">
-            Start creating amazing courses with AI-powered tools
+            {isHorror ? 'Unlock forbidden knowledge with our arcane offerings' : 'Start creating amazing courses with AI-powered tools'}
           </p>
 
           <div className="inline-flex items-center bg-neutral-bg border border-neutral-border rounded-full p-1 shadow-md">
@@ -216,7 +218,7 @@ export default function Pricing() {
                   tier.highlighted
                     ? 'border-2 border-primary shadow-xl transform scale-105'
                     : ''
-                } ${current ? 'border-2 border-accent-green' : ''}`}
+                } ${current ? 'border-2 border-accent-green' : ''} ${isHorror ? 'horror-blood-drip horror-glitch' : ''}`}
               >
                 {tier.badge && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-white px-4 py-1 rounded-full text-sm font-medium">
@@ -282,11 +284,15 @@ export default function Pricing() {
           })}
         </div>
 
-        <Card className="p-8 bg-accent-yellow/10 border border-accent-yellow/30 mb-16">
+        <Card className={`p-8 border mb-16 ${isHorror ? 'bg-secondary-dark/20 border-secondary/30 horror-blood-drip-static' : 'bg-accent-yellow/10 border-accent-yellow/30'}`}>
           <div className="flex items-center gap-4 mb-4">
             <div>
-              <h3 className="text-2xl font-bold text-neutral-text">Audio Add-on</h3>
-              <p className="text-neutral-text-muted">Available as separate subscription</p>
+              <h3 className={`text-2xl font-bold text-neutral-text ${isHorror ? 'horror-flicker' : ''}`}>
+                {isHorror ? 'Voice of the Void' : 'Audio Add-on'}
+              </h3>
+              <p className="text-neutral-text-muted">
+                {isHorror ? 'Hear the whispers of forbidden knowledge' : 'Available as separate subscription'}
+              </p>
             </div>
           </div>
           <p className="text-neutral-text mb-6">
@@ -328,8 +334,8 @@ export default function Pricing() {
         </Card>
 
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-neutral-text mb-8 text-center">
-            Frequently Asked Questions
+          <h2 className={`text-3xl font-bold text-neutral-text mb-8 text-center ${isHorror ? 'horror-text-glitch' : ''}`}>
+            {isHorror ? 'Mysteries Unveiled' : 'Frequently Asked Questions'}
           </h2>
           <div className="space-y-6">
             <Card className="p-6 bg-neutral-bg">

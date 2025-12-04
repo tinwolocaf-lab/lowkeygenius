@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Headphones, ArrowRight, CheckCircle2, Target, Brain, Layers, Share2, Star } from 'lucide-react';
+import { Headphones, ArrowRight, CheckCircle2, Target, Brain, Layers, Share2, Star, Skull } from 'lucide-react';
 import { PublicHeader } from '../components/PublicHeader';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { AnimatedCourseDemo } from '../components/AnimatedCourseDemo';
+import { useHorrorTheme } from '../hooks/useHorrorTheme';
 
 export function Homepage() {
   const navigate = useNavigate();
+  const { isHorror } = useHorrorTheme();
   const [isVideoInView, setIsVideoInView] = useState(false);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [isAudioVideoInView, setIsAudioVideoInView] = useState(false);
@@ -136,14 +138,27 @@ export function Homepage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start lg:items-center">
             <div className="text-center lg:text-left order-2 lg:order-1 flex flex-col justify-center">
-              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-text mb-6 leading-tight">
-                Your Central Place for
-                <br />
-                <span className="text-primary">Continuous Growth</span>
+              <h1 className={`font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-text mb-6 leading-tight ${isHorror ? 'horror-text-glitch' : ''}`}>
+                {isHorror ? (
+                  <>
+                    Your Portal to
+                    <br />
+                    <span className="text-primary">Forbidden Knowledge</span>
+                  </>
+                ) : (
+                  <>
+                    Your Central Place for
+                    <br />
+                    <span className="text-primary">Continuous Growth</span>
+                  </>
+                )}
               </h1>
 
               <p className="font-body text-xl text-neutral-text-muted mb-8 max-w-2xl mx-auto leading-relaxed">
-                Stop learning from scattered sources. Progent is the professional agent that helps you create courses, learn independently, and build a connected knowledge base using AI.
+                {isHorror 
+                  ? 'Abandon scattered learning. Progent is your dark guide to summoning grimoires, mastering forbidden arts, and building an interconnected web of arcane knowledge.'
+                  : 'Stop learning from scattered sources. Progent is the professional agent that helps you create courses, learn independently, and build a connected knowledge base using AI.'
+                }
               </p>
 
               <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 mb-8">
@@ -151,9 +166,9 @@ export function Homepage() {
                   variant="primary"
                   size="lg"
                   onClick={() => navigate('/signup')}
-                  className="flex items-center gap-2 text-lg px-8 py-4 shadow-lg hover:shadow-xl transition-all"
+                  className={`flex items-center gap-2 text-lg px-8 py-4 shadow-lg hover:shadow-xl transition-all ${isHorror ? 'horror-blood-drip horror-glitch' : ''}`}
                 >
-                  Start Learning Free
+                  {isHorror ? 'Begin Your Dark Journey' : 'Start Learning Free'}
                   <ArrowRight className="w-5 h-5" />
                 </Button>
                 <Button
@@ -302,18 +317,21 @@ export function Homepage() {
       <section id="features" className="py-20 sm:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="font-display text-4xl sm:text-5xl font-bold text-neutral-text mb-4">
-              More Than Just a Chatbot
+            <h2 className={`font-display text-4xl sm:text-5xl font-bold text-neutral-text mb-4 ${isHorror ? 'horror-text-glitch' : ''}`}>
+              {isHorror ? 'More Than Just Dark Magic' : 'More Than Just a Chatbot'}
             </h2>
             <p className="font-body text-xl text-neutral-text-muted max-w-2xl mx-auto">
-              Progent is a complete learning platform designed for mastery, not just quick answers.
+              {isHorror 
+                ? 'Progent is a complete arcane academy designed for mastery of forbidden arts.'
+                : 'Progent is a complete learning platform designed for mastery, not just quick answers.'
+              }
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="p-8 hover:shadow-lg transition-all">
-                <div className="bg-gradient-to-br from-primary to-primary-dark text-white rounded-2xl p-4 w-16 h-16 flex items-center justify-center mb-6 shadow-soft">
+              <Card key={index} className={`p-8 hover:shadow-lg transition-all ${isHorror ? 'horror-blood-drip horror-glitch' : ''}`}>
+                <div className={`bg-gradient-to-br text-white rounded-2xl p-4 w-16 h-16 flex items-center justify-center mb-6 shadow-soft ${isHorror ? 'from-primary-dark to-primary-darker' : 'from-primary to-primary-dark'}`}>
                   {feature.icon}
                 </div>
                 <h3 className="font-display text-2xl font-bold text-neutral-text mb-3">
@@ -457,22 +475,31 @@ export function Homepage() {
         </div>
       </section>
 
-      <section className="py-20 bg-gradient-to-br from-primary to-primary-dark text-white">
+      <section className={`py-20 bg-gradient-to-br text-white ${isHorror ? 'from-primary-dark to-neutral-bg' : 'from-primary to-primary-dark'}`}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <img src="/logo.png" alt="Progent" className="w-20 h-20 mx-auto mb-6 object-contain" />
-          <h2 className="font-display text-4xl sm:text-5xl font-bold mb-6">
-            Ready to Start Learning?
+          {isHorror ? (
+            <div className="mb-6 flex justify-center">
+              <Skull className="w-20 h-20 text-primary" />
+            </div>
+          ) : (
+            <img src="/logo.png" alt="Progent" className="w-20 h-20 mx-auto mb-6 object-contain" />
+          )}
+          <h2 className={`font-display text-4xl sm:text-5xl font-bold mb-6 ${isHorror ? 'horror-text-glitch' : ''}`}>
+            {isHorror ? 'Ready to Embrace the Darkness?' : 'Ready to Start Learning?'}
           </h2>
           <p className="font-body text-xl text-white/90 mb-10 max-w-2xl mx-auto">
-            Join thousands of learners creating personalized courses with AI. Start your first course free today.
+            {isHorror 
+              ? 'Join the coven of seekers summoning forbidden knowledge with dark AI. Begin your first grimoire today.'
+              : 'Join thousands of learners creating personalized courses with AI. Start your first course free today.'
+            }
           </p>
           <Button
             variant="secondary"
             size="lg"
             onClick={() => navigate('/signup')}
-            className="flex items-center gap-2 mx-auto"
+            className={`flex items-center gap-2 mx-auto ${isHorror ? 'horror-blood-drip horror-glitch' : ''}`}
           >
-            Create Your Free Course
+            {isHorror ? 'Summon Your First Grimoire' : 'Create Your Free Course'}
             <ArrowRight className="w-5 h-5" />
           </Button>
         </div>

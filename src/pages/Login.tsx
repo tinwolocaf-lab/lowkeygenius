@@ -3,15 +3,18 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthError } from '@supabase/supabase-js';
 
 import { useAuth } from '../contexts/AuthContext';
+import { useHorrorTheme } from '../hooks/useHorrorTheme';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Card } from '../components/Card';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
+import { HorrorLogo } from '../components/horror';
 
 export function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { signIn, user } = useAuth();
+  const { isHorror } = useHorrorTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -44,20 +47,24 @@ export function Login() {
     <div className="min-h-screen bg-neutral-bg flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
-          <div className="flex items-center gap-3">
-            <div className="p-2">
-              <img src="/logo.png" alt="Progent" className="w-12 h-12 object-contain" />
+          {isHorror ? (
+            <HorrorLogo size="lg" />
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="p-2">
+                <img src="/logo.png" alt="Progent" className="w-12 h-12 object-contain" />
+              </div>
+              <h1 className="font-display text-display-lg text-primary">Progent</h1>
             </div>
-            <h1 className="font-display text-display-lg text-primary">Progent</h1>
-          </div>
+          )}
         </div>
 
-        <Card>
-          <h2 className="font-display text-display-md text-neutral-text mb-2 text-center">
-            Welcome back!
+        <Card className={isHorror ? 'horror-blood-drip-static' : ''}>
+          <h2 className={`font-display text-display-md text-neutral-text mb-2 text-center ${isHorror ? 'horror-text-glitch' : ''}`}>
+            {isHorror ? 'Return to the Darkness...' : 'Welcome back!'}
           </h2>
           <p className="font-body text-body-lg text-neutral-text-muted mb-8 text-center">
-            Sign in to continue learning
+            {isHorror ? 'Enter your credentials to continue your dark studies' : 'Sign in to continue learning'}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -89,10 +96,10 @@ export function Login() {
               type="submit"
               variant="primary"
               size="lg"
-              className="w-full"
+              className={`w-full ${isHorror ? 'horror-blood-drip horror-glitch' : ''}`}
               disabled={loading}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? (isHorror ? 'Opening the portal...' : 'Signing in...') : (isHorror ? 'Enter the Realm' : 'Sign In')}
             </Button>
           </form>
 
@@ -111,12 +118,12 @@ export function Login() {
 
           <div className="mt-6 text-center">
             <p className="font-body text-neutral-text-muted">
-              Don't have an account?{' '}
+              {isHorror ? 'New to the darkness?' : "Don't have an account?"}{' '}
               <button
                 onClick={() => navigate('/signup')}
-                className="text-primary font-bold hover:underline"
+                className={`text-primary font-bold hover:underline ${isHorror ? 'horror-flicker' : ''}`}
               >
-                Sign up
+                {isHorror ? 'Join the coven' : 'Sign up'}
               </button>
             </p>
           </div>

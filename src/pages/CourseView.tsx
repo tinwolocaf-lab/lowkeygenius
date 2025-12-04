@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ChevronRight, ChevronLeft, CheckCircle, Circle, BookOpen, Menu, X, Headphones, Volume2, PanelLeftClose, PanelLeft, History } from 'lucide-react';
+import { ArrowLeft, ChevronRight, ChevronLeft, CheckCircle, Circle, BookOpen, Menu, X, Headphones, Volume2, PanelLeftClose, PanelLeft, History, Skull } from 'lucide-react';
 import { CourseAudioPlayer } from '../components/CourseAudioPlayer';
 import { FlashcardButton } from '../components/FlashcardButton';
 import { FlashcardStudy } from '../components/FlashcardStudy';
@@ -10,6 +10,7 @@ import { QuizHistory } from '../components/QuizHistory';
 import { QuizService, QuizWithQuestions } from '../lib/quizService';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useHorrorTheme } from '../hooks/useHorrorTheme';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
@@ -66,6 +67,7 @@ export function CourseView() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { isHorror } = useHorrorTheme();
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [progress, setProgress] = useState<Progress[]>([]);
@@ -381,15 +383,17 @@ export function CourseView() {
   if (!course || lessons.length === 0) {
     return (
       <div className="min-h-screen bg-neutral-surface flex items-center justify-center p-4">
-        <Card className="max-w-md text-center">
-          <BookOpen className="w-12 h-12 text-neutral-text-muted mx-auto mb-4" />
-          <h2 className="font-display text-xl font-bold text-neutral-text mb-2">
-            No lessons available
+        <Card className={`max-w-md text-center ${isHorror ? 'horror-blood-drip-static' : ''}`}>
+          {isHorror ? <Skull className="w-12 h-12 text-primary mx-auto mb-4" /> : <BookOpen className="w-12 h-12 text-neutral-text-muted mx-auto mb-4" />}
+          <h2 className={`font-display text-xl font-bold text-neutral-text mb-2 ${isHorror ? 'horror-text-glitch' : ''}`}>
+            {isHorror ? 'No dark knowledge found' : 'No lessons available'}
           </h2>
           <p className="font-body text-neutral-text-muted mb-4">
-            This course doesn't have any lessons yet.
+            {isHorror ? 'This grimoire contains no forbidden secrets yet.' : "This course doesn't have any lessons yet."}
           </p>
-          <Button onClick={() => navigate('/courses')}>Back to Courses</Button>
+          <Button onClick={() => navigate('/courses')} className={isHorror ? 'horror-blood-drip horror-glitch' : ''}>
+            {isHorror ? 'Return to the Library' : 'Back to Courses'}
+          </Button>
         </Card>
       </div>
     );
@@ -399,19 +403,19 @@ export function CourseView() {
     <div className="min-h-screen bg-neutral-surface flex">
       {/* Sidebar */}
       <aside
-        className={`fixed md:sticky top-0 left-0 h-screen bg-neutral-bg border-r border-neutral-border shadow-tile transition-all duration-300 z-20 ${
+        className={`fixed md:sticky top-0 left-0 h-screen bg-neutral-bg border-r shadow-tile transition-all duration-300 z-20 ${
           sidebarOpen ? 'translate-x-0 w-80' : '-translate-x-full md:translate-x-0 md:w-0 md:overflow-hidden'
-        } overflow-y-auto`}
+        } overflow-y-auto ${isHorror ? 'border-primary-dark horror-sidebar' : 'border-neutral-border'}`}
       >
-        <div className="p-4 border-b-2 border-neutral-border">
+        <div className={`p-4 border-b-2 ${isHorror ? 'border-primary-dark' : 'border-neutral-border'}`}>
           <button
             onClick={() => navigate('/courses')}
-            className="flex items-center gap-2 text-neutral-text-muted hover:text-neutral-text mb-3"
+            className={`flex items-center gap-2 text-neutral-text-muted hover:text-neutral-text mb-3 ${isHorror ? 'horror-flicker' : ''}`}
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="font-body text-sm">Back to Courses</span>
+            <span className="font-body text-sm">{isHorror ? 'Return to Library' : 'Back to Courses'}</span>
           </button>
-          <h2 className="font-display text-lg font-bold text-neutral-text">{course.title}</h2>
+          <h2 className={`font-display text-lg font-bold text-neutral-text ${isHorror ? 'horror-text-glitch' : ''}`}>{course.title}</h2>
           <div className="mt-2">
             <div className="text-sm font-body text-neutral-text-muted">
               {progress.filter(p => p.completed).length} / {lessons.length} lessons completed
@@ -442,8 +446,8 @@ export function CourseView() {
             const moduleIndex = parseInt(moduleIndexStr);
             return (
               <div key={moduleIndex} className="mb-6">
-                <h3 className="font-display text-sm font-bold text-neutral-text mb-3">
-                  Module {moduleIndex + 1}: {getModuleTitle(moduleIndex)}
+                <h3 className={`font-display text-sm font-bold text-neutral-text mb-3 ${isHorror ? 'horror-flicker' : ''}`}>
+                  {isHorror ? 'Chapter' : 'Module'} {moduleIndex + 1}: {getModuleTitle(moduleIndex)}
                 </h3>
                 <div className="space-y-1">
                   {moduleLessons.map((lesson) => {
@@ -489,7 +493,7 @@ export function CourseView() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Header with Menu Button */}
-        <div className="bg-neutral-bg p-4 flex items-center justify-between border-b-2 border-neutral-border">
+        <div className={`bg-neutral-bg p-4 flex items-center justify-between border-b-2 ${isHorror ? 'border-primary-dark' : 'border-neutral-border'}`}>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 hover:bg-neutral-surface rounded-lg"
@@ -518,14 +522,14 @@ export function CourseView() {
           <div className="w-full max-w-4xl mx-auto px-4 py-6 md:p-12">
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
-                <span className="px-3 py-1 bg-primary-light text-primary rounded-full font-body font-semibold text-sm">
-                  Module {currentLesson.module_index + 1}
+                <span className={`px-3 py-1 rounded-full font-body font-semibold text-sm ${isHorror ? 'bg-primary-dark text-primary-light' : 'bg-primary-light text-primary'}`}>
+                  {isHorror ? 'Chapter' : 'Module'} {currentLesson.module_index + 1}
                 </span>
-                <span className="px-3 py-1 bg-neutral-surface text-neutral-text rounded-full font-body text-sm">
-                  Lesson {currentLesson.lesson_index + 1}
+                <span className={`px-3 py-1 rounded-full font-body text-sm ${isHorror ? 'bg-secondary-dark text-secondary-light' : 'bg-neutral-surface text-neutral-text'}`}>
+                  {isHorror ? 'Verse' : 'Lesson'} {currentLesson.lesson_index + 1}
                 </span>
               </div>
-              <h1 className="font-display text-display-lg text-neutral-text mb-4">
+              <h1 className={`font-display text-display-lg text-neutral-text mb-4 ${isHorror ? 'horror-text-glitch' : ''}`}>
                 {currentLesson.title}
               </h1>
               {currentLesson.audio_url && !showAudioPlayer && (
@@ -540,9 +544,9 @@ export function CourseView() {
                 </div>
               )}
               {currentLesson.objectives && currentLesson.objectives.length > 0 && (
-                <Card className="bg-primary-light/10 border-l-4 border-primary">
-                  <h3 className="font-display font-bold text-neutral-text mb-2">
-                    Learning Objectives
+                <Card className={`border-l-4 ${isHorror ? 'bg-primary-dark/20 border-primary horror-blood-drip' : 'bg-primary-light/10 border-primary'}`}>
+                  <h3 className={`font-display font-bold text-neutral-text mb-2 ${isHorror ? 'horror-flicker' : ''}`}>
+                    {isHorror ? 'Dark Objectives' : 'Learning Objectives'}
                   </h3>
                   <ul className="space-y-2">
                     {currentLesson.objectives.map((objective, idx) => (
@@ -603,33 +607,33 @@ export function CourseView() {
                 onContentUpdate={handleContentUpdate}
               />
             ) : (
-              <Card className="text-center py-12">
+              <Card className={`text-center py-12 ${isHorror ? 'horror-blood-drip-static' : ''}`}>
                 <p className="font-body text-neutral-text-muted">
-                  Content not available for this lesson yet.
+                  {isHorror ? 'The forbidden text has not yet been revealed...' : 'Content not available for this lesson yet.'}
                 </p>
               </Card>
             )}
 
-            <div className="mt-12 pt-8 border-t-2 border-neutral-border">
+            <div className={`mt-12 pt-8 border-t-2 ${isHorror ? 'border-primary-dark' : 'border-neutral-border'}`}>
               <div className="flex items-center justify-between">
                 <Button
                   variant="secondary"
                   onClick={() => setCurrentLessonIndex(currentLessonIndex - 1)}
                   disabled={!canGoPrev}
-                  className="flex items-center gap-2"
+                  className={`flex items-center gap-2 ${isHorror ? 'horror-glitch' : ''}`}
                 >
                   <ChevronLeft className="w-5 h-5" />
-                  Previous
+                  {isHorror ? 'Retreat' : 'Previous'}
                 </Button>
 
                 {!isLessonComplete(currentLesson.id) && (
                   <Button
                     variant="secondary"
                     onClick={markAsComplete}
-                    className="flex items-center gap-2"
+                    className={`flex items-center gap-2 ${isHorror ? 'horror-blood-drip' : ''}`}
                   >
                     <CheckCircle className="w-5 h-5" />
-                    Mark Complete
+                    {isHorror ? 'Mark Mastered' : 'Mark Complete'}
                   </Button>
                 )}
 
@@ -644,15 +648,15 @@ export function CourseView() {
                       navigate('/courses');
                     }
                   }}
-                  className="flex items-center gap-2"
+                  className={`flex items-center gap-2 ${isHorror ? 'horror-blood-drip horror-glitch' : ''}`}
                 >
                   {canGoNext ? (
                     <>
-                      Next
+                      {isHorror ? 'Proceed' : 'Next'}
                       <ChevronRight className="w-5 h-5" />
                     </>
                   ) : (
-                    'Finish Course'
+                    isHorror ? 'Complete the Ritual' : 'Finish Course'
                   )}
                 </Button>
               </div>

@@ -8,6 +8,7 @@ import { LoadingAnimation } from '../components/LoadingAnimation';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useSubscription } from '../hooks/useSubscription';
+import { useHorrorTheme } from '../hooks/useHorrorTheme';
 import { supabase } from '../lib/supabase';
 import { generateCourseOutline } from '../lib/api';
 import toast from 'react-hot-toast';
@@ -32,6 +33,7 @@ export function Onboarding() {
   const { user } = useAuth();
   const { hasProfile, extractedContext, isLoading: isProfileLoading } = useUserProfile();
   const { canCreateCourse, isLoading: isSubscriptionLoading, coursesUsed, coursesLimit, planType } = useSubscription();
+  const { isHorror } = useHorrorTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
   const [step, setStep] = useState<OnboardingStep>('welcome');
@@ -464,14 +466,16 @@ export function Onboarding() {
 
   return (
     <div className="min-h-screen bg-neutral-surface flex flex-col">
-      <header className="bg-neutral-bg border-b border-neutral-border shadow-soft p-4 flex items-center gap-4">
+      <header className={`bg-neutral-bg border-b shadow-soft p-4 flex items-center gap-4 ${isHorror ? 'border-primary-dark horror-header' : 'border-neutral-border'}`}>
         <button
           onClick={() => navigate('/dashboard')}
-          className="p-3 hover:bg-neutral-surface rounded-2xl transition-all active:scale-95"
+          className={`p-3 hover:bg-neutral-surface rounded-2xl transition-all active:scale-95 ${isHorror ? 'horror-glitch' : ''}`}
         >
           <ArrowLeft className="w-6 h-6 text-neutral-text" />
         </button>
-        <h1 className="font-display font-bold text-2xl text-neutral-text">Create Course</h1>
+        <h1 className={`font-display font-bold text-2xl text-neutral-text ${isHorror ? 'horror-text-glitch' : ''}`}>
+          {isHorror ? 'Summon Grimoire' : 'Create Course'}
+        </h1>
       </header>
 
       <div className="flex-1 overflow-y-auto">
@@ -559,7 +563,7 @@ export function Onboarding() {
       </div>
 
       {!showQuickReplies && !showAttachments && step !== 'welcome' && (
-        <div className="bg-neutral-bg border-t-2 border-neutral-border p-4 shadow-soft">
+        <div className={`bg-neutral-bg border-t-2 p-4 shadow-soft ${isHorror ? 'border-primary-dark' : 'border-neutral-border'}`}>
           <div className="max-w-4xl mx-auto flex gap-3 items-end">
             {/* Voice input button */}
             <button
@@ -599,7 +603,7 @@ export function Onboarding() {
             <button
               onClick={handleSendMessage}
               disabled={!inputValue.trim() || isRecording || isTranscribing}
-              className="p-4 bg-primary text-white rounded-2xl hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-button active:scale-95 active:translate-y-1"
+              className={`p-4 bg-primary text-white rounded-2xl hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-button active:scale-95 active:translate-y-1 ${isHorror ? 'horror-blood-drip horror-glitch' : ''}`}
             >
               <Send className="w-6 h-6" />
             </button>

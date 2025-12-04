@@ -3,15 +3,18 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthError } from '@supabase/supabase-js';
 
 import { useAuth } from '../contexts/AuthContext';
+import { useHorrorTheme } from '../hooks/useHorrorTheme';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Card } from '../components/Card';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
+import { HorrorLogo } from '../components/horror';
 
 export function Signup() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { signUp, user, isEmailVerified } = useAuth();
+  const { isHorror } = useHorrorTheme();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -55,20 +58,24 @@ export function Signup() {
     <div className="min-h-screen bg-neutral-bg flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
-          <div className="flex items-center gap-3">
-            <div className="p-2">
-              <img src="/logo.png" alt="Progent" className="w-12 h-12 object-contain" />
+          {isHorror ? (
+            <HorrorLogo size="lg" />
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="p-2">
+                <img src="/logo.png" alt="Progent" className="w-12 h-12 object-contain" />
+              </div>
+              <h1 className="font-display text-display-lg text-primary">Progent</h1>
             </div>
-            <h1 className="font-display text-display-lg text-primary">Progent</h1>
-          </div>
+          )}
         </div>
 
-        <Card>
-          <h2 className="font-display text-display-md text-neutral-text mb-2 text-center">
-            Start Learning Today
+        <Card className={isHorror ? 'horror-blood-drip-static' : ''}>
+          <h2 className={`font-display text-display-md text-neutral-text mb-2 text-center ${isHorror ? 'horror-text-glitch' : ''}`}>
+            {isHorror ? 'Join the Dark Order' : 'Start Learning Today'}
           </h2>
           <p className="font-body text-body-lg text-neutral-text-muted mb-8 text-center">
-            Create your free account and generate your first AI-powered course
+            {isHorror ? 'Create your account and summon your first forbidden grimoire' : 'Create your free account and generate your first AI-powered course'}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -109,10 +116,10 @@ export function Signup() {
               type="submit"
               variant="primary"
               size="lg"
-              className="w-full"
+              className={`w-full ${isHorror ? 'horror-blood-drip horror-glitch' : ''}`}
               disabled={loading}
             >
-              {loading ? 'Creating account...' : 'Create Account'}
+              {loading ? (isHorror ? 'Performing the ritual...' : 'Creating account...') : (isHorror ? 'Complete the Ritual' : 'Create Account')}
             </Button>
           </form>
 
@@ -131,12 +138,12 @@ export function Signup() {
 
           <div className="mt-6 text-center">
             <p className="font-body text-neutral-text-muted">
-              Already have an account?{' '}
+              {isHorror ? 'Already initiated?' : 'Already have an account?'}{' '}
               <button
                 onClick={() => navigate('/login')}
-                className="text-primary font-bold hover:underline"
+                className={`text-primary font-bold hover:underline ${isHorror ? 'horror-flicker' : ''}`}
               >
-                Sign in
+                {isHorror ? 'Return to the darkness' : 'Sign in'}
               </button>
             </p>
           </div>

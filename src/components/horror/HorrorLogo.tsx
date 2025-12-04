@@ -16,7 +16,7 @@ const sizeClasses: Record<LogoSize, { icon: string; text: string }> = {
 
 /**
  * Horror-styled variant of the Progent logo.
- * Displays a spooky version with blood drip effects and horror styling.
+ * Displays a dedicated horror logo SVG with blood drip effects and spooky styling.
  * Only renders horror styling when horror theme is active.
  * 
  * @param size - Size variant: 'sm', 'md', or 'lg'
@@ -47,39 +47,14 @@ export function HorrorLogo({ size = 'md', showText = false, className = '' }: Ho
 
   return (
     <div className={`flex items-center gap-3 horror-logo ${className}`}>
-      {/* Horror logo container with effects */}
+      {/* Horror logo using dedicated SVG asset */}
       <div className="horror-logo-icon relative">
-        {/* Main logo with horror filter */}
         <img 
-          src="/logo.png" 
-          alt="Progent" 
+          src="/logo-horror.svg" 
+          alt="Progent Horror" 
           className={`object-contain ${sizeConfig.icon} horror-logo-image`}
-          style={{
-            filter: 'hue-rotate(-30deg) saturate(1.5) brightness(0.9)',
-          }}
         />
         
-        {/* Blood drip effect overlay */}
-        <div className="horror-logo-drip absolute -bottom-1 left-1/2 -translate-x-1/2">
-          <svg 
-            width="20" 
-            height="12" 
-            viewBox="0 0 20 12" 
-            className="horror-drip-svg"
-          >
-            <defs>
-              <linearGradient id="bloodGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="var(--horror-blood-dark, #8B0000)" />
-                <stop offset="100%" stopColor="var(--horror-blood, #DC143C)" />
-              </linearGradient>
-            </defs>
-            {/* Multiple drip drops */}
-            <ellipse cx="5" cy="3" rx="2" ry="3" fill="url(#bloodGradient)" className="horror-drip-1" />
-            <ellipse cx="10" cy="5" rx="2.5" ry="5" fill="url(#bloodGradient)" className="horror-drip-2" />
-            <ellipse cx="15" cy="2" rx="1.5" ry="2" fill="url(#bloodGradient)" className="horror-drip-3" />
-          </svg>
-        </div>
-
         {/* Subtle glow effect */}
         <div 
           className="absolute inset-0 rounded-full opacity-30 pointer-events-none"

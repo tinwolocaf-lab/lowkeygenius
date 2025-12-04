@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, BookOpen, TrendingUp, Clock, AlertCircle, Crown, ImageIcon } from 'lucide-react';
+import { Plus, BookOpen, TrendingUp, Clock, AlertCircle, Crown, ImageIcon, Skull } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { useSubscription } from '../hooks/useSubscription';
+import { useHorrorTheme } from '../hooks/useHorrorTheme';
 
 interface Course {
   id: string;
@@ -55,6 +56,7 @@ export function Dashboard() {
   const navigate = useNavigate();
   const { profile, user } = useAuth();
   const subscription = useSubscription();
+  const { isHorror } = useHorrorTheme();
   const [courses, setCourses] = useState<Course[]>([]);
   const [totalCourses, setTotalCourses] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -134,19 +136,23 @@ export function Dashboard() {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <div className="mb-10">
-        <h1 className="font-display text-display-xl text-neutral-text mb-3">
-          Welcome back{profile?.full_name ? `, ${profile.full_name}` : ''}!
+        <h1 className={`font-display text-display-xl text-neutral-text mb-3 ${isHorror ? 'horror-text-glitch' : ''}`}>
+          {isHorror ? (
+            <>Welcome to the darkness{profile?.full_name ? `, ${profile.full_name}` : ''}...</>
+          ) : (
+            <>Welcome back{profile?.full_name ? `, ${profile.full_name}` : ''}!</>
+          )}
         </h1>
         <p className="font-body text-body-xl text-neutral-text-muted">
-          Ready to learn something new today?
+          {isHorror ? 'What forbidden knowledge shall we uncover?' : 'Ready to learn something new today?'}
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <Card>
+        <Card className={isHorror ? 'horror-blood-drip' : ''}>
           <div className="flex items-center gap-4">
-            <div className="bg-gradient-to-br from-primary to-primary-dark rounded-3xl p-4 shadow-soft">
-              <BookOpen className="w-7 h-7 text-white" />
+            <div className={`bg-gradient-to-br rounded-3xl p-4 shadow-soft ${isHorror ? 'from-primary-dark to-primary-darker' : 'from-primary to-primary-dark'}`}>
+              {isHorror ? <Skull className="w-7 h-7 text-white" /> : <BookOpen className="w-7 h-7 text-white" />}
             </div>
             <div>
               <p className="font-body text-sm text-neutral-text-muted font-semibold uppercase whitespace-nowrap">Current Plan</p>
@@ -155,13 +161,13 @@ export function Dashboard() {
           </div>
         </Card>
 
-        <Card className={subscription.coursesUsed >= subscription.coursesLimit ? 'border-2 border-red-500' : ''}>
+        <Card className={`${subscription.coursesUsed >= subscription.coursesLimit ? 'border-2 border-red-500' : ''} ${isHorror ? 'horror-blood-drip' : ''}`}>
           <div className="flex items-center gap-4">
             <div className={`bg-gradient-to-br rounded-3xl p-4 shadow-soft ${
               subscription.coursesUsed >= subscription.coursesLimit
                 ? 'from-red-500 to-red-700'
-                : subscription.coursesUsed / subscription.coursesLimit > 0.8
-                ? 'from-accent-yellow to-accent-orange'
+                : isHorror
+                ? 'from-secondary to-secondary-dark'
                 : 'from-accent-yellow to-accent-orange'
             }`}>
               <TrendingUp className="w-7 h-7 text-white" />
@@ -183,13 +189,13 @@ export function Dashboard() {
           )}
         </Card>
 
-        <Card>
+        <Card className={isHorror ? 'horror-blood-drip' : ''}>
           <div className="flex items-center gap-4">
-            <div className="bg-gradient-to-br from-secondary to-secondary-dark rounded-3xl p-4 shadow-soft">
+            <div className={`bg-gradient-to-br rounded-3xl p-4 shadow-soft ${isHorror ? 'from-accent-green to-green-800' : 'from-secondary to-secondary-dark'}`}>
               <BookOpen className="w-7 h-7 text-white" />
             </div>
             <div>
-              <p className="font-body text-sm text-neutral-text-muted font-semibold uppercase whitespace-nowrap">Total Courses</p>
+              <p className="font-body text-sm text-neutral-text-muted font-semibold uppercase whitespace-nowrap">{isHorror ? 'Tomes Collected' : 'Total Courses'}</p>
               <p className="font-display text-2xl font-bold text-neutral-text">
                 {loading ? '...' : totalCourses}
               </p>
@@ -222,25 +228,31 @@ export function Dashboard() {
         </Card>
       )}
 
-      <Card className="mb-10 bg-neutral-bg border-2 border-neutral-border">
+      <Card className={`mb-10 bg-neutral-bg border-2 border-neutral-border ${isHorror ? 'horror-blood-drip-static' : ''}`}>
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
-            <h2 className="font-display text-display-md text-neutral-text mb-3">
-              {courses.length === 0 ? 'Create Your First Course' : 'Create Another Course'}
+            <h2 className={`font-display text-display-md text-neutral-text mb-3 ${isHorror ? 'horror-flicker' : ''}`}>
+              {isHorror 
+                ? (courses.length === 0 ? 'Summon Your First Tome' : 'Conjure Another Tome')
+                : (courses.length === 0 ? 'Create Your First Course' : 'Create Another Course')
+              }
             </h2>
             <p className="font-body text-body-lg text-neutral-text-muted">
-              Generate a personalized AI-powered course on any topic in minutes
+              {isHorror 
+                ? 'Channel dark knowledge into a personalized grimoire'
+                : 'Generate a personalized AI-powered course on any topic in minutes'
+              }
             </p>
           </div>
           <Button
             variant="primary"
             size="lg"
             onClick={handleNewCourse}
-            className="flex items-center gap-2 whitespace-nowrap"
+            className={`flex items-center gap-2 whitespace-nowrap ${isHorror ? 'horror-blood-drip horror-glitch' : ''}`}
             disabled={!subscription.canCreateCourse}
           >
             <Plus className="w-6 h-6" />
-            New Course
+            {isHorror ? 'Summon' : 'New Course'}
           </Button>
         </div>
       </Card>
@@ -289,11 +301,13 @@ export function Dashboard() {
 
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="font-display text-display-md text-neutral-text">Recent Courses</h2>
+          <h2 className={`font-display text-display-md text-neutral-text ${isHorror ? 'horror-text-glitch' : ''}`}>
+            {isHorror ? 'Recent Grimoires' : 'Recent Courses'}
+          </h2>
           {courses.length > 0 && (
             <button
               onClick={() => navigate('/courses')}
-              className="font-body text-primary font-bold hover:underline text-lg"
+              className={`font-body text-primary font-bold hover:underline text-lg ${isHorror ? 'horror-flicker' : ''}`}
             >
               View All
             </button>
@@ -307,21 +321,22 @@ export function Dashboard() {
             </div>
           </Card>
         ) : courses.length === 0 ? (
-          <Card>
+          <Card className={isHorror ? 'horror-blood-drip-static' : ''}>
             <div className="text-center py-16">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-light to-primary-soft rounded-full mb-6 shadow-soft">
-                <BookOpen className="w-10 h-10 text-primary" />
+              <div className={`inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br rounded-full mb-6 shadow-soft ${isHorror ? 'from-primary-dark to-primary-darker' : 'from-primary-light to-primary-soft'}`}>
+                {isHorror ? <Skull className="w-10 h-10 text-primary-light" /> : <BookOpen className="w-10 h-10 text-primary" />}
               </div>
               <p className="font-body text-body-lg text-neutral-text-muted mb-6">
-                You haven't created any courses yet
+                {isHorror ? 'Your library of forbidden knowledge awaits...' : "You haven't created any courses yet"}
               </p>
               <Button 
                 variant="primary" 
                 size="lg" 
                 onClick={handleNewCourse}
                 disabled={!subscription.canCreateCourse}
+                className={isHorror ? 'horror-blood-drip horror-glitch' : ''}
               >
-                Create Your First Course
+                {isHorror ? 'Summon Your First Tome' : 'Create Your First Course'}
               </Button>
             </div>
           </Card>
@@ -332,7 +347,7 @@ export function Dashboard() {
                 key={course.id}
                 hover
                 onClick={() => handleCourseClick(course)}
-                className="cursor-pointer overflow-hidden"
+                className={`cursor-pointer overflow-hidden ${isHorror ? 'horror-blood-drip horror-glitch' : ''}`}
               >
                 {/* Course Thumbnail */}
                 <div className="relative -mx-6 -mt-6 mb-4 h-40 overflow-hidden">

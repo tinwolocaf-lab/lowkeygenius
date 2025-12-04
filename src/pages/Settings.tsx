@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useHorrorTheme } from '../hooks/useHorrorTheme';
 import { Card } from '../components/Card';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
@@ -11,11 +12,12 @@ import { ThemeSelector } from '../components/ThemeSelector';
 import { ProfileSettings } from '../components/ProfileSettings';
 import { useSubscription } from '../hooks/useSubscription';
 import { openCustomerPortal, initiateCheckout } from '../lib/polar';
-import { Crown, Gift, Zap, Calendar, CreditCard, Palette, LogOut, User, BookOpen, Volume2, Star } from 'lucide-react';
+import { Crown, Gift, Zap, Calendar, CreditCard, Palette, LogOut, User, BookOpen, Volume2, Star, Skull } from 'lucide-react';
 
 export function Settings() {
   const { profile, signOut } = useAuth();
   const { theme } = useTheme();
+  const { isHorror } = useHorrorTheme();
   const subscription = useSubscription();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -133,19 +135,21 @@ export function Settings() {
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
-      <h1 className="font-display text-display-lg text-neutral-text mb-6">Account Settings</h1>
+      <h1 className={`font-display text-display-lg text-neutral-text mb-6 ${isHorror ? 'horror-text-glitch' : ''}`}>
+        {isHorror ? 'Dark Sanctum Settings' : 'Account Settings'}
+      </h1>
 
       <div className="space-y-6">
-        <Card>
+        <Card className={isHorror ? 'horror-blood-drip' : ''}>
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 ${isHorror ? 'bg-primary-dark' : 'bg-primary-light'}`}>
                 {profile?.full_name ? (
-                  <span className="text-2xl font-bold text-primary">
+                  <span className={`text-2xl font-bold ${isHorror ? 'text-primary-light' : 'text-primary'}`}>
                     {profile.full_name.charAt(0).toUpperCase()}
                   </span>
                 ) : (
-                  <User className="w-8 h-8 text-primary" />
+                  isHorror ? <Skull className="w-8 h-8 text-primary-light" /> : <User className="w-8 h-8 text-primary" />
                 )}
               </div>
               <div>
@@ -162,27 +166,29 @@ export function Settings() {
             <Button
               variant="secondary"
               onClick={handleSignOutClick}
-              className="flex items-center justify-center gap-2 text-accent-red hover:bg-accent-red/10 w-full md:w-auto"
+              className={`flex items-center justify-center gap-2 text-accent-red hover:bg-accent-red/10 w-full md:w-auto ${isHorror ? 'horror-glitch' : ''}`}
             >
               <LogOut className="w-4 h-4" />
-              Sign Out
+              {isHorror ? 'Escape' : 'Sign Out'}
             </Button>
           </div>
         </Card>
 
-        <Card>
+        <Card className={isHorror ? 'horror-blood-drip' : ''}>
           <div className="flex items-center gap-3 mb-4">
-            <Palette className="w-6 h-6 text-primary" />
-            <h2 className="font-display text-display-sm text-neutral-text">Appearance</h2>
+            <Palette className={`w-6 h-6 ${isHorror ? 'text-secondary' : 'text-primary'}`} />
+            <h2 className={`font-display text-display-sm text-neutral-text ${isHorror ? 'horror-flicker' : ''}`}>
+              {isHorror ? 'Dark Aesthetics' : 'Appearance'}
+            </h2>
           </div>
           <p className="text-sm font-body text-neutral-text-muted mb-4">
-            Customize the look and feel of your workspace
+            {isHorror ? 'Transform your realm with forbidden styles' : 'Customize the look and feel of your workspace'}
           </p>
-          <div className="flex items-center justify-between p-4 bg-neutral-surface rounded-2xl">
+          <div className={`flex items-center justify-between p-4 rounded-2xl ${isHorror ? 'bg-primary-dark/20' : 'bg-neutral-surface'}`}>
             <div>
-              <p className="font-body font-bold text-neutral-text mb-1">Theme</p>
+              <p className="font-body font-bold text-neutral-text mb-1">{isHorror ? 'Realm Style' : 'Theme'}</p>
               <p className="text-sm text-neutral-text-muted">
-                Current: {theme.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                Current: {theme === 'horror' ? '🎃 Horror' : theme.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
               </p>
             </div>
             <div className="w-64">
@@ -193,8 +199,10 @@ export function Settings() {
 
         <ProfileSettings />
 
-        <Card>
-          <h2 className="font-display text-display-sm text-neutral-text mb-4">Profile Details</h2>
+        <Card className={isHorror ? 'horror-blood-drip' : ''}>
+          <h2 className={`font-display text-display-sm text-neutral-text mb-4 ${isHorror ? 'horror-flicker' : ''}`}>
+            {isHorror ? 'Identity Records' : 'Profile Details'}
+          </h2>
           <div className="space-y-4">
             <Input
               label="Full Name"
@@ -214,8 +222,10 @@ export function Settings() {
           </div>
         </Card>
 
-        <Card>
-          <h2 className="font-display text-display-sm text-neutral-text mb-4">Subscription</h2>
+        <Card className={isHorror ? 'horror-blood-drip-static' : ''}>
+          <h2 className={`font-display text-display-sm text-neutral-text mb-4 ${isHorror ? 'horror-text-glitch' : ''}`}>
+            {isHorror ? 'Dark Pact' : 'Subscription'}
+          </h2>
 
           <div className="space-y-6">
             <div className="flex items-start justify-between">

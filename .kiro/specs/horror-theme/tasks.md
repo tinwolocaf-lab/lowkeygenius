@@ -120,36 +120,36 @@
     - Style placeholder text appropriately
     - _Requirements: 6.4_
 
-- [-] 9. Checkpoint - Ensure all tests pass
+- [x] 9. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 10. Apply horror styling to pages
-  - [ ] 10.1 Update Dashboard page for horror theme
+- [x] 10. Apply horror styling to pages
+  - [x] 10.1 Update Dashboard page for horror theme
     - Apply horror styling to dashboard cards and stats
     - _Requirements: 6.1_
-  - [ ] 10.2 Update Courses and CourseView pages
+  - [x] 10.2 Update Courses and CourseView pages
     - Apply horror styling to course cards and lesson content
     - _Requirements: 6.1_
-  - [ ] 10.3 Update Settings page for horror theme
+  - [x] 10.3 Update Settings page for horror theme
     - Ensure theme selector displays correctly
     - Apply horror styling to settings panels
     - _Requirements: 6.1_
-  - [ ] 10.4 Update remaining pages (Login, Signup, Homepage, etc.)
+  - [x] 10.4 Update remaining pages (Login, Signup, Homepage, etc.)
     - Apply consistent horror styling across all pages
     - _Requirements: 6.1_
 
-- [ ] 11. Create horror theme assets
-  - [ ] 11.1 Create horror logo SVG/image
+- [x] 11. Create horror theme assets
+  - [x] 11.1 Create horror logo SVG/image
     - Design spooky variant of Progent logo
     - Export in appropriate formats
     - _Requirements: 7.1_
-  - [ ] 11.2 Create horror favicon
+  - [x] 11.2 Create horror favicon
     - Design 16x16 and 32x32 horror favicon
     - Add to public directory
     - _Requirements: 7.2_
 
-- [ ] 12. Final polish and accessibility
-  - [ ] 12.1 Verify all animations respect prefers-reduced-motion
+- [-] 12. Final polish and accessibility
+  - [x] 12.1 Verify all animations respect prefers-reduced-motion
     - Test with reduced motion preference enabled
     - Ensure graceful degradation
     - _Requirements: 5.4_
@@ -157,7 +157,7 @@
     - Check all text/background combinations
     - Ensure WCAG AA compliance (4.5:1 ratio)
     - _Requirements: 3.3_
-  - [ ] 12.3 Test theme switching thoroughly
+  - [x] 12.3 Test theme switching thoroughly
     - Verify clean transitions between all themes
     - Ensure no horror elements leak to other themes
     - _Requirements: 1.3, 4.5_

@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, Plus, MoreVertical, Pencil, Trash2, Volume2, Globe, AlertTriangle, ImageIcon, AlertCircle } from 'lucide-react';
+import { BookOpen, Clock, Plus, MoreVertical, Pencil, Trash2, Volume2, Globe, AlertTriangle, ImageIcon, AlertCircle, Skull } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
 import { useAuth } from '../contexts/AuthContext';
 import { useCoursePublishing } from '../hooks/useCoursePublishing';
+import { useHorrorTheme } from '../hooks/useHorrorTheme';
 import { supabase } from '../lib/supabase';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -73,6 +74,7 @@ export function Courses() {
   const subscription = useSubscription();
   const { isAudioEnabled } = subscription;
   const { publishCourse, requestDeletion, isLoading: isPublishingLoading } = useCoursePublishing();
+  const { isHorror } = useHorrorTheme();
   const [activeTab, setActiveTab] = useState<'created' | 'learning'>('created');
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -351,27 +353,29 @@ export function Courses() {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display text-display-lg text-neutral-text">My Courses</h1>
+        <h1 className={`font-display text-display-lg text-neutral-text ${isHorror ? 'horror-text-glitch' : ''}`}>
+          {isHorror ? 'My Grimoires' : 'My Courses'}
+        </h1>
         <Button
           onClick={handleNewCourse}
-          className="flex items-center gap-2"
+          className={`flex items-center gap-2 ${isHorror ? 'horror-blood-drip horror-glitch' : ''}`}
         >
           <Plus className="w-5 h-5" />
-          New Course
+          {isHorror ? 'Summon' : 'New Course'}
         </Button>
       </div>
 
       <div className="mb-6">
-        <div className="flex gap-4 border-b-2 border-neutral-border">
+        <div className={`flex gap-4 border-b-2 ${isHorror ? 'border-primary-dark' : 'border-neutral-border'}`}>
           <button
             onClick={() => setActiveTab('created')}
             className={`px-4 py-3 font-body font-bold transition-colors ${
               activeTab === 'created'
                 ? 'text-primary border-b-4 border-primary'
                 : 'text-neutral-text-muted hover:text-neutral-text'
-            }`}
+            } ${isHorror ? 'horror-flicker' : ''}`}
           >
-            Created by Me
+            {isHorror ? 'My Creations' : 'Created by Me'}
           </button>
           <button
             onClick={() => setActiveTab('learning')}
@@ -379,27 +383,27 @@ export function Courses() {
               activeTab === 'learning'
                 ? 'text-primary border-b-4 border-primary'
                 : 'text-neutral-text-muted hover:text-neutral-text'
-            }`}
+            } ${isHorror ? 'horror-flicker' : ''}`}
           >
-            I'm Learning
+            {isHorror ? 'Dark Studies' : "I'm Learning"}
           </button>
         </div>
       </div>
 
       {courses.length === 0 ? (
-        <Card>
+        <Card className={isHorror ? 'horror-blood-drip-static' : ''}>
           <div className="text-center py-12">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-neutral-surface rounded-full mb-4">
-              <BookOpen className="w-8 h-8 text-neutral-text-muted" />
+            <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 ${isHorror ? 'bg-primary-dark/30' : 'bg-neutral-surface'}`}>
+              {isHorror ? <Skull className="w-8 h-8 text-primary" /> : <BookOpen className="w-8 h-8 text-neutral-text-muted" />}
             </div>
             <p className="font-body text-body-md text-neutral-text-muted mb-4">
               {activeTab === 'created'
-                ? 'No courses yet. Create your first course to get started!'
-                : 'No courses in progress. Start learning by exploring available courses!'}
+                ? (isHorror ? 'No tomes yet. Summon your first grimoire!' : 'No courses yet. Create your first course to get started!')
+                : (isHorror ? 'No dark studies in progress. Seek forbidden knowledge!' : 'No courses in progress. Start learning by exploring available courses!')}
             </p>
             {activeTab === 'created' && (
-              <Button onClick={handleNewCourse}>
-                Create Your First Course
+              <Button onClick={handleNewCourse} className={isHorror ? 'horror-blood-drip horror-glitch' : ''}>
+                {isHorror ? 'Summon Your First Tome' : 'Create Your First Course'}
               </Button>
             )}
           </div>
@@ -411,7 +415,7 @@ export function Courses() {
               key={course.id}
               hover
               onClick={() => handleCourseClick(course)}
-              className="cursor-pointer relative overflow-hidden"
+              className={`cursor-pointer relative overflow-hidden ${isHorror ? 'horror-blood-drip horror-glitch' : ''}`}
             >
               {/* Course Thumbnail - Requirements 3.1, 3.2, 3.3 */}
               <div className="relative -mx-6 -mt-6 mb-4 h-40 overflow-hidden">
