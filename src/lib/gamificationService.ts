@@ -263,6 +263,7 @@ export const GamificationService = {
     
     if (!userInTop) {
       // Get user's rank if not in top entries
+      // Use maybeSingle() since user may not have earned any XP yet (no row in course_xp_summary)
       const { data: userEntry, error: userError } = await supabase
         .from('course_xp_summary')
         .select(`
@@ -278,7 +279,7 @@ export const GamificationService = {
         `)
         .eq('course_id', courseId)
         .eq('user_id', requestingUserId)
-        .single();
+        .maybeSingle();
 
       if (!userError && userEntry) {
         // Count how many users have more XP to determine rank

@@ -22,6 +22,7 @@ import type {
   CourseXPBreakdown,
   ActivityType,
 } from '../types/database';
+import { AnalyticsSkeleton } from '../components/skeletons';
 
 interface CourseProgress {
   courseId: string;
@@ -214,13 +215,7 @@ export function Analytics() {
   }, [fetchAnalyticsData]);
 
   if (statsLoading || isLoading) {
-    return (
-      <div className="p-4 md:p-8 max-w-7xl mx-auto">
-        <div className="flex items-center justify-center py-20">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent" />
-        </div>
-      </div>
-    );
+    return <AnalyticsSkeleton />;
   }
 
   return (
