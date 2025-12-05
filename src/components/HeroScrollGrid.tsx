@@ -139,7 +139,8 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
   }, [loading, courses, isDesktop, calculatePositions]);
 
   // === TRANSFORMS ===
-  const heroTextOpacity = useTransform(scrollYProgress, [0, 0.05], [1, 0]);
+  // Hero text: visible at start, fades out during animation, fades back in at end
+  const heroTextOpacity = useTransform(scrollYProgress, [0, 0.05, 0.9, 1], [1, 0, 0, 1]);
   
   // Grid items opacity - fade in as they fly toward center
   const gridItemOpacity = useTransform(scrollYProgress, [0, 0.15, 0.6, 1], [0, 0.3, 0.7, 1]);
@@ -430,7 +431,7 @@ function GridCourseCard({ course, aspectRatio }: GridCourseCardProps) {
   const [imgError, setImgError] = useState(false);
 
   return (
-    <div className={`${aspectRatio} rounded-2xl overflow-hidden bg-neutral-bg border border-neutral-border shadow-soft hover:shadow-tile hover:scale-[1.02] transition-all duration-200`}>
+    <div className={`relative ${aspectRatio} rounded-2xl overflow-hidden bg-neutral-bg border border-neutral-border shadow-soft hover:shadow-tile hover:scale-[1.02] transition-all duration-200`}>
       {course.thumbnail_url && !imgError ? (
         <img
           src={course.thumbnail_url}
@@ -443,6 +444,16 @@ function GridCourseCard({ course, aspectRatio }: GridCourseCardProps) {
           <ImageIcon className="w-8 h-8 text-primary/30" />
         </div>
       )}
+      
+      {/* Title and description overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-end p-3">
+        <h3 className="font-display text-sm font-bold text-white line-clamp-1">
+          {course.title}
+        </h3>
+        <p className="font-body text-xs text-white/80 line-clamp-1 mt-0.5">
+          {course.description || 'Discover something new'}
+        </p>
+      </div>
     </div>
   );
 }
