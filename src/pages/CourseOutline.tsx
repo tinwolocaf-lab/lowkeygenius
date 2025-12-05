@@ -59,9 +59,10 @@ export function CourseOutline() {
     try {
       const { data, error } = await supabase
         .from('courses')
-        .select('*')
+        .select()
         .eq('id', courseId)
-        .maybeSingle();
+        .maybeSingle()
+        .returns<Course | null>();
 
       if (error) {
         console.error('Error loading course:', error);
@@ -78,7 +79,7 @@ export function CourseOutline() {
       setCourse({
         ...data,
         outline_json: data.outline_json as CourseOutline | null,
-      } as Course);
+      });
     } catch (error) {
       console.error('Unexpected error loading course:', error);
       navigate('/courses');

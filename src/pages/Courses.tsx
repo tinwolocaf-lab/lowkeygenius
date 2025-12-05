@@ -94,9 +94,10 @@ export function Courses() {
       if (activeTab === 'created') {
         const { data, error } = await supabase
           .from('courses')
-          .select('*')
+          .select()
           .eq('owner_id', user.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .returns<Course[]>();
 
         if (error) throw error;
         setCourses(data || []);
@@ -108,7 +109,8 @@ export function Courses() {
         const { data: progressData, error: progressError } = await supabase
           .from('user_progress')
           .select('course_id')
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .returns<{ course_id: string }[]>();
 
         if (progressError) throw progressError;
 
@@ -118,7 +120,8 @@ export function Courses() {
         const { data: enrollmentData, error: enrollmentError } = await supabase
           .from('course_enrollments')
           .select('course_id')
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .returns<{ course_id: string }[]>();
 
         if (enrollmentError) throw enrollmentError;
 
@@ -135,10 +138,11 @@ export function Courses() {
 
         const { data: coursesData, error: coursesError } = await supabase
           .from('courses')
-          .select('*')
+          .select()
           .in('id', allCourseIds)
           .eq('status', 'published')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .returns<Course[]>();
 
         if (coursesError) throw coursesError;
 
@@ -334,7 +338,15 @@ export function Courses() {
    */
   const handleNewCourse = () => {
     if (!subscription.canCreateCourse) {
-      setShowUpgradeModal(true);
+      if (subscription.blockingReason === 'active_generation' && subscription.activeGenerationCourse) {
+        toast.error('Finish your current course before starting another.');
+        const path = subscription.activeGenerationCourse.status === 'generating_lessons'
+          ? `/courses/${subscription.activeGenerationCourse.id}/generate`
+          : `/courses/${subscription.activeGenerationCourse.id}/outline`;
+        navigate(path);
+      } else {
+        setShowUpgradeModal(true);
+      }
       return;
     }
     navigate('/onboarding');
@@ -703,7 +715,7 @@ export function Courses() {
               </button>
             </div>
             <p className="text-neutral-text-muted mb-2">
-              You've used {subscription.coursesUsed} / {subscription.coursesLimit === Infinity ? '∞' : subscription.coursesLimit} courses on your {subscription.planType} plan.
+              You've used {subscription.coursesUsed} / {subscription.coursesLimit === Infinity ? '∞' : subscription.coursesLimit} published/enrolled courses on your {subscription.planType} plan.
             </p>
             <p className="text-neutral-text-muted mb-6">
               Upgrade to create more courses and unlock additional features.

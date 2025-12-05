@@ -109,9 +109,10 @@ export const QuizService = {
     // First, get the quiz for this lesson
     const { data: quiz, error: quizError } = await supabase
       .from('quizzes')
-      .select('*')
+      .select()
       .eq('lesson_id', lessonId)
-      .single();
+      .single()
+      .returns<Quiz>();
 
     if (quizError) {
       // PGRST116 means no rows returned - this is expected when no quiz exists
@@ -129,9 +130,10 @@ export const QuizService = {
     // Get the questions for this quiz
     const { data: questions, error: questionsError } = await supabase
       .from('quiz_questions')
-      .select('*')
+      .select()
       .eq('quiz_id', quiz.id)
-      .order('order_index', { ascending: true });
+      .order('order_index', { ascending: true })
+      .returns<QuizQuestion[]>();
 
     if (questionsError) {
       console.error('Error fetching quiz questions:', questionsError);
@@ -185,7 +187,8 @@ export const QuizService = {
         completed_at: new Date().toISOString(),
       })
       .select()
-      .single();
+      .single()
+      .returns<QuizAttempt>();
 
     if (error) {
       console.error('Error saving quiz attempt:', error);
@@ -207,10 +210,11 @@ export const QuizService = {
   ): Promise<QuizAttempt[]> {
     const { data, error } = await supabase
       .from('quiz_attempts')
-      .select('*')
+      .select()
       .eq('quiz_id', quizId)
       .eq('user_id', userId)
-      .order('completed_at', { ascending: false });
+      .order('completed_at', { ascending: false })
+      .returns<QuizAttempt[]>();
 
     if (error) {
       console.error('Error fetching quiz attempts:', error);

@@ -94,9 +94,10 @@ export const FlashcardService = {
   async getFlashcards(lessonId: string): Promise<Flashcard[] | null> {
     const { data, error } = await supabase
       .from('flashcards')
-      .select('*')
+      .select()
       .eq('lesson_id', lessonId)
-      .order('order_index', { ascending: true });
+      .order('order_index', { ascending: true })
+      .returns<Flashcard[]>();
 
     if (error) {
       console.error('Error fetching flashcards:', error);
@@ -150,7 +151,8 @@ export const FlashcardService = {
         completed_at: new Date().toISOString(),
       })
       .select()
-      .single();
+      .single()
+      .returns<FlashcardSession>();
 
     if (error) {
       console.error('Error saving study session:', error);
@@ -170,10 +172,11 @@ export const FlashcardService = {
   ): Promise<FlashcardSession[]> {
     const { data, error } = await supabase
       .from('flashcard_sessions')
-      .select('*')
+      .select()
       .eq('lesson_id', lessonId)
       .eq('user_id', userId)
-      .order('completed_at', { ascending: false });
+      .order('completed_at', { ascending: false })
+      .returns<FlashcardSession[]>();
 
     if (error) {
       console.error('Error fetching study sessions:', error);

@@ -113,14 +113,15 @@ export function GenerateAudio() {
 
     try {
       const [courseResult, lessonsResult] = await Promise.all([
-        supabase.from('courses').select('*').eq('id', courseId).maybeSingle(),
+        supabase.from('courses').select().eq('id', courseId).maybeSingle().returns<Course | null>(),
         supabase
           .from('lessons')
-          .select('*')
+          .select()
           .eq('course_id', courseId)
           .not('markdown_content', 'is', null)
           .order('module_index')
-          .order('lesson_index'),
+          .order('lesson_index')
+          .returns<Lesson[]>(),
       ]);
 
       if (courseResult.error || !courseResult.data) {
@@ -134,15 +135,16 @@ export function GenerateAudio() {
       // Check for existing generation job
       const { data: existingJob } = await supabase
         .from('audio_generation_jobs')
-        .select('*')
+        .select()
         .eq('course_id', courseId)
         .in('status', ['pending', 'processing', 'paused'])
         .order('created_at', { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle()
+        .returns<AudioGenerationJob | null>();
 
       if (existingJob) {
-        setJob(existingJob as AudioGenerationJob);
+        setJob(existingJob);
         setCurrentLessonIndex(existingJob.current_lesson_index || 0);
         setVoiceType(existingJob.voice_type);
 

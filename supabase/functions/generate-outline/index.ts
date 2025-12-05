@@ -91,6 +91,8 @@ Deno.serve(async (req: Request) => {
           currentCount: quotaResult.currentCount,
           limit: quotaResult.limit,
           planType: quotaResult.planType,
+          inProgressCount: quotaResult.inProgressCount,
+          reason: quotaResult.reason,
         }),
         {
           status: 403,

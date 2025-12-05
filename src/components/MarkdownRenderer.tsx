@@ -308,10 +308,11 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
         // Each user only sees their own definitions, whether they are the course owner or a learner
         const { data, error } = await supabase
           .from('inline_wiki_entries')
-          .select('*')
+          .select()
           .eq('lesson_id', lessonId)
           .eq('user_id', user.id)
-          .order('created_at', { ascending: true });
+          .order('created_at', { ascending: true })
+          .returns<InlineWikiEntry[]>();
 
         if (error) {
           throw error;

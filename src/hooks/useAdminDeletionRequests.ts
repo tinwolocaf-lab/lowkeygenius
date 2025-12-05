@@ -52,9 +52,10 @@ export function useAdminDeletionRequests(): UseAdminDeletionRequestsReturn {
       // Fetch pending deletion requests
       const { data: requests, error: requestsError } = await supabase
         .from('deletion_requests')
-        .select('*')
+        .select()
         .eq('status', 'pending')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .returns<DeletionRequest[]>();
 
       if (requestsError) {
         console.error('Error fetching deletion requests:', requestsError);

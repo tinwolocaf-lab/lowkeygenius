@@ -5,6 +5,7 @@ import { PublicHeader } from '../components/PublicHeader';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { AnimatedCourseDemo } from '../components/AnimatedCourseDemo';
+import { HeroScrollGrid } from '../components/HeroScrollGrid';
 import { useHorrorTheme } from '../hooks/useHorrorTheme';
 import { HorrorDecorations } from '../components/horror';
 
@@ -214,6 +215,9 @@ export function Homepage() {
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl -z-10" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl -z-10" />
       </section>
+
+      {/* Hero-to-Grid Scroll Animation - Requirement 1.1 */}
+      <HeroScrollGrid />
 
       {/* Feature Highlight: Continuous Memory */}
       <section className="py-20 bg-neutral-bg">

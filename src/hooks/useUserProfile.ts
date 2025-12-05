@@ -32,9 +32,10 @@ export function useUserProfile(): UserProfileData {
     try {
       const { data, error: fetchError } = await supabase
         .from('user_profiles')
-        .select('*')
+        .select()
         .eq('user_id', user.id)
-        .maybeSingle();
+        .maybeSingle()
+        .returns<UserProfile | null>();
 
       if (fetchError) {
         console.error('Error fetching user profile:', fetchError);

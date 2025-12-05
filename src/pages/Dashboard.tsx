@@ -7,6 +7,7 @@ import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { useSubscription } from '../hooks/useSubscription';
 import { useHorrorTheme } from '../hooks/useHorrorTheme';
+import toast from 'react-hot-toast';
 
 interface Course {
   id: string;
@@ -68,10 +69,11 @@ export function Dashboard() {
     // Fetch recent courses for display (limited to 3)
     const { data: coursesData, error: coursesError } = await supabase
       .from('courses')
-      .select('*')
+      .select()
       .eq('owner_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(3);
+      .limit(3)
+      .returns<Course[]>();
 
     if (coursesError) {
       console.error('Error loading courses:', coursesError);
@@ -100,7 +102,15 @@ export function Dashboard() {
 
   const handleNewCourse = () => {
     if (!subscription.canCreateCourse) {
-      setShowUpgradeModal(true);
+      if (subscription.blockingReason === 'active_generation' && subscription.activeGenerationCourse) {
+        toast.error('Finish your current course before starting another.');
+        const path = subscription.activeGenerationCourse.status === 'generating_lessons'
+          ? `/courses/${subscription.activeGenerationCourse.id}/generate`
+          : `/courses/${subscription.activeGenerationCourse.id}/outline`;
+        navigate(path);
+      } else {
+        setShowUpgradeModal(true);
+      }
       return;
     }
     navigate('/onboarding');
@@ -174,7 +184,7 @@ export function Dashboard() {
             </div>
             <div>
               <p className="font-body text-sm text-neutral-text-muted font-semibold uppercase whitespace-nowrap">
-                {subscription.planType === 'FREE' ? 'Courses Used' : 'Courses This Period'}
+                {subscription.planType === 'FREE' ? 'Published/Enrolled' : 'Published/Enrolled This Period'}
               </p>
               <p className="font-display text-2xl font-bold text-neutral-text">
                 {subscription.isLoading ? '...' : `${subscription.coursesUsed} / ${subscription.coursesLimit === Infinity ? '∞' : subscription.coursesLimit}`}

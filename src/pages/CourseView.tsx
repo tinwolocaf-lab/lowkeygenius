@@ -94,9 +94,9 @@ export function CourseView() {
 
     try {
       const [courseResult, lessonsResult, progressResult] = await Promise.all([
-        supabase.from('courses').select('*').eq('id', courseId).maybeSingle(),
-        supabase.from('lessons').select('*').eq('course_id', courseId).order('module_index').order('lesson_index'),
-        supabase.from('user_progress').select('lesson_id, completed, last_viewed_at').eq('course_id', courseId).eq('user_id', user.id),
+        supabase.from('courses').select().eq('id', courseId).maybeSingle().returns<Course | null>(),
+        supabase.from('lessons').select().eq('course_id', courseId).order('module_index').order('lesson_index').returns<Lesson[]>(),
+        supabase.from('user_progress').select('lesson_id, completed, last_viewed_at').eq('course_id', courseId).eq('user_id', user.id).returns<{ lesson_id: string; completed: boolean; last_viewed_at: string }[]>(),
       ]);
 
       if (courseResult.error || !courseResult.data) {

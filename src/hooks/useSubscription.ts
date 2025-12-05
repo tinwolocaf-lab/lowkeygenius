@@ -2,6 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { getPlanLimit, isPlanBillingCycleLimit, PlanType } from '../lib/polar';
+import type { CourseStatus } from '../types/database';
+
+interface ActiveGenerationCourse {
+  id: string;
+  status: CourseStatus;
+  title: string;
+}
 
 interface SubscriptionData {
   planType: PlanType;
@@ -16,18 +23,22 @@ interface SubscriptionData {
   subscriptionPeriodStart: Date | null;
   billingCycle: string | null;
   isLoading: boolean;
+  activeGenerationCourse: ActiveGenerationCourse | null;
+  inProgressCount: number;
+  blockingReason?: 'limit_reached' | 'active_generation';
 }
 
 export function useSubscription(): SubscriptionData {
   const { user, profile } = useAuth();
-  const [coursesCreated, setCoursesCreated] = useState(0);
-  const [coursesEnrolled, setCoursesEnrolled] = useState(0);
+  const [publishedCount, setPublishedCount] = useState(0);
+  const [enrolledCount, setEnrolledCount] = useState(0);
+  const [inProgressCount, setInProgressCount] = useState(0);
+  const [activeGenerationCourse, setActiveGenerationCourse] = useState<ActiveGenerationCourse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const planType = (profile?.plan_type || 'FREE') as PlanType;
   const coursesLimit = getPlanLimit(planType);
   const isBillingCycleLimit = isPlanBillingCycleLimit(planType);
-  const isProMax = planType === 'PRO_MAX';
   
   // Get subscription period start for billing cycle calculations
   const subscriptionPeriodStart = useMemo(() => 
@@ -38,79 +49,104 @@ export function useSubscription(): SubscriptionData {
   );
 
   useEffect(() => {
-    async function fetchCoursesUsed() {
+    async function fetchCourseUsage() {
       if (!user) {
+        setPublishedCount(0);
+        setInProgressCount(0);
+        setActiveGenerationCourse(null);
         setIsLoading(false);
         return;
       }
 
       try {
-        // Build query for courses created by user
-        let createdQuery = supabase
+        // Count published courses (these consume the plan quota)
+        let publishedQuery = supabase
           .from('courses')
           .select('id', { count: 'exact', head: true })
-          .eq('owner_id', user.id);
+          .eq('owner_id', user.id)
+          .eq('status', 'published');
 
-        // For billing cycle plans (PLUS, PRO), count from subscription period start
-        // For FREE users, count ALL courses (lifetime limit)
-        // For PRO_MAX, no limit so we don't filter
         if (isBillingCycleLimit && subscriptionPeriodStart) {
-          createdQuery = createdQuery.gte('created_at', subscriptionPeriodStart.toISOString());
+          publishedQuery = publishedQuery.gte('created_at', subscriptionPeriodStart.toISOString());
         }
 
-        const { count: createdCount, error: createdError } = await createdQuery;
+        const { count: published, error: publishedError } = await publishedQuery;
+        if (publishedError) throw publishedError;
+        setPublishedCount(published || 0);
 
-        if (createdError) throw createdError;
+        // Count enrolled/subscribed courses
+        let enrolledQuery = supabase
+          .from('course_enrollments')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id);
 
-        setCoursesCreated(createdCount || 0);
+        if (isBillingCycleLimit && subscriptionPeriodStart) {
+          enrolledQuery = enrolledQuery.gte('enrolled_at', subscriptionPeriodStart.toISOString());
+        }
 
-        // Fetch enrolled courses count
-        // PRO_MAX users have unlimited, so we don't count them
-        if (isProMax) {
-          setCoursesEnrolled(0);
+        const { count: enrolled, error: enrolledError } = await enrolledQuery;
+        if (enrolledError) throw enrolledError;
+        setEnrolledCount(enrolled || 0);
+
+        // Find any active generation (draft/ready) to prevent starting another within quota
+        const { data: activeCourses, count: activeCount, error: activeError } = await supabase
+          .from('courses')
+          .select('id, status, title, updated_at', { count: 'exact' })
+          .eq('owner_id', user.id)
+          .neq('status', 'published')
+          .order('updated_at', { ascending: false })
+          .limit(1);
+
+        if (activeError) throw activeError;
+
+        setInProgressCount(activeCount || 0);
+
+        if (activeCourses && activeCourses.length > 0) {
+          setActiveGenerationCourse({
+            id: activeCourses[0].id,
+            status: activeCourses[0].status as CourseStatus,
+            title: activeCourses[0].title,
+          });
         } else {
-          // Build query for enrollments
-          let enrolledQuery = supabase
-            .from('course_enrollments')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', user.id);
-
-          // For billing cycle plans, count enrollments from subscription period start
-          if (isBillingCycleLimit && subscriptionPeriodStart) {
-            enrolledQuery = enrolledQuery.gte('enrolled_at', subscriptionPeriodStart.toISOString());
-          }
-
-          const { count: enrolledCount, error: enrolledError } = await enrolledQuery;
-
-          if (enrolledError) {
-            console.error('Error fetching enrollments:', enrolledError);
-            setCoursesEnrolled(0);
-          } else {
-            setCoursesEnrolled(enrolledCount || 0);
-          }
+          setActiveGenerationCourse(null);
         }
       } catch (error) {
-        console.error('Error fetching courses used:', error);
-        setCoursesCreated(0);
-        setCoursesEnrolled(0);
+        console.error('Error fetching course usage:', error);
+        setPublishedCount(0);
+        setEnrolledCount(0);
+        setInProgressCount(0);
+        setActiveGenerationCourse(null);
       } finally {
         setIsLoading(false);
       }
     }
 
-    fetchCoursesUsed();
-  }, [user, isBillingCycleLimit, isProMax, subscriptionPeriodStart]);
+    fetchCourseUsage();
+  }, [user, isBillingCycleLimit, subscriptionPeriodStart]);
 
-  // Total courses used = created + enrolled
-  const coursesUsed = coursesCreated + coursesEnrolled;
-  const canCreateCourse = coursesUsed < coursesLimit;
+  const coursesUsed = publishedCount + enrolledCount; // Published + subscribed courses consume the plan quota
+  const totalActive = coursesUsed + inProgressCount;
+
+  let canCreateCourse = true;
+  let blockingReason: 'limit_reached' | 'active_generation' | undefined;
+
+  if (coursesLimit !== Infinity) {
+    if (coursesUsed >= coursesLimit) {
+      canCreateCourse = false;
+      blockingReason = 'limit_reached';
+    } else if (totalActive >= coursesLimit) {
+      canCreateCourse = false;
+      blockingReason = 'active_generation';
+    }
+  }
+
   const isAudioEnabled = profile?.audio_addon_enabled || planType === 'PRO_MAX';
 
   return {
     planType,
     coursesUsed,
-    coursesCreated,
-    coursesEnrolled,
+    coursesCreated: publishedCount,
+    coursesEnrolled: enrolledCount,
     coursesLimit,
     canCreateCourse,
     isAudioEnabled,
@@ -119,5 +155,8 @@ export function useSubscription(): SubscriptionData {
     subscriptionPeriodStart,
     billingCycle: profile?.billing_cycle || null,
     isLoading,
+    activeGenerationCourse,
+    inProgressCount,
+    blockingReason,
   };
 }

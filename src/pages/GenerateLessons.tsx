@@ -9,7 +9,7 @@ import { LoadingAnimation } from '../components/LoadingAnimation';
 
 import { useNavigationBlock } from '../hooks/useNavigationBlock';
 import { useAuth } from '../contexts/AuthContext';
-import type { LessonGenerationJobStatus } from '../types/database';
+import type { LessonGenerationJobStatus, LessonGenerationJob } from '../types/database';
 
 interface LocationState {
   autoStart?: boolean;
@@ -115,9 +115,10 @@ export function GenerateLessons() {
     try {
       const { data: courseData, error: courseError } = await supabase
         .from('courses')
-        .select('*')
+        .select()
         .eq('id', courseId)
-        .maybeSingle();
+        .maybeSingle()
+        .returns<Course | null>();
 
       if (courseError || !courseData) {
         console.error('Error loading course:', courseError);
@@ -125,14 +126,15 @@ export function GenerateLessons() {
         return;
       }
 
-      setCourse(courseData as Course);
+      setCourse(courseData);
 
       const { data: lessonsData, error: lessonsError } = await supabase
         .from('lessons')
-        .select('*')
+        .select()
         .eq('course_id', courseId)
         .order('module_index', { ascending: true })
-        .order('lesson_index', { ascending: true });
+        .order('lesson_index', { ascending: true })
+        .returns<Lesson[]>();
 
       if (lessonsError) {
         console.error('Error loading lessons:', lessonsError);
@@ -144,12 +146,13 @@ export function GenerateLessons() {
       // Check for existing generation job
       const { data: existingJob } = await supabase
         .from('lesson_generation_jobs')
-        .select('*')
+        .select()
         .eq('course_id', courseId)
         .in('status', ['pending', 'in_progress', 'paused'])
         .order('created_at', { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle()
+        .returns<LessonGenerationJob | null>();
 
       if (existingJob) {
         setJob(existingJob);
@@ -260,15 +263,16 @@ export function GenerateLessons() {
         current_lesson_index: 0,
       })
       .select()
-      .single();
+      .single()
+      .returns<LessonGenerationJob>();
 
     if (createError) {
       console.error('Error creating job:', createError);
       return null;
     }
 
-    setJob(newJob);
-    return newJob;
+    setJob(newJob as GenerationJob);
+    return newJob as GenerationJob;
   }, [courseId, user, job, lessons.length]);
 
   // Update job progress in database

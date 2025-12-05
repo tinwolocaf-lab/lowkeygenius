@@ -50,6 +50,9 @@ export interface AnonymizationMetadata {
 }
 
 export type Database = {
+  __InternalSupabase: {
+    PostgrestVersion: '12'
+  }
   public: {
     Tables: {
       profiles: {
@@ -837,17 +840,22 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_courses_preview: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          topic: string
+          level: CourseLevel
+          thumbnail_url: string | null
+          published_at: string | null
+        }
+        Relationships: []
+      }
     }
-    Functions: {
-      [_ in never]: never
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    Functions: Record<string, never>
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
   }
 }
 
@@ -869,3 +877,6 @@ export type Quiz = Database['public']['Tables']['quizzes']['Row']
 export type QuizQuestion = Database['public']['Tables']['quiz_questions']['Row']
 export type QuizAttempt = Database['public']['Tables']['quiz_attempts']['Row']
 export type LessonGenerationJob = Database['public']['Tables']['lesson_generation_jobs']['Row']
+
+// View types
+export type PublicCoursePreview = Database['public']['Views']['public_courses_preview']['Row']

@@ -1,0 +1,101 @@
+# Implementation Plan
+
+- [x] 1. Set up dependencies and database infrastructure
+  - [x] 1.1 Install framer-motion package
+    - Run `npm install framer-motion`
+    - _Requirements: 6.1, 6.2_
+  - [x] 1.2 Create database migration for public_courses_preview view
+    - Create SQL migration file with view definition
+    - View selects id, title, description, topic, level, thumbnail_url, published_at from courses where is_public = true
+    - Grant SELECT permission to anon role for unauthenticated access
+    - _Requirements: 3.1, 3.2, 3.3, 3.4_
+  - [ ]* 1.3 Write property test for API response shape
+    - **Property 2: API Response Shape**
+    - **Validates: Requirements 2.2, 3.2**
+  - [ ]* 1.4 Write property test for public courses filter
+    - **Property 3: Public Courses Filter**
+    - **Validates: Requirements 3.1**
+  - [ ]* 1.5 Write property test for courses ordering
+    - **Property 4: Courses Ordering**
+    - **Validates: Requirements 3.4**
+
+- [x] 2. Create public courses fetch utility
+  - [x] 2.1 Create fetchPublicCoursePreviews function
+    - Create src/lib/publicCourses.ts
+    - Implement async function to fetch from public_courses_preview view
+    - Add proper TypeScript types for PublicCoursePreview
+    - _Requirements: 2.1, 2.2_
+  - [x] 2.2 Add PublicCoursePreview type to database types
+    - Update src/types/database.ts with new interface
+    - _Requirements: 2.2_
+
+- [x] 3. Create grid fill utility function
+  - [x] 3.1 Implement fillGridCourses function
+    - Create utility function that takes courses array and required count
+    - Repeat courses to fill grid when fewer than required exist
+    - Return array of exact required length
+    - _Requirements: 2.4_
+  - [ ]* 3.2 Write property test for grid fill logic
+    - **Property 6: Grid Fill Logic**
+    - **Validates: Requirements 2.4**
+
+- [x] 4. Create HomepageCourseCard component
+  - [x] 4.1 Implement HomepageCourseCard component
+    - Create src/components/HomepageCourseCard.tsx
+    - Display thumbnail, title, description with proper styling
+    - Handle thumbnail fallback with gradient placeholder
+    - Add hover state for interactivity
+    - _Requirements: 7.1, 7.2, 7.3, 7.4, 4.3_
+  - [x] 4.2 Implement click handler with auth redirect
+    - Navigate to /login on click
+    - Display toast notification explaining sign-in requirement
+    - _Requirements: 4.1, 4.2_
+
+- [x] 5. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 6. Create HeroScrollGrid component
+  - [x] 6.1 Create component structure and state management
+    - Create src/components/HeroScrollGrid.tsx
+    - Set up state for courses, loading, error
+    - Implement useEffect to fetch courses on mount
+    - Select random featured course from fetched courses
+    - _Requirements: 2.1, 2.3, 2.5_
+  - [ ]* 6.2 Write property test for featured course selection
+    - **Property 5: Featured Course Selection**
+    - **Validates: Requirements 2.3**
+  - [x] 6.3 Implement scroll animation with Framer Motion
+    - Set up useScroll hook with container ref
+    - Create useTransform for scale interpolation (1 to 0.33)
+    - Create useTransform for Y position interpolation
+    - Create useTransform for grid opacity interpolation
+    - _Requirements: 6.1, 6.2, 6.3, 6.4_
+  - [ ]* 6.4 Write property test for scale and position interpolation
+    - **Property 1: Scale and Position Interpolation**
+    - **Validates: Requirements 1.2, 6.3**
+  - [ ]* 6.5 Write property test for grid item opacity interpolation
+    - **Property 7: Grid Item Opacity Interpolation**
+    - **Validates: Requirements 6.4**
+  - [x] 6.6 Implement sticky container and scroll spacer
+    - Create outer container with 300vh height for scroll distance
+    - Create sticky inner container that stays in viewport
+    - Position hero card absolutely over grid
+    - _Requirements: 1.1, 1.5_
+  - [x] 6.7 Implement responsive grid layout
+    - Use CSS Grid with 3 columns on desktop (lg breakpoint)
+    - Use CSS Grid with 2 columns on mobile
+    - Fill grid with 9 courses on desktop, 10 on mobile
+    - _Requirements: 1.4, 5.1, 5.2, 5.4_
+  - [x] 6.8 Implement loading and error states
+    - Show skeleton placeholders during loading
+    - Hide section if no courses or error occurs
+    - _Requirements: 2.5_
+
+- [x] 7. Integrate HeroScrollGrid into Homepage
+  - [x] 7.1 Add HeroScrollGrid component to Homepage
+    - Import and render HeroScrollGrid below hero section
+    - Add section heading "Discover Community Courses" or similar
+    - _Requirements: 1.1_
+
+- [x] 8. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.

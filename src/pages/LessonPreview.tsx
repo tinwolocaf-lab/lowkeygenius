@@ -58,13 +58,14 @@ export function LessonPreview() {
 
     try {
       const [courseResult, lessonsResult] = await Promise.all([
-        supabase.from('courses').select('*').eq('id', courseId).maybeSingle(),
+        supabase.from('courses').select().eq('id', courseId).maybeSingle().returns<Course | null>(),
         supabase
           .from('lessons')
-          .select('*')
+          .select()
           .eq('course_id', courseId)
           .order('module_index')
-          .order('lesson_index'),
+          .order('lesson_index')
+          .returns<Lesson[]>(),
       ]);
 
       if (courseResult.error || !courseResult.data) {

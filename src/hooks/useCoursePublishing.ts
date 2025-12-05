@@ -181,7 +181,8 @@ export function useCoursePublishing(): UseCoursePublishingReturn {
           status: 'pending',
         })
         .select()
-        .single();
+        .single()
+        .returns<DeletionRequest>();
 
       if (insertError) {
         console.error('Error creating deletion request:', insertError);

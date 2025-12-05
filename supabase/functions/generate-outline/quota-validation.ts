@@ -14,6 +14,8 @@ export interface QuotaValidationResult {
   currentCount: number;
   limit: number;
   planType: PlanType;
+  inProgressCount?: number;
+  reason?: 'limit_reached' | 'active_generation';
   error?: string;
 }
 
@@ -25,8 +27,8 @@ interface ProfileData {
 /**
  * Validates if a user can create a new course based on their plan quota.
  * 
- * - FREE users: lifetime limit (count all courses)
- * - PLUS/PRO users: billing cycle limit (count from subscription_period_start)
+ * - FREE users: lifetime limit (count published courses only)
+ * - PLUS/PRO users: billing cycle limit (count published courses from subscription_period_start)
  * - PRO_MAX users: unlimited (always allowed)
  */
 export async function validateUserQuota(
@@ -69,21 +71,21 @@ export async function validateUserQuota(
     ? new Date(profileData.subscription_period_start)
     : null;
 
-  // Count courses created by user
-  let coursesCreatedQuery = supabase
+  // Count published courses (quota is consumed when a course is published)
+  let publishedQuery = supabase
     .from('courses')
     .select('id', { count: 'exact', head: true })
-    .eq('owner_id', userId);
+    .eq('owner_id', userId)
+    .eq('status', 'published');
 
-  // For billing cycle plans (PLUS, PRO), count from subscription period start
-  // For FREE users, count ALL courses (lifetime limit)
+  // For billing cycle plans, only count courses published in the current period
   if (planConfig.isBillingCycle && subscriptionPeriodStart) {
-    coursesCreatedQuery = coursesCreatedQuery.gte('created_at', subscriptionPeriodStart.toISOString());
+    publishedQuery = publishedQuery.gte('created_at', subscriptionPeriodStart.toISOString());
   }
 
-  const { count: coursesCreated, error: coursesError } = await coursesCreatedQuery;
+  const { count: publishedCount, error: publishedError } = await publishedQuery;
 
-  if (coursesError) {
+  if (publishedError) {
     return {
       allowed: false,
       currentCount: 0,
@@ -93,32 +95,46 @@ export async function validateUserQuota(
     };
   }
 
-  // Count enrolled courses
+  // Count enrolled/subscribed courses
   let enrolledQuery = supabase
     .from('course_enrollments')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId);
 
-  // For billing cycle plans, count enrollments from subscription period start
   if (planConfig.isBillingCycle && subscriptionPeriodStart) {
     enrolledQuery = enrolledQuery.gte('enrolled_at', subscriptionPeriodStart.toISOString());
   }
 
-  const { count: coursesEnrolled, error: enrolledError } = await enrolledQuery;
-
+  const { count: enrolledCount, error: enrolledError } = await enrolledQuery;
   if (enrolledError) {
     console.error('Error fetching enrollments:', enrolledError);
-    // Continue with just created courses count if enrollment query fails
   }
 
-  const currentCount = (coursesCreated || 0) + (coursesEnrolled || 0);
-  const allowed = currentCount < limit;
+  // Track active (not yet published) courses to help the frontend guide users to continue generation
+  const { count: inProgressCount } = await supabase
+    .from('courses')
+    .select('id', { count: 'exact', head: true })
+    .eq('owner_id', userId)
+    .neq('status', 'published');
+
+  const currentCount = (publishedCount || 0) + (enrolledCount || 0);
+  const totalActive = currentCount + (inProgressCount || 0);
+
+  const limitReached = limit !== Infinity && currentCount >= limit;
+  const activeBlock = !limitReached && limit !== Infinity && totalActive > limit;
+  const allowed = !limitReached && !activeBlock;
 
   return {
     allowed,
     currentCount,
     limit,
     planType,
-    error: allowed ? undefined : 'Course limit reached. Please upgrade your plan.',
+    inProgressCount: inProgressCount || 0,
+    reason: limitReached ? 'limit_reached' : (activeBlock ? 'active_generation' : undefined),
+    error: allowed
+      ? undefined
+      : limitReached
+        ? 'Course limit reached. Please upgrade your plan.'
+        : 'Finish your existing course before starting a new one.',
   };
 }

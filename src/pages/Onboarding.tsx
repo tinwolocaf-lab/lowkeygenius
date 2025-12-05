@@ -13,7 +13,7 @@ import { supabase } from '../lib/supabase';
 import { generateCourseOutline } from '../lib/api';
 import toast from 'react-hot-toast';
 import type { Message, OnboardingData, Attachment } from '../types/onboarding';
-import type { ExtractedContext } from '../types/database';
+import type { ExtractedContext, Course } from '../types/database';
 
 type OnboardingStep =
   | 'welcome'
@@ -32,7 +32,15 @@ export function Onboarding() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { hasProfile, extractedContext, isLoading: isProfileLoading } = useUserProfile();
-  const { canCreateCourse, isLoading: isSubscriptionLoading, coursesUsed, coursesLimit, planType } = useSubscription();
+  const { 
+    canCreateCourse, 
+    isLoading: isSubscriptionLoading, 
+    coursesUsed, 
+    coursesLimit, 
+    planType,
+    activeGenerationCourse,
+    blockingReason,
+  } = useSubscription();
   const { isHorror } = useHorrorTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
@@ -74,16 +82,35 @@ export function Onboarding() {
     }
   }, [isProfileLoading, hasProfile, navigate]);
 
-  // Redirect to dashboard if quota exceeded (Requirements 1.3, 3.2)
+  const navigateToActiveCourse = useCallback(() => {
+    if (!activeGenerationCourse) {
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+
+    const path =
+      activeGenerationCourse.status === 'generating_lessons'
+        ? `/courses/${activeGenerationCourse.id}/generate`
+        : `/courses/${activeGenerationCourse.id}/outline`;
+
+    navigate(path, { replace: true });
+  }, [activeGenerationCourse, navigate]);
+
+  // Redirect to dashboard if quota exceeded or blocked by active generation (Requirements 1.3, 3.2)
   useEffect(() => {
     if (!isSubscriptionLoading && !canCreateCourse) {
-      toast.error(
-        `Course limit reached (${coursesUsed}/${coursesLimit === Infinity ? '∞' : coursesLimit} on ${planType} plan). Please upgrade to create more courses.`,
-        { duration: 5000 }
-      );
-      navigate('/dashboard', { replace: true });
+      if (blockingReason === 'active_generation') {
+        toast.error('Finish your current course before starting another.');
+        navigateToActiveCourse();
+      } else {
+        toast.error(
+          `Course limit reached (${coursesUsed}/${coursesLimit === Infinity ? '∞' : coursesLimit} on ${planType} plan). Please upgrade to create more courses.`,
+          { duration: 5000 }
+        );
+        navigate('/dashboard', { replace: true });
+      }
     }
-  }, [isSubscriptionLoading, canCreateCourse, coursesUsed, coursesLimit, planType, navigate]);
+  }, [isSubscriptionLoading, canCreateCourse, coursesUsed, coursesLimit, planType, navigate, blockingReason, navigateToActiveCourse]);
 
   const addMessage = useCallback((type: 'assistant' | 'user' | 'system', content: string) => {
     setMessages((prev) => [
@@ -274,10 +301,11 @@ export function Onboarding() {
           materials_json: materialsForStorage.length > 0 ? materialsForStorage : null,
         })
         .select()
-        .single();
+        .single()
+        .returns<Course>();
 
-      if (courseError) {
-        throw courseError;
+      if (courseError || !course) {
+        throw courseError || new Error('Failed to create course');
       }
 
       // Send content summary for outline generation (up to 10k chars per material)
