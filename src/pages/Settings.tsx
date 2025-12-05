@@ -2,23 +2,22 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
+
 import { useHorrorTheme } from '../hooks/useHorrorTheme';
 import { Card } from '../components/Card';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
-import { ThemeSelector } from '../components/ThemeSelector';
+
 import { ProfileSettings } from '../components/ProfileSettings';
 import { useSubscription } from '../hooks/useSubscription';
 import { openCustomerPortal, initiateCheckout } from '../lib/polar';
 import { GamificationService } from '../lib/gamificationService';
-import { Crown, Gift, Zap, Calendar, CreditCard, Palette, LogOut, User, BookOpen, Volume2, Star, Skull, Eye, EyeOff, Globe } from 'lucide-react';
+import { Crown, Gift, Zap, Calendar, CreditCard, LogOut, User, BookOpen, Volume2, Star, Skull, Eye, EyeOff, Globe } from 'lucide-react';
 import type { ProfileVisibility } from '../types/database';
 
 export function Settings() {
   const { profile, signOut, refreshProfile } = useAuth();
-  const { theme } = useTheme();
   const { isHorror } = useHorrorTheme();
   const subscription = useSubscription();
   const navigate = useNavigate();
@@ -210,29 +209,6 @@ export function Settings() {
               <LogOut className="w-4 h-4" />
               {isHorror ? 'Escape' : 'Sign Out'}
             </Button>
-          </div>
-        </Card>
-
-        <Card className={isHorror ? 'horror-blood-drip' : ''}>
-          <div className="flex items-center gap-3 mb-4">
-            <Palette className={`w-6 h-6 ${isHorror ? 'text-secondary' : 'text-primary'}`} />
-            <h2 className={`font-display text-display-sm text-neutral-text ${isHorror ? 'horror-flicker' : ''}`}>
-              {isHorror ? 'Dark Aesthetics' : 'Appearance'}
-            </h2>
-          </div>
-          <p className="text-sm font-body text-neutral-text-muted mb-4">
-            {isHorror ? 'Transform your realm with forbidden styles' : 'Customize the look and feel of your workspace'}
-          </p>
-          <div className={`flex items-center justify-between p-4 rounded-2xl ${isHorror ? 'bg-primary-dark/20' : 'bg-neutral-surface'}`}>
-            <div>
-              <p className="font-body font-bold text-neutral-text mb-1">{isHorror ? 'Realm Style' : 'Theme'}</p>
-              <p className="text-sm text-neutral-text-muted">
-                Current: {theme === 'horror' ? '🎃 Horror' : theme.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-              </p>
-            </div>
-            <div className="w-64">
-              <ThemeSelector />
-            </div>
           </div>
         </Card>
 

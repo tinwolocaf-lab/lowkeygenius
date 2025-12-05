@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { Button } from './Button';
-import { ThemeSelector } from './ThemeSelector';
+
 import { HorrorLogo } from './horror/HorrorLogo';
 
 export function PublicHeader() {
@@ -12,7 +12,7 @@ export function PublicHeader() {
   const [showMenu, setShowMenu] = useState(false);
   const [visibleItems, setVisibleItems] = useState<number[]>([]);
 
-  const totalItems = 7; // 4 nav links + theme + 2 buttons
+  const totalItems = 6; // 4 nav links + 2 buttons
   const staggerDelay = 60; // ms between each item
 
   useEffect(() => {
@@ -89,9 +89,6 @@ export function PublicHeader() {
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
-            <div className="w-48">
-              <ThemeSelector />
-            </div>
             <Button
               variant="secondary"
               onClick={() => navigate('/login')}
@@ -138,21 +135,11 @@ export function PublicHeader() {
                 {link.label}
               </button>
             ))}
-            <div
-              className={`relative z-[60] pt-4 border-t-2 border-neutral-border transition-all duration-300 ease-out ${
-                visibleItems.includes(4)
-                  ? 'opacity-100 translate-y-0'
-                  : 'opacity-0 -translate-y-4'
-              }`}
-            >
-              <div className="mb-4 flex justify-center">
-                <ThemeSelector />
-              </div>
-            </div>
-            <div className="relative z-10 space-y-4">
+
+            <div className="relative z-10 space-y-4 pt-4 border-t-2 border-neutral-border">
               <div
                 className={`transition-all duration-300 ease-out ${
-                  visibleItems.includes(5)
+                  visibleItems.includes(4)
                     ? 'opacity-100 translate-y-0'
                     : 'opacity-0 -translate-y-4'
                 }`}
@@ -167,7 +154,7 @@ export function PublicHeader() {
               </div>
               <div
                 className={`transition-all duration-300 ease-out ${
-                  visibleItems.includes(6)
+                  visibleItems.includes(5)
                     ? 'opacity-100 translate-y-0'
                     : 'opacity-0 -translate-y-4'
                 }`}
