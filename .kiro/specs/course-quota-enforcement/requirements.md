@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This feature addresses the inconsistent enforcement of course generation quotas across the Progent platform. Currently, users can bypass their plan limits by accessing course creation through various UI paths that don't properly check quota limits. The system needs consistent quota enforcement on both frontend (UI prevention) and backend (server-side validation) to ensure users cannot exceed their plan limits.
+This feature addresses the inconsistent enforcement of course generation quotas across the Lowkeygenius platform. Currently, users can bypass their plan limits by accessing course creation through various UI paths that don't properly check quota limits. The system needs consistent quota enforcement on both frontend (UI prevention) and backend (server-side validation) to ensure users cannot exceed their plan limits.
 
 ## Glossary
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design addresses the inconsistent enforcement of course generation quotas in the Progent platform. The solution implements a dual-layer enforcement strategy: frontend UI prevention and backend server-side validation. This ensures users cannot bypass their plan limits regardless of how they attempt to create courses.
+This design addresses the inconsistent enforcement of course generation quotas in the Lowkeygenius platform. The solution implements a dual-layer enforcement strategy: frontend UI prevention and backend server-side validation. This ensures users cannot bypass their plan limits regardless of how they attempt to create courses.
 
 ## Architecture
 

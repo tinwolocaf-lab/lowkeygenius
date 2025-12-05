@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This document specifies the requirements for implementing a "Horror" theme for the Progent AI course generation platform as part of the Kiroween hackathon Costume Contest. The horror theme will be a dark, Halloween-inspired visual experience that transforms the entire application with spooky design elements including blood-red accents, eerie fonts, ghostly animations, and haunting UI components. The theme must integrate seamlessly with the existing theme system, allowing users to switch between normal themes and the horror theme without affecting functionality.
+This document specifies the requirements for implementing a "Horror" theme for the Lowkeygenius AI course generation platform as part of the Kiroween hackathon Costume Contest. The horror theme will be a dark, Halloween-inspired visual experience that transforms the entire application with spooky design elements including blood-red accents, eerie fonts, ghostly animations, and haunting UI components. The theme must integrate seamlessly with the existing theme system, allowing users to switch between normal themes and the horror theme without affecting functionality.
 
 ## Glossary
 
@@ -92,7 +92,7 @@ This document specifies the requirements for implementing a "Horror" theme for t
 
 #### Acceptance Criteria
 
-1. WHEN the horror theme is active THEN the application SHALL display a horror-styled variant of the Progent logo
+1. WHEN the horror theme is active THEN the application SHALL display a horror-styled variant of the Lowkeygenius logo
 2. WHEN the horror theme is active THEN the favicon SHALL change to a horror-themed icon
 3. WHEN switching away from horror theme THEN the application SHALL restore the original logo and favicon
 

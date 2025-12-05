@@ -66,7 +66,7 @@
 
 - [x] 5. Implement horror branding and logo
   - [x] 5.1 Create HorrorLogo component
-    - Design horror-styled variant of Progent logo
+    - Design horror-styled variant of Lowkeygenius logo
     - Support size variants
     - _Requirements: 7.1_
   - [x] 5.2 Implement favicon switching logic
@@ -140,7 +140,7 @@
 
 - [x] 11. Create horror theme assets
   - [x] 11.1 Create horror logo SVG/image
-    - Design spooky variant of Progent logo
+    - Design spooky variant of Lowkeygenius logo
     - Export in appropriate formats
     - _Requirements: 7.1_
   - [x] 11.2 Create horror favicon

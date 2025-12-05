@@ -36,7 +36,7 @@ const sections = [
   {
     title: '7. Your Choices',
     content:
-      'You can update profile information, manage marketing preferences, and request access or deletion of your data by contacting contact@progent.study. Verification may be required.',
+      'You can update profile information, manage marketing preferences, and request access or deletion of your data by contacting contact@Lowkeygenius.study. Verification may be required.',
   },
   {
     title: '8. International Transfers',
@@ -46,7 +46,7 @@ const sections = [
   {
     title: '9. Children',
     content:
-      'Progent is not directed to children under 13 (or the minimum age in your jurisdiction). Do not use the service if you do not meet age requirements.',
+      'Lowkeygenius is not directed to children under 13 (or the minimum age in your jurisdiction). Do not use the service if you do not meet age requirements.',
   },
   {
     title: '10. Changes',
@@ -55,7 +55,7 @@ const sections = [
   },
   {
     title: '11. Contact',
-    content: 'For privacy questions or requests, contact contact@progent.study.',
+    content: 'For privacy questions or requests, contact contact@Lowkeygenius.study.',
   },
 ];
 
@@ -67,7 +67,7 @@ export function PrivacyPolicy() {
         <div className="legal-card">
           <h1 className="legal-title">Privacy Policy</h1>
           <p className="legal-intro">
-            This Privacy Policy explains how Progent collects, uses, and protects your information.
+            This Privacy Policy explains how Lowkeygenius collects, uses, and protects your information.
           </p>
           <div className="legal-sections">
             {sections.map((section) => (

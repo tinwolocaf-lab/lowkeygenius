@@ -46,12 +46,12 @@ export function Homepage() {
     {
       icon: <Brain className="w-8 h-8" />,
       title: 'Continuous Learning Memory',
-      description: 'Progent remembers what you have learned. If you know JavaScript, it wont teach you the basics again when you learn React.',
+      description: 'Lowkeygenius remembers what you have learned. If you know JavaScript, it wont teach you the basics again when you learn React.',
     },
     {
       icon: <Target className="w-8 h-8" />,
       title: 'Deep Dive, Not Just Summaries',
-      description: 'Unlike chat bots that summarize, Progent expands topics into full courses with detailed steps, quizzes, and flashcards.',
+      description: 'Unlike chat bots that summarize, Lowkeygenius expands topics into full courses with detailed steps, quizzes, and flashcards.',
     },
     {
       icon: <Headphones className="w-8 h-8" />,
@@ -94,7 +94,7 @@ export function Homepage() {
     {
       number: '04',
       title: 'Build Your Knowledge',
-      description: 'Progent tracks your progress and adapts future courses based on what you already know.',
+      description: 'Lowkeygenius tracks your progress and adapts future courses based on what you already know.',
     },
   ];
 
@@ -108,11 +108,11 @@ export function Homepage() {
   const faqs = [
     {
       question: 'How is this different from ChatGPT or NotebookLM?',
-      answer: 'ChatGPT and NotebookLM are great for summarizing or answering quick questions. Progent is designed for deep, systematic learning. It generates entire structured courses with lessons, quizzes, and progress tracking, rather than just short answers.',
+      answer: 'ChatGPT and NotebookLM are great for summarizing or answering quick questions. Lowkeygenius is designed for deep, systematic learning. It generates entire structured courses with lessons, quizzes, and progress tracking, rather than just short answers.',
     },
     {
       question: 'Does it really remember what I learned?',
-      answer: 'Yes! Progent builds a knowledge graph of your learning. If you take a course on "Programming Basics", it wont repeat those concepts when you generate a "Advanced Python" course.',
+      answer: 'Yes! Lowkeygenius builds a knowledge graph of your learning. If you take a course on "Programming Basics", it wont repeat those concepts when you generate a "Advanced Python" course.',
     },
     {
       question: 'Can I listen to courses?',
@@ -161,8 +161,8 @@ export function Homepage() {
 
               <p className="font-body text-xl text-neutral-text-muted mb-8 max-w-2xl mx-auto leading-relaxed">
                 {isHorror
-                  ? 'Abandon scattered learning. Progent is your dark guide to summoning grimoires, mastering forbidden arts, and building an interconnected web of arcane knowledge.'
-                  : 'Stop learning from scattered sources. Progent is the professional agent that helps you create courses, learn independently, and build a connected knowledge base using AI.'
+                  ? 'Abandon scattered learning. Lowkeygenius is your dark guide to summoning grimoires, mastering forbidden arts, and building an interconnected web of arcane knowledge.'
+                  : 'Stop learning from scattered sources. Lowkeygenius is the professional agent that helps you create courses, learn independently, and build a connected knowledge base using AI.'
                 }
               </p>
 
@@ -252,7 +252,7 @@ export function Homepage() {
                 It Remembers What You Know
               </h2>
               <p className="font-body text-lg text-neutral-text-muted mb-6 leading-relaxed">
-                Most AI tools treat every session like a blank slate. Progent builds a <strong>Continuous Knowledge Graph</strong> of your learning.
+                Most AI tools treat every session like a blank slate. Lowkeygenius builds a <strong>Continuous Knowledge Graph</strong> of your learning.
               </p>
               <p className="font-body text-lg text-neutral-text-muted mb-6 leading-relaxed">
                 If you've already learned <em>Python</em> with us, we won't waste your time explaining variables when you start a <em>Machine Learning</em> course. We build upon your existing knowledge, just like a real human tutor.
@@ -288,7 +288,7 @@ export function Homepage() {
                 Don't have time to sit and read? Use <strong>Audio Mode</strong> to turn any lesson into an engaging podcast.
               </p>
               <p className="font-body text-lg text-neutral-text-muted mb-6 leading-relaxed">
-                Perfect for commuting, driving, or exercising. Progent makes it easy to fit learning into your busy schedule.
+                Perfect for commuting, driving, or exercising. Lowkeygenius makes it easy to fit learning into your busy schedule.
               </p>
               <Button variant="primary" onClick={() => navigate('/signup')}>
                 Try Audio Learning
@@ -330,8 +330,8 @@ export function Homepage() {
             </h2>
             <p className="font-body text-xl text-neutral-text-muted max-w-2xl mx-auto">
               {isHorror
-                ? 'Progent is a complete arcane academy designed for mastery of forbidden arts.'
-                : 'Progent is a complete learning platform designed for mastery, not just quick answers.'
+                ? 'Lowkeygenius is a complete arcane academy designed for mastery of forbidden arts.'
+                : 'Lowkeygenius is a complete learning platform designed for mastery, not just quick answers.'
               }
             </p>
           </div>
@@ -464,7 +464,7 @@ export function Homepage() {
               Frequently Asked Questions
             </h2>
             <p className="font-body text-xl text-neutral-text-muted">
-              Everything you need to know about Progent
+              Everything you need to know about Lowkeygenius
             </p>
           </div>
 
@@ -490,7 +490,7 @@ export function Homepage() {
               <Skull className="w-20 h-20 text-primary" />
             </div>
           ) : (
-            <img src="/logo.png" alt="Progent" className="w-20 h-20 mx-auto mb-6 object-contain" />
+            <img src="/logo.png" alt="Lowkeygenius" className="w-20 h-20 mx-auto mb-6 object-contain" />
           )}
           <h2 className={`font-display text-4xl sm:text-5xl font-bold mb-6 ${isHorror ? 'horror-text-glitch' : ''}`}>
             {isHorror ? 'Ready to Embrace the Darkness?' : 'Ready to Start Learning?'}

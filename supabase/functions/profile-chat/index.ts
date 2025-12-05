@@ -56,7 +56,7 @@ const COMPLETION_INDICATORS = [
   'This is very helpful information',
 ];
 
-const SYSTEM_PROMPT = `You are a friendly onboarding assistant for Progent, an AI-powered learning platform. Your goal is to gather comprehensive information about the user's educational background, professional experience, learning interests, and preferences.
+const SYSTEM_PROMPT = `You are a friendly onboarding assistant for Lowkeygenius, an AI-powered learning platform. Your goal is to gather comprehensive information about the user's educational background, professional experience, learning interests, and preferences.
 
 Guidelines:
 1. Be warm, conversational, and encouraging

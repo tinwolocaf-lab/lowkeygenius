@@ -652,11 +652,11 @@ export function Courses() {
             <p className="font-body text-sm text-neutral-text-muted mb-4">
               You can also contact us directly at{' '}
               <a 
-                href="mailto:contact@progent.study" 
+                href="mailto:contact@Lowkeygenius.study" 
                 className="text-primary hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
-                contact@progent.study
+                contact@Lowkeygenius.study
               </a>
             </p>
             <div className="mb-4">

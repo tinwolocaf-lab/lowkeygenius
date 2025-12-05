@@ -15,12 +15,12 @@ const sizeClasses: Record<LogoSize, { icon: string; text: string }> = {
 };
 
 /**
- * Horror-styled variant of the Progent logo.
+ * Horror-styled variant of the Lowkeygenius logo.
  * Displays a dedicated horror logo SVG with blood drip effects and spooky styling.
  * Only renders horror styling when horror theme is active.
  * 
  * @param size - Size variant: 'sm', 'md', or 'lg'
- * @param showText - Whether to show the "Progent" text alongside the logo
+ * @param showText - Whether to show the "Lowkeygenius" text alongside the logo
  * @param className - Additional CSS classes
  */
 export function HorrorLogo({ size = 'md', showText = false, className = '' }: HorrorLogoProps) {
@@ -33,12 +33,12 @@ export function HorrorLogo({ size = 'md', showText = false, className = '' }: Ho
       <div className={`flex items-center gap-3 ${className}`}>
         <img
           src="/logo.png"
-          alt="Progent"
+          alt="Lowkeygenius"
           className={`object-contain ${sizeConfig.icon}`}
         />
         {showText && (
           <span className={`font-display font-bold text-primary ${sizeConfig.text}`}>
-            Progent
+            Lowkeygenius
           </span>
         )}
       </div>
@@ -51,7 +51,7 @@ export function HorrorLogo({ size = 'md', showText = false, className = '' }: Ho
       <div className="horror-logo-icon relative">
         <img
           src="/logo-horror.png"
-          alt="Progent Horror"
+          alt="Lowkeygenius Horror"
           className={`object-contain ${sizeConfig.icon} horror-logo-image`}
         />
 
@@ -72,7 +72,7 @@ export function HorrorLogo({ size = 'md', showText = false, className = '' }: Ho
             textShadow: '0 0 10px var(--horror-blood-dark, #8B0000), 2px 2px 4px rgba(0,0,0,0.5)',
           }}
         >
-          Progent
+          Lowkeygenius
         </span>
       )}
     </div>

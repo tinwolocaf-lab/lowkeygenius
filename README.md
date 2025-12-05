@@ -1,4 +1,4 @@
-# Progent 🎓
+# Lowkeygenius 🎓
 
 An AI-powered course generation platform that allows users to create personalized learning courses on any topic.
 
@@ -34,8 +34,8 @@ An AI-powered course generation platform that allows users to create personalize
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/progent.git
-cd progent
+git clone https://github.com/your-username/Lowkeygenius.git
+cd Lowkeygenius
 ```
 
 2. Install dependencies:
@@ -141,7 +141,7 @@ supabase/
 
 ## 🎨 Theming
 
-Progent supports multiple themes:
+Lowkeygenius supports multiple themes:
 - **Blue Light** (default)
 - **Pink Light**
 - **Blue Dark**

@@ -51,7 +51,7 @@ export function VerifyEmailSuccess() {
     if (isLinkedAccount) {
       return 'Your Google account has been linked to your existing email account. You can now sign in with either method.';
     }
-    return 'Your email has been verified and your account is now active. Welcome to Progent!';
+    return 'Your email has been verified and your account is now active. Welcome to Lowkeygenius!';
   };
 
   return (

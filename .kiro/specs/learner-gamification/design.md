@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design document outlines the architecture and implementation details for adding a comprehensive gamification system to Progent. The system introduces experience points (XP), learning streaks, achievement badges, personal analytics dashboards, public learner profiles, and course leaderboards. The design leverages the existing Supabase infrastructure and follows established patterns in the codebase.
+This design document outlines the architecture and implementation details for adding a comprehensive gamification system to Lowkeygenius. The system introduces experience points (XP), learning streaks, achievement badges, personal analytics dashboards, public learner profiles, and course leaderboards. The design leverages the existing Supabase infrastructure and follows established patterns in the codebase.
 
 ## Architecture
 

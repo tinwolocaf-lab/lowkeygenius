@@ -12,7 +12,7 @@ export function PublicFooter() {
               <HorrorLogo showText={true} size="lg" />
             </div>
             <p className="font-body text-sm text-neutral-text-muted">
-              Progent builds personalized, structured courses with audio, quizzes, and tracking.
+              Lowkeygenius builds personalized, structured courses with audio, quizzes, and tracking.
             </p>
           </div>
 
@@ -43,7 +43,7 @@ export function PublicFooter() {
         </div>
 
         <div className="border-t border-neutral-border pt-6 text-center font-body text-sm text-neutral-text-muted">
-          <p>&copy; {new Date().getFullYear()} Progent. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Lowkeygenius. All rights reserved.</p>
         </div>
       </div>
     </footer>

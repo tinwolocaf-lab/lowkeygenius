@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the technical design for implementing a Horror theme in the Progent application for the Kiroween hackathon Costume Contest. The horror theme will transform the application into a spooky, Halloween-inspired experience while maintaining full functionality and seamless integration with the existing theme system.
+This document outlines the technical design for implementing a Horror theme in the Lowkeygenius application for the Kiroween hackathon Costume Contest. The horror theme will transform the application into a spooky, Halloween-inspired experience while maintaining full functionality and seamless integration with the existing theme system.
 
 The implementation follows the established theme architecture using CSS custom properties, React context, and conditional styling. Users can switch between the horror theme and normal themes at any time, with all horror-specific visual elements appearing or disappearing based on the active theme.
 

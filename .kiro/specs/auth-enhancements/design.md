@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design enhances the Progent authentication system to provide a seamless email verification experience with automatic login, Google OAuth integration, and intelligent account linking. The implementation leverages Supabase Auth's built-in capabilities for OAuth and automatic identity linking while adding custom UI flows for user feedback and account merge notifications.
+This design enhances the Lowkeygenius authentication system to provide a seamless email verification experience with automatic login, Google OAuth integration, and intelligent account linking. The implementation leverages Supabase Auth's built-in capabilities for OAuth and automatic identity linking while adding custom UI flows for user feedback and account merge notifications.
 
 ## Architecture
 

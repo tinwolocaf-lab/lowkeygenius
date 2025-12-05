@@ -7,7 +7,7 @@ const FAVICON_HORROR = '/favicon-horror.svg';
 /**
  * Custom hook that switches the favicon based on the active theme.
  * When horror theme is active, displays a spooky skull favicon.
- * When any other theme is active, displays the default Progent favicon.
+ * When any other theme is active, displays the default Lowkeygenius favicon.
  * 
  * This hook should be called once at the app root level.
  */

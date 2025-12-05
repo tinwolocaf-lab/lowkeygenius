@@ -126,7 +126,7 @@ VALUES
   (
     'early_adopter',
     'Early Adopter',
-    'Joined Progent during the early access period',
+    'Joined Lowkeygenius during the early access period',
     '/badges/early-adopter.svg',
     'special',
     '{"type": "manual", "description": "Awarded to users who joined before public launch"}',

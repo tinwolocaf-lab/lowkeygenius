@@ -1,6 +1,6 @@
 # Product Overview
 
-Progent is an AI-powered course generation platform that allows users to create personalized learning courses on any topic.
+Lowkeygenius is an AI-powered course generation platform that allows users to create personalized learning courses on any topic.
 
 ## Core Features
 

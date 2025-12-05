@@ -61,10 +61,10 @@ export function Layout() {
               ) : (
                 <>
                   <div className="" style={{ padding: '8px' }}>
-                    <img src="/logo.png" alt="Progent" className={`object-contain ${sidebarCollapsed ? 'w-12 h-12' : 'w-9 h-9'}`} />
+                    <img src="/logo.png" alt="Lowkeygenius" className={`object-contain ${sidebarCollapsed ? 'w-12 h-12' : 'w-9 h-9'}`} />
                   </div>
                   {!sidebarCollapsed && (
-                    <h1 className="font-display text-2xl font-bold text-primary">Progent</h1>
+                    <h1 className="font-display text-2xl font-bold text-primary">Lowkeygenius</h1>
                   )}
                 </>
               )}
@@ -162,9 +162,9 @@ export function Layout() {
             ) : (
               <>
                 <div className="p-1">
-                  <img src="/logo.png" alt="Progent" className="w-8 h-8 object-contain" />
+                  <img src="/logo.png" alt="Lowkeygenius" className="w-8 h-8 object-contain" />
                 </div>
-                <h1 className="font-display text-xl font-bold text-primary">Progent</h1>
+                <h1 className="font-display text-xl font-bold text-primary">Lowkeygenius</h1>
               </>
             )}
           </div>

@@ -50,7 +50,7 @@ export function VoiceOrb({
 
       const radius = baseRadius + pulseAmount;
 
-      // Create gradient - pink theme to match Progent branding
+      // Create gradient - pink theme to match Lowkeygenius branding
       const gradient = ctx.createRadialGradient(
         centerX,
         centerY + 20,

@@ -68,9 +68,9 @@ export function Signup() {
           ) : (
             <div className="flex items-center gap-3">
               <div className="p-2">
-                <img src="/logo.png" alt="Progent" className="w-12 h-12 object-contain" />
+                <img src="/logo.png" alt="Lowkeygenius" className="w-12 h-12 object-contain" />
               </div>
-              <h1 className="font-display text-display-lg text-primary">Progent</h1>
+              <h1 className="font-display text-display-lg text-primary">Lowkeygenius</h1>
             </div>
           )}
         </div>

@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This document specifies the security requirements for hardening the Progent AI-powered course generation platform before public deployment and open-sourcing. The audit covers authentication, authorization, input validation, API security, database security, and protection against common web vulnerabilities. The goal is to ensure the application is secure when the source code is publicly visible and the application is deployed online.
+This document specifies the security requirements for hardening the Lowkeygenius AI-powered course generation platform before public deployment and open-sourcing. The audit covers authentication, authorization, input validation, API security, database security, and protection against common web vulnerabilities. The goal is to ensure the application is secure when the source code is publicly visible and the application is deployed online.
 
 ## Glossary
 

@@ -6,17 +6,17 @@ const sections = [
   {
     title: '1. Acceptance of Terms',
     content:
-      'By accessing or using Progent, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using the service.',
+      'By accessing or using Lowkeygenius, you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using the service.',
   },
   {
     title: '2. Service Description',
     content:
-      'Progent is an AI-powered learning platform that creates personalized courses, lessons, quizzes, flashcards, and audio content based on user inputs and preferences.',
+      'Lowkeygenius is an AI-powered learning platform that creates personalized courses, lessons, quizzes, flashcards, and audio content based on user inputs and preferences.',
   },
   {
     title: '3. Eligibility',
     content:
-      'You must be at least 13 years old (or the minimum age in your jurisdiction) to use Progent. By using the service, you represent that you meet these requirements and have legal authority to enter into this agreement.',
+      'You must be at least 13 years old (or the minimum age in your jurisdiction) to use Lowkeygenius. By using the service, you represent that you meet these requirements and have legal authority to enter into this agreement.',
   },
   {
     title: '4. Accounts & Security',
@@ -31,7 +31,7 @@ const sections = [
   {
     title: '6. Content & License',
     content:
-      'You retain ownership of content you provide. You grant Progent a worldwide, non-exclusive license to use, reproduce, and process your content solely to operate and improve the service. AI-generated outputs are provided “as is” for your personal or internal use.',
+      'You retain ownership of content you provide. You grant Lowkeygenius a worldwide, non-exclusive license to use, reproduce, and process your content solely to operate and improve the service. AI-generated outputs are provided “as is” for your personal or internal use.',
   },
   {
     title: '7. Acceptable Use',
@@ -41,7 +41,7 @@ const sections = [
   {
     title: '8. Privacy',
     content:
-      'Your use of Progent is also governed by our Privacy Policy. Please review it to understand how we collect, use, and protect your information.',
+      'Your use of Lowkeygenius is also governed by our Privacy Policy. Please review it to understand how we collect, use, and protect your information.',
   },
   {
     title: '9. Disclaimers',
@@ -51,7 +51,7 @@ const sections = [
   {
     title: '10. Limitation of Liability',
     content:
-      'To the fullest extent permitted by law, Progent is not liable for indirect, incidental, special, consequential, or punitive damages, or any loss of data or profits arising from your use of the service.',
+      'To the fullest extent permitted by law, Lowkeygenius is not liable for indirect, incidental, special, consequential, or punitive damages, or any loss of data or profits arising from your use of the service.',
   },
   {
     title: '11. Termination',
@@ -65,7 +65,7 @@ const sections = [
   },
   {
     title: '13. Contact',
-    content: 'For questions about these Terms, contact us at contact@progent.study.',
+    content: 'For questions about these Terms, contact us at contact@Lowkeygenius.study.',
   },
 ];
 
@@ -77,7 +77,7 @@ export function TermsOfService() {
         <div className="legal-card">
           <h1 className="legal-title">Terms of Service</h1>
           <p className="legal-intro">
-            Welcome to Progent. These Terms of Service govern your use of the platform.
+            Welcome to Lowkeygenius. These Terms of Service govern your use of the platform.
           </p>
           <div className="legal-sections">
             {sections.map((section) => (

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design document outlines the security hardening measures required for the Progent platform before public deployment and open-sourcing. The audit addresses authentication, authorization, input validation, CORS configuration, rate limiting, webhook security, and protection against common web vulnerabilities.
+This design document outlines the security hardening measures required for the Lowkeygenius platform before public deployment and open-sourcing. The audit addresses authentication, authorization, input validation, CORS configuration, rate limiting, webhook security, and protection against common web vulnerabilities.
 
 ## Architecture
 
