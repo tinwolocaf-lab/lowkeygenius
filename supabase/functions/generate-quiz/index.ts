@@ -1,10 +1,18 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+import {
+  validateAuth,
+  getCorsHeaders,
+  validateStringInput,
+  validateUUID,
+  sanitizeForPrompt,
+  checkRateLimit,
+  createRateLimitResponse,
+  createUnauthorizedResponse,
+  createValidationErrorResponse,
+  createErrorResponse,
+  MAX_CONTENT_LENGTH,
+  MAX_TOPIC_LENGTH,
+} from '../_shared/security.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
@@ -28,6 +36,8 @@ interface GeneratedQuestion {
 interface GeminiQuizResponse {
   questions: GeneratedQuestion[];
 }
+
+const VALID_COURSE_LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'] as const;
 
 /**
  * Validates the structure of a single quiz question
@@ -146,6 +156,9 @@ function extractJsonFromResponse(text: string): unknown {
 
 
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin, 'POST, OPTIONS');
+
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
@@ -155,34 +168,65 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (!GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not configured');
-    }
-
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
+      console.error('GEMINI_API_KEY not configured');
+      return createErrorResponse('Service configuration error', 500, corsHeaders, 'INTERNAL_ERROR');
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      throw new Error('Invalid user token');
+    // Validate authentication (Requirements 1.1, 1.2, 1.3)
+    const authResult = await validateAuth(req, supabase);
+    if (authResult.error || !authResult.user) {
+      return createUnauthorizedResponse(corsHeaders, authResult.error || 'Unauthorized');
     }
 
-    const requestData: GenerateQuizRequest = await req.json();
+    const user = authResult.user;
+
+    // Check rate limit (Requirements 4.1, 4.2, 4.3)
+    const rateLimitResult = await checkRateLimit(supabase, user.id, 'generate-quiz');
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult.retryAfter || 60, corsHeaders);
+    }
+
+    // Parse request body
+    let requestData: GenerateQuizRequest;
+    try {
+      requestData = await req.json();
+    } catch {
+      return createValidationErrorResponse(corsHeaders, 'Invalid JSON in request body');
+    }
+
     const { lessonId, lessonContent, lessonTitle, courseLevel } = requestData;
 
-    if (!lessonId || !lessonContent || !lessonTitle || !courseLevel) {
-      throw new Error('Missing required fields: lessonId, lessonContent, lessonTitle, courseLevel');
+    // Input validation (Requirements 3.1, 3.2)
+    const lessonIdValidation = validateUUID(lessonId, 'lessonId');
+    if (!lessonIdValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, lessonIdValidation.error || 'Invalid lessonId');
     }
 
+    const contentValidation = validateStringInput(lessonContent, 'lessonContent', MAX_CONTENT_LENGTH);
+    if (!contentValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, contentValidation.error || 'Invalid lessonContent');
+    }
+
+    const titleValidation = validateStringInput(lessonTitle, 'lessonTitle', MAX_TOPIC_LENGTH);
+    if (!titleValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, titleValidation.error || 'Invalid lessonTitle');
+    }
+
+    // Validate courseLevel is one of the allowed values
+    if (!courseLevel || !VALID_COURSE_LEVELS.includes(courseLevel)) {
+      return createValidationErrorResponse(corsHeaders, 'courseLevel must be one of: beginner, intermediate, advanced, expert');
+    }
+
+    // Sanitize inputs for AI prompt (Requirements 3.4)
+    const sanitizedContent = sanitizeForPrompt(lessonContent);
+    const sanitizedTitle = sanitizeForPrompt(lessonTitle);
+
     // Build the prompt for Gemini AI
-    const prompt = buildQuizPrompt(lessonTitle, lessonContent, courseLevel);
+    const prompt = buildQuizPrompt(sanitizedTitle, sanitizedContent, courseLevel);
 
     // Call Gemini API
     const geminiResponse = await fetch(
@@ -206,26 +250,24 @@ Deno.serve(async (req: Request) => {
 
     if (!geminiResponse.ok) {
       const errorText = await geminiResponse.text();
-      let errorMessage = 'Gemini API error';
+      console.error('Gemini API error:', errorText);
 
       try {
         const errorData = JSON.parse(errorText);
         if (errorData.error?.code === 429) {
-          errorMessage = 'Rate limit exceeded. Please wait a moment and try again.';
-        } else if (errorData.error?.message) {
-          errorMessage = errorData.error.message.split('\n')[0];
+          return createErrorResponse('AI service rate limit exceeded. Please try again later.', 429, corsHeaders, 'RATE_LIMITED');
         }
       } catch {
-        errorMessage = errorText.substring(0, 200);
+        // Ignore parse error
       }
 
-      throw new Error(errorMessage);
+      return createErrorResponse('AI service error', 500, corsHeaders, 'INTERNAL_ERROR');
     }
 
     const geminiData = await geminiResponse.json();
 
     if (!geminiData.candidates?.[0]?.content?.parts?.[0]?.text) {
-      throw new Error('Invalid response from AI service');
+      return createErrorResponse('Invalid response from AI service', 500, corsHeaders, 'INTERNAL_ERROR');
     }
 
     const responseText = geminiData.candidates[0].content.parts[0].text;
@@ -235,9 +277,9 @@ Deno.serve(async (req: Request) => {
     try {
       const jsonData = extractJsonFromResponse(responseText);
       parsedResponse = validateQuizResponse(jsonData);
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', responseText);
-      throw new Error(`Failed to parse quiz data: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+    } catch (error) {
+      console.error('Failed to parse AI response:', error, responseText);
+      return createErrorResponse('Failed to parse quiz data', 500, corsHeaders, 'INTERNAL_ERROR');
     }
 
 
@@ -275,7 +317,8 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (quizInsertError || !insertedQuiz) {
-      throw new Error(`Failed to save quiz: ${quizInsertError?.message || 'Unknown error'}`);
+      console.error('Failed to save quiz:', quizInsertError);
+      return createErrorResponse('Failed to save quiz', 500, corsHeaders, 'INTERNAL_ERROR');
     }
 
     // Insert quiz questions
@@ -297,7 +340,8 @@ Deno.serve(async (req: Request) => {
     if (questionsInsertError) {
       // Rollback: delete the quiz if questions failed to insert
       await supabase.from('quizzes').delete().eq('id', insertedQuiz.id);
-      throw new Error(`Failed to save quiz questions: ${questionsInsertError.message}`);
+      console.error('Failed to save quiz questions:', questionsInsertError);
+      return createErrorResponse('Failed to save quiz questions', 500, corsHeaders, 'INTERNAL_ERROR');
     }
 
     return new Response(
@@ -316,21 +360,8 @@ Deno.serve(async (req: Request) => {
   } catch (error: unknown) {
     console.error('Error generating quiz:', error);
 
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate quiz';
-    const statusCode = errorMessage.includes('Rate limit') ? 429 : 500;
-
-    return new Response(
-      JSON.stringify({
-        error: errorMessage,
-      }),
-      {
-        status: statusCode,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    // Return safe error response (Requirements 7.2)
+    return createErrorResponse('Failed to generate quiz', 500, corsHeaders, 'INTERNAL_ERROR');
   }
 });
 

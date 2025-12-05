@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "Re-run Hanging NPM Commands",
+  "description": "Monitors for npm run build, npm run lint, or npm run typecheck commands that may have hung without returning results. If a command was executed but results weren't visible within a reasonable time, prompts to re-run the command to avoid long waits.",
+  "version": "1",
+  "when": {
+    "type": "fileCreated",
+    "patterns": []
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Check if you recently ran any of these commands: `npm run build`, `npm run lint`, or `npm run typecheck`. If you executed one of these commands but did not receive or see the output/results within the conversation (the command appeared to hang or take unusually long), immediately re-run the same command to get fresh results. These commands typically complete in 1-5 seconds, so if more than 10 seconds passed without visible output, the results were likely lost. Re-run the command now to proceed."
+  }
+}

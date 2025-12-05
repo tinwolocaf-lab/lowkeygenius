@@ -11,6 +11,7 @@ import { InlineWikiTerm } from './InlineWikiTerm';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { generateDefinition } from '../lib/api';
+import { sanitizeForMarkdown } from '../utils/xssSanitization';
 import type { InlineWikiEntry } from '../types/database';
 
 interface MarkdownRendererProps {
@@ -268,9 +269,11 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   const [entriesError, setEntriesError] = useState<string | null>(null);
 
   /**
-   * Sanitize markdown content by removing outer code fence wrappers.
+   * Sanitize markdown content by removing outer code fence wrappers and XSS payloads.
    * Some AI-generated content comes wrapped in ```markdown ... ``` which
    * causes the entire content to render as a code block instead of markdown.
+   * 
+   * Requirements: 3.5 - Sanitize user input containing potential XSS payloads
    */
   const sanitizeMarkdownContent = useCallback((rawContent: string): string => {
     if (!rawContent) return rawContent;
@@ -279,11 +282,14 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
     const markdownFencePattern = /^```(?:markdown|md)?\s*\n([\s\S]*?)\n```\s*$/;
     const match = rawContent.match(markdownFencePattern);
     
-    if (match) {
-      return match[1].trim();
-    }
+    let content = match ? match[1].trim() : rawContent;
     
-    return rawContent;
+    // Apply XSS sanitization to protect against malicious content
+    // This removes script tags, event handlers, and other XSS vectors
+    // while preserving valid markdown formatting
+    content = sanitizeForMarkdown(content);
+    
+    return content;
   }, []);
 
   // Keep currentContent in sync with content prop, sanitizing if needed

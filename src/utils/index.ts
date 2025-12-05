@@ -29,3 +29,14 @@ export type {
   UploadResult,
   DeleteResult,
 } from './thumbnailStorage';
+
+export {
+  escapeHtml,
+  unescapeHtml,
+  sanitizeHtml,
+  containsXssPayload,
+  sanitizeForMarkdown,
+  sanitizeUserInput,
+  sanitizeUrl,
+} from './xssSanitization';
+export type { SanitizationResult } from './xssSanitization';

@@ -1,11 +1,6 @@
 import { validateEvent } from 'npm:@polar-sh/sdk@0.41.5/webhooks';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, webhook-signature',
-};
+import { getCorsHeaders, sanitizeErrorMessage } from '../_shared/security.ts';
 
 interface PolarSubscriptionData {
   id: string;
@@ -22,6 +17,12 @@ interface PolarEvent {
   id: string;
 }
 
+interface WebhookValidationResult {
+  valid: boolean;
+  event?: PolarEvent;
+  error?: string;
+}
+
 const PRODUCT_TO_PLAN_MAP: Record<string, string> = {
   [Deno.env.get('VITE_POLAR_PRODUCT_PLUS_MONTHLY') || '']: 'PLUS',
   [Deno.env.get('VITE_POLAR_PRODUCT_PLUS_YEARLY') || '']: 'PLUS',
@@ -31,7 +32,60 @@ const PRODUCT_TO_PLAN_MAP: Record<string, string> = {
   [Deno.env.get('VITE_POLAR_PRODUCT_PRO_MAX_YEARLY') || '']: 'PRO_MAX',
 };
 
+/**
+ * Validate webhook signature
+ * Requirements: 6.1, 6.2, 6.4
+ * 
+ * When secret is configured, signature validation is mandatory.
+ * When secret is not configured, logs a warning and operates in degraded mode.
+ */
+function validateWebhookSignature(
+  body: string,
+  signature: string | null,
+  secret: string | null
+): WebhookValidationResult {
+  // If no secret configured, operate in degraded mode with warning (Requirement 6.4)
+  if (!secret) {
+    console.warn('POLAR_WEBHOOK_SECRET not configured - webhook validation disabled (degraded security mode)');
+    try {
+      const event = JSON.parse(body) as PolarEvent;
+      return { valid: true, event };
+    } catch {
+      return { valid: false, error: 'Invalid JSON payload' };
+    }
+  }
+
+  // Secret is configured - signature validation is mandatory (Requirement 6.1)
+  if (!signature) {
+    console.error('Webhook validation failed: Missing signature header');
+    return { valid: false, error: 'Missing webhook signature' };
+  }
+
+  try {
+    const event = validateEvent(body, signature, secret) as PolarEvent;
+    return { valid: true, event };
+  } catch (validationError) {
+    // Log failed validation attempt (Requirement 6.2)
+    const errorMessage = validationError instanceof Error ? validationError.message : 'Unknown validation error';
+    console.error(`Webhook signature validation failed: ${errorMessage}`);
+    return { valid: false, error: 'Invalid webhook signature' };
+  }
+}
+
+/**
+ * Create a hash of the payload for logging (without exposing sensitive data)
+ */
+function hashPayloadForLogging(body: string): string {
+  // Simple hash for logging purposes - just use first/last chars and length
+  if (body.length < 20) return `[payload:${body.length}chars]`;
+  return `[payload:${body.length}chars,start:${body.substring(0, 10)}...]`;
+}
+
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get('Origin');
+  // Webhooks typically don't need CORS, but include for consistency
+  const corsHeaders = getCorsHeaders(origin, 'POST, OPTIONS');
+
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
@@ -41,50 +95,64 @@ Deno.serve(async (req: Request) => {
 
   try {
     const webhookSecret = Deno.env.get('POLAR_WEBHOOK_SECRET');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    const body = await req.text();
-    console.log('Received webhook:', body);
-
-    let event: PolarEvent;
-
-    if (webhookSecret) {
-      const signature = req.headers.get('webhook-signature');
-      if (!signature) {
-        console.error('Missing webhook signature, parsing without validation');
-        event = JSON.parse(body) as PolarEvent;
-      } else {
-        try {
-          event = validateEvent(body, signature, webhookSecret) as PolarEvent;
-        } catch (validationError) {
-          console.error('Webhook validation failed:', validationError);
-          event = JSON.parse(body) as PolarEvent;
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing required environment variables');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
-      }
-    } else {
-      console.warn('POLAR_WEBHOOK_SECRET not set, skipping validation');
-      event = JSON.parse(body) as PolarEvent;
+      );
     }
 
+    const body = await req.text();
+    const signature = req.headers.get('webhook-signature');
+
+    // Validate webhook signature FIRST (Requirements 6.1, 6.2)
+    const validationResult = validateWebhookSignature(body, signature, webhookSecret);
+    
+    if (!validationResult.valid) {
+      // Log the failed attempt with context (Requirement 6.2)
+      const sourceIP = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
+      console.error(`Webhook validation rejected: source=${sourceIP}, payload=${hashPayloadForLogging(body)}`);
+      
+      return new Response(
+        JSON.stringify({ error: validationResult.error }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const event = validationResult.event!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: existingEvent } = await supabase
+    // Idempotency check BEFORE processing (Requirement 6.3)
+    const { data: existingEvent, error: idempotencyError } = await supabase
       .from('subscription_events')
       .select('id')
       .eq('polar_event_id', event.id)
       .maybeSingle();
 
+    if (idempotencyError) {
+      console.error('Idempotency check failed:', idempotencyError);
+      // Continue processing - better to risk duplicate than fail
+    }
+
     if (existingEvent) {
-      console.log('Event already processed:', event.id);
+      console.log('Event already processed (idempotency check):', event.id);
       return new Response(JSON.stringify({ success: true, message: 'Event already processed' }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('Event type:', event.type);
-    console.log('Event data:', JSON.stringify(event.data));
+    console.log('Processing webhook event:', event.type, 'id:', event.id);
 
     if (!event.type.startsWith('subscription.')) {
       console.log('Ignoring non-subscription event:', event.type);
@@ -100,11 +168,8 @@ Deno.serve(async (req: Request) => {
     const metadata = event.data.metadata || {};
     const userId = metadata.supabase_user_id;
 
-    console.log('Metadata:', JSON.stringify(metadata));
-    console.log('User ID:', userId);
-
     if (!userId) {
-      console.error('No user ID in webhook metadata');
+      console.error('No user ID in webhook metadata for event:', event.id);
       return new Response(
         JSON.stringify({ error: 'Missing user ID in metadata' }),
         {
@@ -148,10 +213,14 @@ Deno.serve(async (req: Request) => {
           }
         }
 
-        await supabase
+        const { error: updateError } = await supabase
           .from('profiles')
           .update(updates)
           .eq('id', userId);
+
+        if (updateError) {
+          console.error('Failed to update profile:', updateError);
+        }
 
         break;
       }
@@ -159,20 +228,16 @@ Deno.serve(async (req: Request) => {
       case 'subscription.canceled': {
         const isAudioAddon = metadata.is_audio_addon === 'true';
 
-        if (isAudioAddon) {
-          await supabase
-            .from('profiles')
-            .update({
-              audio_addon_enabled: false,
-            })
-            .eq('id', userId);
-        } else {
-          await supabase
-            .from('profiles')
-            .update({
-              subscription_status: 'canceled',
-            })
-            .eq('id', userId);
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update(isAudioAddon 
+            ? { audio_addon_enabled: false }
+            : { subscription_status: 'canceled' }
+          )
+          .eq('id', userId);
+
+        if (updateError) {
+          console.error('Failed to update profile on cancellation:', updateError);
         }
         break;
       }
@@ -194,21 +259,31 @@ Deno.serve(async (req: Request) => {
           updates.plan_type = 'FREE';
         }
 
-        await supabase
+        const { error: updateError } = await supabase
           .from('profiles')
           .update(updates)
           .eq('id', userId);
+
+        if (updateError) {
+          console.error('Failed to update profile on revocation:', updateError);
+        }
         break;
       }
     }
 
-    await supabase.from('subscription_events').insert({
+    // Record the event for idempotency (Requirement 6.3)
+    const { error: insertError } = await supabase.from('subscription_events').insert({
       user_id: userId,
       event_type: event.type,
       polar_subscription_id: event.data.id,
       polar_event_id: event.id,
       payload: event,
     });
+
+    if (insertError) {
+      console.error('Failed to record subscription event:', insertError);
+      // Don't fail the webhook - the subscription update already succeeded
+    }
 
     return new Response(
       JSON.stringify({ success: true }),
@@ -218,15 +293,16 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error: unknown) {
-    console.error('Webhook error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Webhook processing failed';
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    console.error('Error stack:', errorStack);
+    // Log error but don't expose internal details (Requirement 7.2)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Webhook processing error:', errorMessage);
+    
+    if (error instanceof Error && error.stack) {
+      console.error('Stack trace:', error.stack);
+    }
+    
     return new Response(
-      JSON.stringify({
-        error: errorMessage,
-        details: errorStack
-      }),
+      JSON.stringify({ error: sanitizeErrorMessage(errorMessage) }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -1,13 +1,17 @@
 import { Polar } from 'npm:@polar-sh/sdk@0.41.5';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+import {
+  getCorsHeaders,
+  validateAuth,
+  createErrorResponse,
+  createUnauthorizedResponse,
+  sanitizeErrorMessage,
+} from '../_shared/security.ts';
 
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin, 'GET, POST, OPTIONS');
+
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
@@ -16,43 +20,58 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const polarAccessToken = Deno.env.get('POLAR_ACCESS_TOKEN')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const polarAccessToken = Deno.env.get('POLAR_ACCESS_TOKEN');
 
-    const authHeader = req.headers.get('Authorization')!;
+    // Validate required environment variables
+    if (!supabaseUrl || !supabaseServiceKey || !polarAccessToken) {
+      console.error('Missing required environment variables');
+      return createErrorResponse(
+        'Server configuration error',
+        500,
+        corsHeaders,
+        'INTERNAL_ERROR'
+      );
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+    // Validate authentication (Requirements 1.1, 1.2)
+    const authResult = await validateAuth(req, supabase);
+    if (authResult.error || !authResult.user) {
+      return createUnauthorizedResponse(corsHeaders, authResult.error || 'Unauthorized');
     }
 
-    const { data: profile } = await supabase
+    const userId = authResult.user.id;
+
+    // Get user's Polar customer ID
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('polar_customer_id')
-      .eq('id', user.id)
+      .eq('id', userId)
       .maybeSingle();
 
-    if (!profile?.polar_customer_id) {
-      return new Response(
-        JSON.stringify({ error: 'No customer record found' }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+    if (profileError) {
+      console.error('Failed to fetch profile:', profileError);
+      return createErrorResponse(
+        'Failed to fetch user profile',
+        500,
+        corsHeaders,
+        'INTERNAL_ERROR'
       );
     }
 
+    if (!profile?.polar_customer_id) {
+      return createErrorResponse(
+        'No customer record found',
+        404,
+        corsHeaders,
+        'NOT_FOUND'
+      );
+    }
+
+    // Create Polar customer portal session
     const polar = new Polar({
       accessToken: polarAccessToken,
     });
@@ -68,14 +87,20 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-  } catch (error) {
-    console.error('Customer portal error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message || 'Failed to create portal session' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+  } catch (error: unknown) {
+    // Log error but don't expose internal details (Requirement 7.2)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Customer portal error:', errorMessage);
+    
+    if (error instanceof Error && error.stack) {
+      console.error('Stack trace:', error.stack);
+    }
+    
+    return createErrorResponse(
+      sanitizeErrorMessage(errorMessage),
+      500,
+      corsHeaders,
+      'INTERNAL_ERROR'
     );
   }
 });

@@ -1,0 +1,198 @@
+# Implementation Plan
+
+- [-] 1. Create shared security utilities for Edge Functions
+  - [x] 1.1 Create a shared security utilities file with authentication, CORS, and input validation helpers
+    - Create `supabase/functions/_shared/security.ts` with reusable security functions
+    - Include `validateAuth()`, `getCorsHeaders()`, `validateStringInput()`, `sanitizeForPrompt()`
+    - Add TypeScript interfaces for auth results and validation results
+    - _Requirements: 1.1, 1.2, 1.3, 2.1, 3.1, 3.2, 3.4_
+  - [ ]* 1.2 Write property test for authentication validation
+    - **Property 1: Authentication Rejection**
+    - **Validates: Requirements 1.1, 1.2**
+  - [ ]* 1.3 Write property test for input validation
+    - **Property 3: Input Validation Enforcement**
+    - **Validates: Requirements 3.1, 3.2**
+  - [ ]* 1.4 Write property test for prompt injection sanitization
+    - **Property 4: Prompt Injection Sanitization**
+    - **Validates: Requirements 3.4**
+
+- [x] 2. Create rate limiting infrastructure
+  - [x] 2.1 Create database migration for rate_limit_log table
+    - Create new migration file with rate_limit_log table
+    - Add indexes for efficient queries
+    - Add RLS policies for the table
+    - Add cleanup function for old entries
+    - _Requirements: 4.1, 4.2, 4.3_
+  - [x] 2.2 Create rate limiting utility functions
+    - Add `checkRateLimit()` function to security utilities
+    - Configure different limits for AI generation vs standard endpoints
+    - Return proper 429 response with Retry-After header
+    - _Requirements: 4.1, 4.2, 4.3_
+
+- [x] 3. Harden generate-outline Edge Function
+  - [x] 3.1 Update generate-outline with security utilities
+    - Import and use shared security utilities
+    - Add input validation with length limits for topic, background fields
+    - Add prompt injection sanitization for user-provided content
+    - Add rate limiting check before processing
+    - Update CORS to use environment-based origins
+    - Ensure error responses don't expose stack traces
+    - _Requirements: 1.1, 1.2, 2.1, 3.1, 3.2, 3.4, 7.2_
+  - [ ]* 3.2 Write property test for resource ownership
+    - **Property 2: Resource Ownership Enforcement**
+    - **Validates: Requirements 1.4, 8.1, 8.2**
+
+- [x] 4. Harden generate-lesson Edge Function
+  - [x] 4.1 Update generate-lesson with security utilities
+    - Import and use shared security utilities
+    - Add input validation for lessonId, moduleTitle, lessonTitle, objectives
+    - Add ownership verification for the course
+    - Add prompt injection sanitization for materials content
+    - Add rate limiting check
+    - Update CORS configuration
+    - Sanitize error responses
+    - _Requirements: 1.1, 1.2, 1.4, 2.1, 3.1, 3.2, 3.4, 7.2, 8.2_
+
+- [x] 5. Harden generate-audio and generate-course-audio Edge Functions
+  - [x] 5.1 Update generate-audio with security utilities
+    - Import and use shared security utilities
+    - Add input validation for lessonId and voiceType
+    - Verify course ownership before generating audio
+    - Add rate limiting (stricter for audio generation)
+    - Update CORS configuration
+    - Sanitize error responses
+    - _Requirements: 1.1, 1.2, 1.4, 2.1, 3.1, 4.3, 7.2, 8.2, 8.5_
+  - [x] 5.2 Update generate-course-audio with security utilities
+    - Apply same security patterns as generate-audio
+    - Verify course ownership
+    - Add rate limiting
+    - _Requirements: 1.1, 1.2, 1.4, 2.1, 3.1, 4.3, 7.2, 8.2, 8.5_
+  - [ ]* 5.3 Write property test for premium feature gating
+    - **Property 12: Premium Feature Gating**
+    - **Validates: Requirements 8.5**
+
+- [x] 6. Harden AI content generation Edge Functions
+  - [x] 6.1 Update generate-definition with security utilities
+    - Import and use shared security utilities
+    - Add input validation for term, surroundingContext
+    - Add prompt injection sanitization
+    - Add rate limiting
+    - Update CORS configuration
+    - _Requirements: 1.1, 1.2, 2.1, 3.1, 3.2, 3.4, 7.2_
+  - [x] 6.2 Update generate-flashcards with security utilities
+    - Add input validation for lessonContent, lessonTitle
+    - Add prompt injection sanitization
+    - Add rate limiting
+    - Update CORS configuration
+    - _Requirements: 1.1, 1.2, 2.1, 3.1, 3.2, 3.4, 7.2_
+  - [x] 6.3 Update generate-quiz with security utilities
+    - Add input validation for lessonContent, lessonTitle
+    - Add prompt injection sanitization
+    - Add rate limiting
+    - Update CORS configuration
+    - _Requirements: 1.1, 1.2, 2.1, 3.1, 3.2, 3.4, 7.2_
+  - [x] 6.4 Update regenerate-lesson with security utilities
+    - Add input validation for instructions, sectionToRegenerate
+    - Add prompt injection sanitization
+    - Verify course ownership
+    - Add rate limiting
+    - Update CORS configuration
+    - _Requirements: 1.1, 1.2, 1.4, 2.1, 3.1, 3.2, 3.4, 7.2, 8.2_
+
+- [x] 7. Harden profile and onboarding Edge Functions
+  - [x] 7.1 Update profile-chat with security utilities
+    - Add input validation for message and conversationHistory
+    - Add prompt injection sanitization for user messages
+    - Add rate limiting
+    - Update CORS configuration
+    - _Requirements: 1.1, 1.2, 2.1, 3.1, 3.2, 3.4, 7.2_
+  - [x] 7.2 Update save-profile with security utilities
+    - Add input validation for rawContent
+    - Verify PII anonymization is working correctly
+    - Add rate limiting
+    - Update CORS configuration
+    - _Requirements: 1.1, 1.2, 2.1, 3.1, 7.1, 7.2_
+  - [ ]* 7.3 Write property test for PII anonymization
+    - **Property 9: PII Anonymization**
+    - **Validates: Requirements 7.1**
+  - [x] 7.4 Update speech-to-text with security utilities
+    - Add input validation for audioBase64 size limits
+    - Add rate limiting
+    - Update CORS configuration
+    - _Requirements: 1.1, 1.2, 2.1, 3.1, 3.2, 7.2_
+
+- [x] 8. Harden webhook and payment Edge Functions
+  - [x] 8.1 Strengthen polar-webhook signature validation
+    - Make signature validation mandatory when secret is configured
+    - Return 401 for invalid signatures instead of continuing
+    - Add logging for failed validation attempts
+    - Ensure idempotency check happens before processing
+    - _Requirements: 6.1, 6.2, 6.3, 6.4_
+  - [ ]* 8.2 Write property test for webhook signature validation
+    - **Property 7: Webhook Signature Validation**
+    - **Validates: Requirements 6.1, 6.2**
+  - [ ]* 8.3 Write property test for webhook idempotency
+    - **Property 8: Webhook Idempotency**
+    - **Validates: Requirements 6.3**
+  - [x] 8.4 Update polar-portal with security utilities
+    - Add proper error handling
+    - Update CORS configuration
+    - _Requirements: 1.1, 1.2, 2.1, 7.2_
+
+- [x] 9. Harden remaining Edge Functions
+  - [x] 9.1 Update update-outline with security utilities
+    - Add input validation for outline structure
+    - Verify course ownership
+    - Add rate limiting
+    - Update CORS configuration
+    - _Requirements: 1.1, 1.2, 1.4, 2.1, 3.1, 7.2, 8.2_
+
+- [x] 10. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 11. Add XSS protection utilities
+  - [x] 11.1 Create XSS sanitization utility for frontend
+    - Add utility function to sanitize user-generated content before display
+    - Integrate with MarkdownRenderer component
+    - Ensure code blocks and user content are properly escaped
+    - _Requirements: 3.5_
+  - [ ]* 11.2 Write property test for XSS sanitization
+    - **Property 5: XSS Payload Neutralization**
+    - **Validates: Requirements 3.5**
+
+- [x] 12. Add security headers configuration
+  - [x] 12.1 Configure security headers in Vercel
+    - Add vercel.json headers configuration for CSP, X-Frame-Options, X-Content-Type-Options
+    - Configure appropriate CSP directives for the application
+    - _Requirements: 9.1, 9.2, 9.3_
+
+- [x] 13. Review and strengthen RLS policies
+  - [x] 13.1 Audit existing RLS policies for completeness
+    - Review all tables have appropriate RLS enabled
+    - Verify policies use optimized (select auth.uid()) pattern
+    - Ensure no tables are missing policies
+    - _Requirements: 5.1, 5.2, 5.3, 5.4_
+  - [ ]* 13.2 Write property test for RLS data isolation
+    - **Property 6: RLS Data Isolation**
+    - **Validates: Requirements 5.1, 5.2, 5.3**
+
+- [-] 14. Add error response safety
+  - [-] 14.1 Create safe error response utility
+    - Add utility to strip stack traces and internal paths from error messages
+    - Update all Edge Functions to use safe error responses
+    - _Requirements: 7.2_
+  - [ ]* 14.2 Write property test for error response safety
+    - **Property 10: Error Response Safety**
+    - **Validates: Requirements 7.2**
+
+- [x] 15. Verify quota enforcement
+  - [x] 15.1 Review quota validation implementation
+    - Verify quota-validation.ts correctly enforces plan limits
+    - Ensure quota is checked before resource creation
+    - _Requirements: 8.3_
+  - [ ]* 15.2 Write property test for quota enforcement
+    - **Property 11: Quota Enforcement**
+    - **Validates: Requirements 8.3**
+
+- [-] 16. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.

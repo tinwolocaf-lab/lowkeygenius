@@ -1,10 +1,15 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+import {
+  validateAuth,
+  getCorsHeaders,
+  validateStringInput,
+  validateUUID,
+  checkRateLimit,
+  createRateLimitResponse,
+  createErrorResponse,
+  createUnauthorizedResponse,
+  createValidationErrorResponse,
+} from '../_shared/security.ts';
 
 const MURF_API_KEY = Deno.env.get('MURF_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
@@ -12,7 +17,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const MAX_CHUNK_SIZE = 2800; // Murf AI has ~3000 char limit
 
-const VOICE_CONFIGS = {
+const VOICE_CONFIGS: Record<string, { voiceId: string; style: string; multiNativeLocale: string }> = {
   female: {
     voiceId: 'en-US-natalie',
     style: 'Narration',
@@ -161,29 +166,21 @@ interface GenerateAudioRequest {
   voiceType: 'male' | 'female';
 }
 
-interface SupabaseClient {
-  from: (table: string) => {
-    select: (columns: string) => {
-      eq: (column: string, value: string) => {
-        single: () => Promise<{ data: Record<string, unknown> | null; error: Error | null }>;
-      };
-    };
-    update: (data: Record<string, unknown>) => {
-      eq: (column: string, value: string) => Promise<{ error: Error | null }>;
-    };
-  };
-  storage: {
-    from: (bucket: string) => {
-      upload: (path: string, data: Uint8Array, options: Record<string, unknown>) => Promise<{ data: unknown; error: Error | null }>;
-      getPublicUrl: (path: string) => { data: { publicUrl: string } };
-    };
-  };
-  auth: {
-    getUser: (token: string) => Promise<{ data: { user: { id: string } | null }; error: Error | null }>;
-  };
+interface ProfileRecord {
+  plan_type: string;
+  audio_addon_enabled: boolean;
+  audio_addon_trial_used: boolean;
+  audio_addon_expires_at: string | null;
 }
 
-async function checkAudioAccess(supabase: SupabaseClient, userId: string): Promise<{ hasAccess: boolean; reason?: string }> {
+/**
+ * Check if user has access to audio generation feature
+ * Requirements: 8.5 - Premium feature gating
+ */
+async function checkAudioAccess(
+  supabase: ReturnType<typeof createClient>,
+  userId: string
+): Promise<{ hasAccess: boolean; reason?: string }> {
   const { data: profile, error } = await supabase
     .from('profiles')
     .select('plan_type, audio_addon_enabled, audio_addon_trial_used, audio_addon_expires_at')
@@ -194,13 +191,17 @@ async function checkAudioAccess(supabase: SupabaseClient, userId: string): Promi
     return { hasAccess: false, reason: 'Profile not found' };
   }
 
-  if (profile.plan_type === 'PRO_MAX') {
+  const typedProfile = profile as ProfileRecord;
+
+  // PRO_MAX users have full access
+  if (typedProfile.plan_type === 'PRO_MAX') {
     return { hasAccess: true };
   }
 
-  if (profile.audio_addon_enabled) {
-    if (profile.audio_addon_expires_at) {
-      const expiresAt = new Date(profile.audio_addon_expires_at);
+  // Check audio add-on subscription
+  if (typedProfile.audio_addon_enabled) {
+    if (typedProfile.audio_addon_expires_at) {
+      const expiresAt = new Date(typedProfile.audio_addon_expires_at);
       if (expiresAt > new Date()) {
         return { hasAccess: true };
       }
@@ -209,16 +210,19 @@ async function checkAudioAccess(supabase: SupabaseClient, userId: string): Promi
     return { hasAccess: true };
   }
 
-  if (!profile.audio_addon_trial_used && profile.plan_type === 'FREE') {
+  // Free trial for FREE users who haven't used it
+  if (!typedProfile.audio_addon_trial_used && typedProfile.plan_type === 'FREE') {
     return { hasAccess: true };
   }
 
   return { hasAccess: false, reason: 'Audio add-on required' };
 }
 
-
-
 Deno.serve(async (req: Request) => {
+  // Get CORS headers based on request origin (Requirements 2.1, 2.2, 2.3)
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin, 'POST, OPTIONS');
+
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
@@ -226,42 +230,72 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Initialize Supabase client early for auth and rate limiting
+  const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
   try {
     if (!MURF_API_KEY) {
-      throw new Error('MURF_API_KEY not configured');
-    }
-
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      throw new Error('Invalid user token');
-    }
-
-    const requestData: GenerateAudioRequest = await req.json();
-    const { lessonId, voiceType } = requestData;
-
-    if (!lessonId || !voiceType || !['male', 'female'].includes(voiceType)) {
-      throw new Error('Invalid request parameters');
-    }
-
-    const accessCheck = await checkAudioAccess(supabase, user.id);
-    if (!accessCheck.hasAccess) {
-      return new Response(
-        JSON.stringify({ error: accessCheck.reason || 'Access denied' }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+      console.error('MURF_API_KEY not configured');
+      return createErrorResponse(
+        'Service configuration error',
+        500,
+        corsHeaders,
+        'INTERNAL_ERROR'
       );
     }
 
+    // Validate authentication (Requirements 1.1, 1.2, 1.3)
+    const authResult = await validateAuth(req, supabase);
+    if (authResult.error || !authResult.user) {
+      return createUnauthorizedResponse(corsHeaders, authResult.error || 'Unauthorized');
+    }
+
+    const user = authResult.user;
+
+    // Check rate limit before processing (Requirements 4.1, 4.2, 4.3)
+    // Audio generation has stricter limits due to higher resource costs
+    const rateLimitResult = await checkRateLimit(supabase, user.id, 'generate-audio');
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult.retryAfter || 60, corsHeaders);
+    }
+
+    // Parse and validate request body
+    let requestData: GenerateAudioRequest;
+    try {
+      requestData = await req.json();
+    } catch {
+      return createValidationErrorResponse(corsHeaders, 'Invalid JSON in request body');
+    }
+
+    const { lessonId, voiceType } = requestData;
+
+    // Validate lessonId as UUID (Requirements 3.1)
+    const lessonIdValidation = validateUUID(lessonId, 'lessonId');
+    if (!lessonIdValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, lessonIdValidation.error || 'Invalid lessonId');
+    }
+
+    // Validate voiceType (Requirements 3.1)
+    const voiceTypeValidation = validateStringInput(voiceType, 'voiceType', 10, true);
+    if (!voiceTypeValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, voiceTypeValidation.error || 'Invalid voiceType');
+    }
+    if (!['male', 'female'].includes(voiceType)) {
+      return createValidationErrorResponse(corsHeaders, 'voiceType must be "male" or "female"');
+    }
+
+    // Check premium feature access (Requirements 8.5)
+    const accessCheck = await checkAudioAccess(supabase, user.id);
+    if (!accessCheck.hasAccess) {
+      return createErrorResponse(
+        accessCheck.reason || 'Access denied',
+        403,
+        corsHeaders,
+        'FORBIDDEN'
+      );
+    }
+
+    // Fetch lesson with course info for ownership verification
     const { data: lesson, error: lessonError } = await supabase
       .from('lessons')
       .select('*, course:courses!inner(id, owner_id)')
@@ -269,17 +303,27 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (lessonError || !lesson) {
-      throw new Error('Lesson not found');
+      return createErrorResponse('Lesson not found', 404, corsHeaders, 'NOT_FOUND');
     }
 
-    if (lesson.course.owner_id !== user.id) {
-      throw new Error('Unauthorized');
+    // Verify course ownership (Requirements 1.4, 8.2)
+    const courseData = lesson.course as { id: string; owner_id: string };
+    if (courseData.owner_id !== user.id) {
+      // Log unauthorized access attempt (Requirements 10.2)
+      console.warn(`Unauthorized audio generation attempt: user=${user.id}, lesson=${lessonId}, owner=${courseData.owner_id}`);
+      return createErrorResponse(
+        'You do not have permission to generate audio for this lesson',
+        403,
+        corsHeaders,
+        'FORBIDDEN'
+      );
     }
 
     if (!lesson.markdown_content) {
-      throw new Error('Lesson has no content to convert to audio');
+      return createValidationErrorResponse(corsHeaders, 'Lesson has no content to convert to audio');
     }
 
+    // Update lesson status to generating
     await supabase
       .from('lessons')
       .update({ audio_status: 'generating' })
@@ -297,23 +341,24 @@ Deno.serve(async (req: Request) => {
       if (fallbackText.length >= 10) {
         validChunks.push(fallbackText);
       } else {
-        throw new Error('Lesson has no readable content after stripping markdown');
+        await supabase
+          .from('lessons')
+          .update({ audio_status: 'failed' })
+          .eq('id', lessonId);
+        return createValidationErrorResponse(corsHeaders, 'Lesson has no readable content after stripping markdown');
       }
     }
-    
-    // Use validChunks instead of chunks
-    const chunksToProcess = validChunks;
 
-    console.log(`Processing ${chunksToProcess.length} chunks for lesson`);
+    console.log(`Processing ${validChunks.length} chunks for lesson`);
 
     const voiceConfig = VOICE_CONFIGS[voiceType];
     const audioUrls: string[] = [];
     let totalDuration = 0;
 
     // Generate audio for each chunk
-    for (let i = 0; i < chunksToProcess.length; i++) {
-      const chunk = chunksToProcess[i];
-      console.log(`Processing chunk ${i + 1}/${chunksToProcess.length} (${chunk.length} chars)`);
+    for (let i = 0; i < validChunks.length; i++) {
+      const chunk = validChunks[i];
+      console.log(`Processing chunk ${i + 1}/${validChunks.length} (${chunk.length} chars)`);
 
       const murfResponse = await fetch('https://api.murf.ai/v1/speech/generate', {
         method: 'POST',
@@ -333,27 +378,23 @@ Deno.serve(async (req: Request) => {
 
       if (!murfResponse.ok) {
         const errorText = await murfResponse.text();
-        let errorMessage = 'Murf AI API error';
+        let errorMessage = 'Audio generation service error';
 
         console.error('Murf API error response:', {
           status: murfResponse.status,
           statusText: murfResponse.statusText,
-          body: errorText,
-          voiceConfig,
           chunkLength: chunk.length,
         });
 
         try {
           const errorData = JSON.parse(errorText);
           if (errorData.error) {
-            errorMessage = errorData.error;
+            errorMessage = 'Audio generation failed';
           } else if (errorData.message) {
-            errorMessage = errorData.message;
-          } else if (errorData.detail) {
-            errorMessage = errorData.detail;
+            errorMessage = 'Audio generation failed';
           }
         } catch {
-          errorMessage = errorText.substring(0, 200) || `API error (${murfResponse.status})`;
+          errorMessage = `Audio generation failed (${murfResponse.status})`;
         }
 
         await supabase
@@ -361,20 +402,24 @@ Deno.serve(async (req: Request) => {
           .update({ audio_status: 'failed' })
           .eq('id', lessonId);
 
-        throw new Error(`Murf AI: ${errorMessage}`);
+        return createErrorResponse(errorMessage, 500, corsHeaders, 'INTERNAL_ERROR');
       }
 
       const murfData = await murfResponse.json();
 
       if (!murfData.audioFile) {
-        throw new Error('No audio file URL returned from Murf AI');
+        await supabase
+          .from('lessons')
+          .update({ audio_status: 'failed' })
+          .eq('id', lessonId);
+        return createErrorResponse('No audio file returned from service', 500, corsHeaders, 'INTERNAL_ERROR');
       }
 
       audioUrls.push(murfData.audioFile);
       totalDuration += murfData.audioLengthInSeconds || 0;
 
       // Small delay between API calls to avoid rate limiting
-      if (i < chunksToProcess.length - 1) {
+      if (i < validChunks.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 300));
       }
     }
@@ -384,7 +429,11 @@ Deno.serve(async (req: Request) => {
     for (const url of audioUrls) {
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error('Failed to download audio chunk');
+        await supabase
+          .from('lessons')
+          .update({ audio_status: 'failed' })
+          .eq('id', lessonId);
+        return createErrorResponse('Failed to download audio chunk', 500, corsHeaders, 'INTERNAL_ERROR');
       }
       const arrayBuffer = await response.arrayBuffer();
       audioBuffers.push(new Uint8Array(arrayBuffer));
@@ -400,7 +449,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Upload concatenated audio
-    const fileName = `${lesson.course.id}/${lessonId}-${voiceType}.mp3`;
+    const fileName = `${courseData.id}/${lessonId}-${voiceType}.mp3`;
     const { error: uploadError } = await supabase.storage
       .from('lesson-audio')
       .upload(fileName, concatenated, {
@@ -409,7 +458,12 @@ Deno.serve(async (req: Request) => {
       });
 
     if (uploadError) {
-      throw new Error(`Failed to upload audio: ${uploadError.message}`);
+      console.error('Failed to upload audio:', uploadError);
+      await supabase
+        .from('lessons')
+        .update({ audio_status: 'failed' })
+        .eq('id', lessonId);
+      return createErrorResponse('Failed to upload audio', 500, corsHeaders, 'INTERNAL_ERROR');
     }
 
     const { data: urlData } = supabase.storage
@@ -430,9 +484,11 @@ Deno.serve(async (req: Request) => {
       .eq('id', lessonId);
 
     if (updateError) {
-      throw new Error(`Failed to update lesson: ${updateError.message}`);
+      console.error('Failed to update lesson:', updateError);
+      return createErrorResponse('Failed to save audio metadata', 500, corsHeaders, 'INTERNAL_ERROR');
     }
 
+    // Mark trial as used for FREE users
     const { data: profile } = await supabase
       .from('profiles')
       .select('audio_addon_trial_used, plan_type')
@@ -457,19 +513,14 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-  } catch (error) {
+  } catch (error: unknown) {
+    // Log full error for debugging (server-side only)
     console.error('Error generating audio:', error);
 
-    const errorWithMessage = error as { message?: string; stack?: string };
-    return new Response(
-      JSON.stringify({
-        error: errorWithMessage?.message || 'Failed to generate audio',
-        details: errorWithMessage?.stack?.substring(0, 500),
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    // Return safe error response without exposing internal details (Requirements 7.2)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate audio';
+    
+    // Use createErrorResponse to ensure no stack traces or internal paths are exposed
+    return createErrorResponse(errorMessage, 500, corsHeaders, 'INTERNAL_ERROR');
   }
 });

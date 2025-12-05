@@ -1,10 +1,15 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+import {
+  validateAuth,
+  getCorsHeaders,
+  validateStringInput,
+  validateUUID,
+  checkRateLimit,
+  createRateLimitResponse,
+  createErrorResponse,
+  createUnauthorizedResponse,
+  createValidationErrorResponse,
+} from '../_shared/security.ts';
 
 const MURF_API_KEY = Deno.env.get('MURF_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
@@ -31,6 +36,32 @@ interface GenerateCourseAudioRequest {
   // Optional: process a single lesson (for continuation)
   lessonId?: string;
   jobId?: string;
+}
+
+interface ProfileRecord {
+  plan_type: string;
+  audio_addon_enabled: boolean;
+  audio_addon_expires_at: string | null;
+}
+
+interface LessonRecord {
+  id: string;
+  title: string;
+  markdown_content: string | null;
+  module_index: number;
+  lesson_index: number;
+  audio_status?: string;
+}
+
+interface JobRecord {
+  id: string;
+  course_id: string;
+  user_id: string;
+  voice_type: string;
+  status: string;
+  total_lessons: number;
+  completed_lessons: number;
+  failed_lessons: number;
 }
 
 function stripMarkdown(text: string): string {
@@ -112,48 +143,16 @@ function splitTextIntoChunks(text: string, maxChunkSize: number): string[] {
   return chunks.filter(chunk => chunk.length > 0);
 }
 
-interface SupabaseClientType {
-  from: (table: string) => Record<string, unknown>;
-  storage: {
-    from: (bucket: string) => {
-      upload: (path: string, data: Uint8Array, options: Record<string, unknown>) => Promise<{ error: Error | null }>;
-      getPublicUrl: (path: string) => { data: { publicUrl: string } };
-    };
-  };
-  auth: {
-    getUser: (token: string) => Promise<{ data: { user: { id: string } | null }; error: Error | null }>;
-  };
-}
-
-interface LessonRecord {
-  id: string;
-  title: string;
-  markdown_content: string | null;
-  module_index: number;
-  lesson_index: number;
-  audio_status?: string;
-}
-
-interface ProfileRecord {
-  plan_type: string;
-  audio_addon_enabled: boolean;
-  audio_addon_expires_at: string | null;
-}
-
-interface JobRecord {
-  id: string;
-  course_id: string;
-  user_id: string;
-  voice_type: string;
-  status: string;
-  total_lessons: number;
-  completed_lessons: number;
-  failed_lessons: number;
-}
-
-async function checkAudioAccess(supabase: SupabaseClientType, userId: string): Promise<{ hasAccess: boolean; reason?: string }> {
-  const { data: profile, error } = await (supabase
-    .from('profiles') as { select: (cols: string) => { eq: (col: string, val: string) => { single: () => Promise<{ data: ProfileRecord | null; error: Error | null }> } } })
+/**
+ * Check if user has access to bulk audio generation feature
+ * Requirements: 8.5 - Premium feature gating
+ */
+async function checkAudioAccess(
+  supabase: ReturnType<typeof createClient>,
+  userId: string
+): Promise<{ hasAccess: boolean; reason?: string }> {
+  const { data: profile, error } = await supabase
+    .from('profiles')
     .select('plan_type, audio_addon_enabled, audio_addon_expires_at')
     .eq('id', userId)
     .single();
@@ -162,13 +161,17 @@ async function checkAudioAccess(supabase: SupabaseClientType, userId: string): P
     return { hasAccess: false, reason: 'Profile not found' };
   }
 
-  if (profile.plan_type === 'PRO_MAX') {
+  const typedProfile = profile as ProfileRecord;
+
+  // PRO_MAX users have full access
+  if (typedProfile.plan_type === 'PRO_MAX') {
     return { hasAccess: true };
   }
 
-  if (profile.audio_addon_enabled) {
-    if (profile.audio_addon_expires_at) {
-      const expiresAt = new Date(profile.audio_addon_expires_at);
+  // Check audio add-on subscription
+  if (typedProfile.audio_addon_enabled) {
+    if (typedProfile.audio_addon_expires_at) {
+      const expiresAt = new Date(typedProfile.audio_addon_expires_at);
       if (expiresAt > new Date()) {
         return { hasAccess: true };
       }
@@ -177,6 +180,7 @@ async function checkAudioAccess(supabase: SupabaseClientType, userId: string): P
     return { hasAccess: true };
   }
 
+  // Bulk generation requires subscription (no free trial for bulk)
   return { hasAccess: false, reason: 'Audio add-on required for bulk generation' };
 }
 
@@ -203,8 +207,7 @@ async function generateAudioForChunk(
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText);
+    throw new Error('Audio generation service error');
   }
 
   const data = await response.json();
@@ -230,7 +233,7 @@ async function downloadAudioAsBuffer(audioUrl: string): Promise<Uint8Array> {
 
 async function concatenateAndUploadAudio(
   audioUrls: string[],
-  supabase: SupabaseClientType,
+  supabase: ReturnType<typeof createClient>,
   courseId: string,
   lessonId: string,
   voiceType: string
@@ -260,7 +263,7 @@ async function concatenateAndUploadAudio(
     });
 
   if (uploadError) {
-    throw new Error(`Failed to upload audio: ${uploadError.message}`);
+    throw new Error('Failed to upload audio');
   }
 
   const { data: urlData } = supabase.storage
@@ -271,7 +274,7 @@ async function concatenateAndUploadAudio(
 }
 
 async function generateSingleLessonAudio(
-  supabase: SupabaseClientType,
+  supabase: ReturnType<typeof createClient>,
   lesson: LessonRecord,
   voiceType: 'male' | 'female',
   courseId: string
@@ -282,7 +285,8 @@ async function generateSingleLessonAudio(
     }
 
     // Update status to generating
-    await (supabase.from('lessons') as { update: (data: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } })
+    await supabase
+      .from('lessons')
       .update({ audio_status: 'generating' })
       .eq('id', lesson.id);
 
@@ -314,7 +318,8 @@ async function generateSingleLessonAudio(
       voiceType
     );
 
-    await (supabase.from('lessons') as { update: (data: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } })
+    await supabase
+      .from('lessons')
       .update({
         audio_url: publicAudioUrl,
         audio_duration_seconds: Math.round(totalDuration),
@@ -329,7 +334,8 @@ async function generateSingleLessonAudio(
     const err = error as Error;
     console.error(`Lesson "${lesson.title}" failed:`, err.message);
     
-    await (supabase.from('lessons') as { update: (data: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } })
+    await supabase
+      .from('lessons')
       .update({ audio_status: 'failed' })
       .eq('id', lesson.id);
     
@@ -338,6 +344,10 @@ async function generateSingleLessonAudio(
 }
 
 Deno.serve(async (req: Request) => {
+  // Get CORS headers based on request origin (Requirements 2.1, 2.2, 2.3)
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin, 'POST, OPTIONS');
+
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
@@ -345,89 +355,147 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Initialize Supabase client early for auth and rate limiting
+  const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
   try {
     if (!MURF_API_KEY) {
-      throw new Error('MURF_API_KEY not configured');
-    }
-
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!) as unknown as SupabaseClientType;
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      throw new Error('Invalid user token');
-    }
-
-    const requestData: GenerateCourseAudioRequest = await req.json();
-    const { courseId, voiceType, lessonId, jobId } = requestData;
-
-    if (!courseId || !voiceType || !['male', 'female'].includes(voiceType)) {
-      throw new Error('Invalid request parameters');
-    }
-
-    // Check audio access
-    const accessCheck = await checkAudioAccess(supabase, user.id);
-    if (!accessCheck.hasAccess) {
-      return new Response(
-        JSON.stringify({ error: accessCheck.reason || 'Access denied' }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+      console.error('MURF_API_KEY not configured');
+      return createErrorResponse(
+        'Service configuration error',
+        500,
+        corsHeaders,
+        'INTERNAL_ERROR'
       );
     }
 
-    // Verify course ownership
-    const { data: course, error: courseError } = await (supabase
-      .from('courses') as { select: (cols: string) => { eq: (col: string, val: string) => { single: () => Promise<{ data: { owner_id: string } | null; error: Error | null }> } } })
+    // Validate authentication (Requirements 1.1, 1.2, 1.3)
+    const authResult = await validateAuth(req, supabase);
+    if (authResult.error || !authResult.user) {
+      return createUnauthorizedResponse(corsHeaders, authResult.error || 'Unauthorized');
+    }
+
+    const user = authResult.user;
+
+    // Check rate limit before processing (Requirements 4.1, 4.2, 4.3)
+    // Bulk audio generation has the strictest limits
+    const rateLimitResult = await checkRateLimit(supabase, user.id, 'generate-course-audio');
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult.retryAfter || 60, corsHeaders);
+    }
+
+    // Parse and validate request body
+    let requestData: GenerateCourseAudioRequest;
+    try {
+      requestData = await req.json();
+    } catch {
+      return createValidationErrorResponse(corsHeaders, 'Invalid JSON in request body');
+    }
+
+    const { courseId, voiceType, lessonId, jobId } = requestData;
+
+    // Validate courseId as UUID (Requirements 3.1)
+    const courseIdValidation = validateUUID(courseId, 'courseId');
+    if (!courseIdValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, courseIdValidation.error || 'Invalid courseId');
+    }
+
+    // Validate voiceType (Requirements 3.1)
+    const voiceTypeValidation = validateStringInput(voiceType, 'voiceType', 10, true);
+    if (!voiceTypeValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, voiceTypeValidation.error || 'Invalid voiceType');
+    }
+    if (!['male', 'female'].includes(voiceType)) {
+      return createValidationErrorResponse(corsHeaders, 'voiceType must be "male" or "female"');
+    }
+
+    // Validate optional lessonId if provided
+    if (lessonId !== undefined) {
+      const lessonIdValidation = validateUUID(lessonId, 'lessonId');
+      if (!lessonIdValidation.valid) {
+        return createValidationErrorResponse(corsHeaders, lessonIdValidation.error || 'Invalid lessonId');
+      }
+    }
+
+    // Validate optional jobId if provided
+    if (jobId !== undefined) {
+      const jobIdValidation = validateUUID(jobId, 'jobId');
+      if (!jobIdValidation.valid) {
+        return createValidationErrorResponse(corsHeaders, jobIdValidation.error || 'Invalid jobId');
+      }
+    }
+
+    // Check premium feature access (Requirements 8.5)
+    const accessCheck = await checkAudioAccess(supabase, user.id);
+    if (!accessCheck.hasAccess) {
+      return createErrorResponse(
+        accessCheck.reason || 'Access denied',
+        403,
+        corsHeaders,
+        'FORBIDDEN'
+      );
+    }
+
+    // Verify course ownership (Requirements 1.4, 8.2)
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
       .select('owner_id')
       .eq('id', courseId)
       .single();
 
     if (courseError || !course) {
-      throw new Error('Course not found');
+      return createErrorResponse('Course not found', 404, corsHeaders, 'NOT_FOUND');
     }
 
     if (course.owner_id !== user.id) {
-      throw new Error('Unauthorized');
+      // Log unauthorized access attempt (Requirements 10.2)
+      console.warn(`Unauthorized bulk audio generation attempt: user=${user.id}, course=${courseId}, owner=${course.owner_id}`);
+      return createErrorResponse(
+        'You do not have permission to generate audio for this course',
+        403,
+        corsHeaders,
+        'FORBIDDEN'
+      );
     }
 
     // If lessonId is provided, process just that lesson (continuation mode)
     if (lessonId && jobId) {
-      const { data: lesson, error: lessonError } = await (supabase
-        .from('lessons') as { select: (cols: string) => { eq: (col: string, val: string) => { single: () => Promise<{ data: LessonRecord | null; error: Error | null }> } } })
+      const { data: lesson, error: lessonError } = await supabase
+        .from('lessons')
         .select('*')
         .eq('id', lessonId)
         .single();
 
       if (lessonError || !lesson) {
-        throw new Error('Lesson not found');
+        return createErrorResponse('Lesson not found', 404, corsHeaders, 'NOT_FOUND');
       }
 
-      const result = await generateSingleLessonAudio(supabase, lesson, voiceType, courseId);
+      const result = await generateSingleLessonAudio(
+        supabase,
+        lesson as LessonRecord,
+        voiceType,
+        courseId
+      );
 
       // Update job progress
-      const { data: job } = await (supabase
-        .from('audio_generation_jobs') as { select: (cols: string) => { eq: (col: string, val: string) => { single: () => Promise<{ data: JobRecord | null; error: Error | null }> } } })
+      const { data: job } = await supabase
+        .from('audio_generation_jobs')
         .select('*')
         .eq('id', jobId)
         .single();
 
       if (job) {
-        const newCompleted = result.success ? job.completed_lessons + 1 : job.completed_lessons;
-        const newFailed = result.success ? job.failed_lessons : job.failed_lessons + 1;
-        const isComplete = newCompleted + newFailed >= job.total_lessons;
+        const typedJob = job as JobRecord;
+        const newCompleted = result.success ? typedJob.completed_lessons + 1 : typedJob.completed_lessons;
+        const newFailed = result.success ? typedJob.failed_lessons : typedJob.failed_lessons + 1;
+        const isComplete = newCompleted + newFailed >= typedJob.total_lessons;
 
-        await (supabase.from('audio_generation_jobs') as { update: (data: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } })
+        await supabase
+          .from('audio_generation_jobs')
           .update({
             completed_lessons: newCompleted,
             failed_lessons: newFailed,
-            status: isComplete ? (newFailed === job.total_lessons ? 'failed' : 'completed') : 'processing',
+            status: isComplete ? (newFailed === typedJob.total_lessons ? 'failed' : 'completed') : 'processing',
             completed_at: isComplete ? new Date().toISOString() : null,
           })
           .eq('id', jobId);
@@ -446,18 +514,8 @@ Deno.serve(async (req: Request) => {
     }
 
     // Initial request: create job and return lesson list for client to process
-    const { data: lessons, error: lessonsError } = await (supabase
-      .from('lessons') as { 
-        select: (cols: string) => { 
-          eq: (col: string, val: string) => { 
-            not: (col: string, op: string, val: null) => { 
-              order: (col: string) => { 
-                order: (col: string) => Promise<{ data: LessonRecord[] | null; error: Error | null }> 
-              } 
-            } 
-          } 
-        } 
-      })
+    const { data: lessons, error: lessonsError } = await supabase
+      .from('lessons')
       .select('id, title, markdown_content, module_index, lesson_index, audio_status')
       .eq('course_id', courseId)
       .not('markdown_content', 'is', null)
@@ -465,16 +523,17 @@ Deno.serve(async (req: Request) => {
       .order('lesson_index');
 
     if (lessonsError) {
-      throw new Error('Failed to fetch lessons');
+      console.error('Failed to fetch lessons:', lessonsError);
+      return createErrorResponse('Failed to fetch lessons', 500, corsHeaders, 'INTERNAL_ERROR');
     }
 
     if (!lessons || lessons.length === 0) {
-      throw new Error('No lessons found with content');
+      return createValidationErrorResponse(corsHeaders, 'No lessons found with content');
     }
 
     // Filter to only lessons that need audio generation
-    const lessonsToProcess = lessons.filter(
-      (l: LessonRecord) => !l.audio_status || l.audio_status === 'failed' || l.audio_status === 'pending'
+    const lessonsToProcess = (lessons as LessonRecord[]).filter(
+      (l) => !l.audio_status || l.audio_status === 'failed' || l.audio_status === 'pending'
     );
 
     if (lessonsToProcess.length === 0) {
@@ -492,14 +551,8 @@ Deno.serve(async (req: Request) => {
     }
 
     // Create the job
-    const { data: job, error: jobError } = await (supabase
-      .from('audio_generation_jobs') as { 
-        insert: (data: Record<string, unknown>) => { 
-          select: () => { 
-            single: () => Promise<{ data: JobRecord | null; error: Error | null }> 
-          } 
-        } 
-      })
+    const { data: job, error: jobError } = await supabase
+      .from('audio_generation_jobs')
       .insert({
         course_id: courseId,
         user_id: user.id,
@@ -514,12 +567,14 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (jobError || !job) {
-      throw new Error('Failed to create generation job');
+      console.error('Failed to create generation job:', jobError);
+      return createErrorResponse('Failed to create generation job', 500, corsHeaders, 'INTERNAL_ERROR');
     }
 
     // Mark all lessons as pending
     for (const lesson of lessonsToProcess) {
-      await (supabase.from('lessons') as { update: (data: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<{ error: Error | null }> } })
+      await supabase
+        .from('lessons')
         .update({ audio_status: 'pending' })
         .eq('id', lesson.id);
     }
@@ -528,27 +583,23 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        jobId: job.id,
+        jobId: (job as JobRecord).id,
         totalLessons: lessonsToProcess.length,
-        lessonIds: lessonsToProcess.map((l: LessonRecord) => l.id),
+        lessonIds: lessonsToProcess.map((l) => l.id),
         message: 'Job created. Process lessons by calling this endpoint with lessonId and jobId.',
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-  } catch (error) {
+  } catch (error: unknown) {
+    // Log full error for debugging (server-side only)
     console.error('Error in generate-course-audio:', error);
 
-    const err = error as Error;
-    return new Response(
-      JSON.stringify({
-        error: err.message || 'Failed to generate course audio',
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    // Return safe error response without exposing internal details (Requirements 7.2)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate course audio';
+    
+    // Use createErrorResponse to ensure no stack traces or internal paths are exposed
+    return createErrorResponse(errorMessage, 500, corsHeaders, 'INTERNAL_ERROR');
   }
 });

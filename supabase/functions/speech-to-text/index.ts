@@ -3,21 +3,43 @@
  * Converts audio recordings to text using Gemini API (gemini-2.5-flash-lite model)
  * 
  * Requirements: 8.1, 8.2, 8.3
+ * Security: 1.1, 1.2, 2.1, 3.1, 3.2, 7.2
  */
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+import {
+  validateAuth,
+  getCorsHeaders,
+  validateStringInput,
+  checkRateLimit,
+  createRateLimitResponse,
+  createUnauthorizedResponse,
+  createValidationErrorResponse,
+  createErrorResponse,
+} from '../_shared/security.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
+// Maximum audio size limits (Requirements 3.2)
+// Base64 encoding increases size by ~33%, so 10MB audio = ~13.3MB base64
+const MAX_AUDIO_BASE64_LENGTH = 15 * 1024 * 1024;
+const MAX_MIME_TYPE_LENGTH = 50;
+
+// Valid audio MIME types
+const VALID_MIME_TYPES = [
+  'audio/wav',
+  'audio/mp3',
+  'audio/mpeg',
+  'audio/aiff',
+  'audio/aac',
+  'audio/ogg',
+  'audio/flac',
+  'audio/webm',
+];
+
 interface SpeechToTextRequest {
   audioBase64: string;
-  mimeType: string; // 'audio/wav' | 'audio/mp3' | 'audio/aiff' | 'audio/aac' | 'audio/ogg' | 'audio/flac'
+  mimeType: string;
 }
 
 interface SpeechToTextResponse {
@@ -26,7 +48,30 @@ interface SpeechToTextResponse {
   error?: string;
 }
 
+
+/**
+ * Validate that a string is valid base64
+ */
+function isValidBase64(str: string): boolean {
+  if (!str || typeof str !== 'string') {
+    return false;
+  }
+  
+  // Check for valid base64 characters
+  const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+  
+  // Remove any whitespace that might be present
+  const cleanStr = str.replace(/\s/g, '');
+  
+  // Check length is multiple of 4 and matches base64 pattern
+  return cleanStr.length % 4 === 0 && base64Regex.test(cleanStr);
+}
+
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
+  // Handle preflight requests (Requirements 2.2)
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
@@ -36,40 +81,70 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (!GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not configured');
+      console.error('GEMINI_API_KEY not configured');
+      return createErrorResponse(
+        'Service configuration error',
+        500,
+        corsHeaders,
+        'INTERNAL_ERROR'
+      );
     }
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
+    // Validate authentication (Requirements 1.1, 1.2, 1.3)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      throw new Error('Invalid user token');
+    const authResult = await validateAuth(req, supabase);
+    if (authResult.error || !authResult.user) {
+      console.warn('Authentication failed:', authResult.error);
+      return createUnauthorizedResponse(corsHeaders, authResult.error || 'Unauthorized');
     }
 
-    const requestData: SpeechToTextRequest = await req.json();
+    // Check rate limit (Requirements 4.1, 4.2)
+    const rateLimitResult = await checkRateLimit(supabase, authResult.user.id, 'speech-to-text');
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult.retryAfter || 60, corsHeaders);
+    }
+
+    // Parse and validate request body
+    let requestData: SpeechToTextRequest;
+    try {
+      requestData = await req.json();
+    } catch {
+      return createValidationErrorResponse(corsHeaders, 'Invalid JSON in request body');
+    }
+
     const { audioBase64, mimeType } = requestData;
 
-    if (!audioBase64) {
-      throw new Error('No audio data provided');
+    // Validate audioBase64 (Requirements 3.1, 3.2)
+    if (!audioBase64 || typeof audioBase64 !== 'string') {
+      return createValidationErrorResponse(corsHeaders, 'audioBase64 is required');
     }
 
-    if (!mimeType) {
-      throw new Error('No mime type provided');
+    if (audioBase64.length > MAX_AUDIO_BASE64_LENGTH) {
+      return createValidationErrorResponse(
+        corsHeaders,
+        `Audio data exceeds maximum size of ${Math.round(MAX_AUDIO_BASE64_LENGTH / 1024 / 1024)}MB`
+      );
     }
 
-    // Validate mime type
-    const validMimeTypes = ['audio/wav', 'audio/mp3', 'audio/mpeg', 'audio/aiff', 'audio/aac', 'audio/ogg', 'audio/flac', 'audio/webm'];
-    if (!validMimeTypes.includes(mimeType)) {
-      throw new Error(`Invalid mime type: ${mimeType}. Supported types: ${validMimeTypes.join(', ')}`);
+    // Validate base64 format
+    if (!isValidBase64(audioBase64)) {
+      return createValidationErrorResponse(corsHeaders, 'Invalid base64 encoding for audio data');
+    }
+
+    // Validate mimeType (Requirements 3.1, 3.2)
+    const mimeTypeValidation = validateStringInput(mimeType, 'mimeType', MAX_MIME_TYPE_LENGTH);
+    if (!mimeTypeValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, mimeTypeValidation.error || 'Invalid mimeType');
+    }
+
+    if (!VALID_MIME_TYPES.includes(mimeType)) {
+      return createValidationErrorResponse(
+        corsHeaders,
+        `Invalid mime type: ${mimeType}. Supported types: ${VALID_MIME_TYPES.join(', ')}`
+      );
     }
 
     const prompt = `Please transcribe the following audio recording accurately. 
@@ -99,7 +174,7 @@ If the audio is unclear or contains no speech, indicate that briefly.`;
             ],
           }],
           generationConfig: {
-            temperature: 0.1, // Low temperature for accurate transcription
+            temperature: 0.1,
             maxOutputTokens: 4096,
           },
         }),
@@ -108,28 +183,37 @@ If the audio is unclear or contains no speech, indicate that briefly.`;
 
     if (!geminiResponse.ok) {
       const errorText = await geminiResponse.text();
-      let errorMessage = 'Gemini API error';
+      let statusCode = 503;
 
       try {
         const errorData = JSON.parse(errorText);
         if (errorData.error?.code === 429) {
-          errorMessage = 'Rate limit exceeded. Please wait a moment and try again.';
+          return createRateLimitResponse(60, corsHeaders);
         } else if (errorData.error?.code === 503) {
-          errorMessage = 'Speech-to-text service is temporarily unavailable. Please try again later.';
-        } else if (errorData.error?.message) {
-          errorMessage = errorData.error.message.split('\n')[0];
+          statusCode = 503;
         }
+        console.error('Gemini API error:', errorData.error?.message || errorText.substring(0, 200));
       } catch {
-        errorMessage = errorText.substring(0, 200);
+        console.error('Gemini API error:', errorText.substring(0, 200));
       }
 
-      throw new Error(errorMessage);
+      return createErrorResponse(
+        'Speech-to-text service temporarily unavailable',
+        statusCode,
+        corsHeaders,
+        'SERVICE_UNAVAILABLE'
+      );
     }
 
     const geminiData = await geminiResponse.json();
 
     if (!geminiData.candidates?.[0]?.content?.parts?.[0]?.text) {
-      throw new Error('Failed to transcribe audio - no text returned');
+      return createErrorResponse(
+        'Failed to transcribe audio - no text returned',
+        500,
+        corsHeaders,
+        'INTERNAL_ERROR'
+      );
     }
 
     const transcription = geminiData.candidates[0].content.parts[0].text.trim();
@@ -151,30 +235,11 @@ If the audio is unclear or contains no speech, indicate that briefly.`;
   } catch (error: unknown) {
     console.error('Error in speech-to-text:', error);
 
-    const errorMessage = error instanceof Error ? error.message : 'Failed to transcribe audio';
-    
-    // Check for specific error types (Requirements 8.3)
-    let statusCode = 500;
-    if (errorMessage.includes('Rate limit') || errorMessage.includes('429')) {
-      statusCode = 429;
-    } else if (errorMessage.includes('unavailable') || errorMessage.includes('503')) {
-      statusCode = 503;
-    }
-
-    const errorResponse: SpeechToTextResponse = {
-      success: false,
-      error: errorMessage,
-    };
-
-    return new Response(
-      JSON.stringify(errorResponse),
-      {
-        status: statusCode,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
+    return createErrorResponse(
+      'An error occurred processing your request',
+      500,
+      corsHeaders,
+      'INTERNAL_ERROR'
     );
   }
 });

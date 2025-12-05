@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "File Creation Logger",
+  "description": "When a new file is created, documents the reason for its creation in docs/creation1.md. When that file reaches 1000 lines, continues to creation2.md, and so forth.",
+  "version": "1",
+  "when": {
+    "type": "fileCreated",
+    "patterns": [
+      "**/*"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A new file was created. Document why this file was created in the docs folder. Check docs/creation1.md first - if it has 1000 or more lines, check creation2.md, and so on until you find a file with less than 1000 lines or need to create a new one. Add a concise but detailed entry explaining: 1) The file path, 2) The purpose/reason for creating this file, 3) What functionality or feature it supports. Format each entry clearly with a timestamp and keep descriptions brief but informative."
+  }
+}

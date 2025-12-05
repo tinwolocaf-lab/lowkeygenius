@@ -1,10 +1,18 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+import {
+  validateAuth,
+  getCorsHeaders,
+  validateStringInput,
+  validateUUID,
+  sanitizeForPrompt,
+  checkRateLimit,
+  createRateLimitResponse,
+  createUnauthorizedResponse,
+  createValidationErrorResponse,
+  createErrorResponse,
+  MAX_STRING_LENGTH,
+  MAX_TOPIC_LENGTH,
+} from '../_shared/security.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
@@ -26,6 +34,9 @@ interface GenerateDefinitionResponse {
 }
 
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin, 'POST, OPTIONS');
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -37,54 +48,75 @@ Deno.serve(async (req: Request) => {
   try {
     // Validate GEMINI_API_KEY is configured
     if (!GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not configured');
-    }
-
-    // 2.1: Validate user authentication token
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      console.error('GEMINI_API_KEY not configured');
+      return createErrorResponse('Service configuration error', 500, corsHeaders, 'INTERNAL_ERROR');
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    // Validate authentication (Requirements 1.1, 1.2, 1.3)
+    const authResult = await validateAuth(req, supabase);
+    if (authResult.error || !authResult.user) {
+      return createUnauthorizedResponse(corsHeaders, authResult.error || 'Unauthorized');
+    }
 
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid user token' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+    const user = authResult.user;
+
+    // Check rate limit (Requirements 4.1, 4.2, 4.3)
+    const rateLimitResult = await checkRateLimit(supabase, user.id, 'generate-definition');
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult.retryAfter || 60, corsHeaders);
     }
 
     // Parse request body
-    const requestData: GenerateDefinitionRequest = await req.json();
-    const { lessonId, term, surroundingContext, courseContext } = requestData;
-
-    // Validate required fields
-    if (!lessonId || !term || !courseContext) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields: lessonId, term, and courseContext are required' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+    let requestData: GenerateDefinitionRequest;
+    try {
+      requestData = await req.json();
+    } catch {
+      return createValidationErrorResponse(corsHeaders, 'Invalid JSON in request body');
     }
 
-    // 2.1: Verify user has access to the lesson
+    const { lessonId, term, surroundingContext, courseContext } = requestData;
+
+    // Input validation (Requirements 3.1, 3.2)
+    const lessonIdValidation = validateUUID(lessonId, 'lessonId');
+    if (!lessonIdValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, lessonIdValidation.error || 'Invalid lessonId');
+    }
+
+    const termValidation = validateStringInput(term, 'term', MAX_TOPIC_LENGTH);
+    if (!termValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, termValidation.error || 'Invalid term');
+    }
+
+    const contextValidation = validateStringInput(surroundingContext, 'surroundingContext', MAX_STRING_LENGTH, false);
+    if (!contextValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, contextValidation.error || 'Invalid surroundingContext');
+    }
+
+    // Validate courseContext object
+    if (!courseContext || typeof courseContext !== 'object') {
+      return createValidationErrorResponse(corsHeaders, 'courseContext is required');
+    }
+
+    const topicValidation = validateStringInput(courseContext.topic, 'courseContext.topic', MAX_TOPIC_LENGTH);
+    if (!topicValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, topicValidation.error || 'Invalid topic');
+    }
+
+    const levelValidation = validateStringInput(courseContext.level, 'courseContext.level', 50);
+    if (!levelValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, levelValidation.error || 'Invalid level');
+    }
+
+    const lessonTitleValidation = validateStringInput(courseContext.lessonTitle, 'courseContext.lessonTitle', MAX_TOPIC_LENGTH);
+    if (!lessonTitleValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, lessonTitleValidation.error || 'Invalid lessonTitle');
+    }
+
+    // Verify user has access to the lesson
     const { data: lesson, error: lessonError } = await supabase
       .from('lessons')
       .select('id, course_id')
@@ -92,13 +124,7 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (lessonError || !lesson) {
-      return new Response(
-        JSON.stringify({ error: 'Lesson not found' }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      return createErrorResponse('Lesson not found', 404, corsHeaders, 'NOT_FOUND');
     }
 
     // Check if user has access to the course (owner or published)
@@ -109,47 +135,42 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (courseError || !course) {
-      return new Response(
-        JSON.stringify({ error: 'Course not found' }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      return createErrorResponse('Course not found', 404, corsHeaders, 'NOT_FOUND');
     }
 
-    // User must be owner or course must be published
+    // User must be owner or course must be published (Requirements 1.4, 8.1)
     if (course.owner_id !== user.id && course.status !== 'published') {
-      return new Response(
-        JSON.stringify({ error: 'Access denied to this lesson' }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      return createErrorResponse('Access denied to this lesson', 403, corsHeaders, 'FORBIDDEN');
     }
 
-    // 2.2: Construct prompt with term, context, and course information
+    // Sanitize inputs for AI prompt (Requirements 3.4)
+    const sanitizedTerm = sanitizeForPrompt(term);
+    const sanitizedContext = sanitizeForPrompt(surroundingContext || '');
+    const sanitizedTopic = sanitizeForPrompt(courseContext.topic);
+    const sanitizedLevel = sanitizeForPrompt(courseContext.level);
+    const sanitizedLessonTitle = sanitizeForPrompt(courseContext.lessonTitle);
+
+    // Construct prompt with sanitized inputs
     const prompt = `You are an expert educator creating a concise definition for a term within a learning context.
 
-Course Topic: ${courseContext.topic}
-Course Level: ${courseContext.level}
-Lesson: ${courseContext.lessonTitle}
+Course Topic: ${sanitizedTopic}
+Course Level: ${sanitizedLevel}
+Lesson: ${sanitizedLessonTitle}
 
-Term to define: "${term}"
+Term to define: "${sanitizedTerm}"
 
 Context where the term appears:
-"${surroundingContext || 'No additional context provided'}"
+"${sanitizedContext || 'No additional context provided'}"
 
-Provide a clear, concise definition of "${term}" that:
-1. Is appropriate for a ${courseContext.level} level learner
-2. Relates to the context of ${courseContext.topic}
+Provide a clear, concise definition of "${sanitizedTerm}" that:
+1. Is appropriate for a ${sanitizedLevel} level learner
+2. Relates to the context of ${sanitizedTopic}
 3. Is 1-3 sentences long
 4. Uses simple language while being accurate
 
 Respond with ONLY the definition text, no additional formatting or explanation.`;
 
-    // 2.2: Call Gemini API with educational context prompt
+    // Call Gemini API
     const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -171,32 +192,30 @@ Respond with ONLY the definition text, no additional formatting or explanation.`
 
     if (!geminiResponse.ok) {
       const errorText = await geminiResponse.text();
-      let errorMessage = 'AI service error';
+      console.error('Gemini API error:', errorText);
 
       try {
         const errorData = JSON.parse(errorText);
         if (errorData.error?.code === 429) {
-          errorMessage = 'Rate limit exceeded. Please wait a moment and try again.';
-        } else if (errorData.error?.message) {
-          errorMessage = errorData.error.message.split('\n')[0];
+          return createErrorResponse('AI service rate limit exceeded. Please try again later.', 429, corsHeaders, 'RATE_LIMITED');
         }
       } catch {
-        errorMessage = errorText.substring(0, 200);
+        // Ignore parse error
       }
 
-      throw new Error(errorMessage);
+      return createErrorResponse('AI service error', 500, corsHeaders, 'INTERNAL_ERROR');
     }
 
-    // 2.2: Parse and validate AI response
+    // Parse and validate AI response
     const geminiData = await geminiResponse.json();
 
     if (!geminiData.candidates?.[0]?.content?.parts?.[0]?.text) {
-      throw new Error('Invalid response from AI service');
+      return createErrorResponse('Invalid response from AI service', 500, corsHeaders, 'INTERNAL_ERROR');
     }
 
     const definition = geminiData.candidates[0].content.parts[0].text.trim();
 
-    // 2.3: Store InlineWiki_Entry with all required fields
+    // Store InlineWiki_Entry with all required fields
     const { data: entry, error: insertError } = await supabase
       .from('inline_wiki_entries')
       .insert({
@@ -209,10 +228,11 @@ Respond with ONLY the definition text, no additional formatting or explanation.`
       .single();
 
     if (insertError) {
-      throw new Error(`Failed to save definition: ${insertError.message}`);
+      console.error('Failed to save definition:', insertError);
+      return createErrorResponse('Failed to save definition', 500, corsHeaders, 'INTERNAL_ERROR');
     }
 
-    // 2.3: Return entry ID and definition to client
+    // Return entry ID and definition to client
     const response: GenerateDefinitionResponse = {
       entryId: entry.id,
       term: entry.term,
@@ -231,20 +251,7 @@ Respond with ONLY the definition text, no additional formatting or explanation.`
   } catch (error: unknown) {
     console.error('Error generating definition:', error);
 
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate definition';
-    const statusCode = errorMessage.includes('Rate limit') ? 429 : 500;
-
-    return new Response(
-      JSON.stringify({
-        error: errorMessage,
-      }),
-      {
-        status: statusCode,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    // Return safe error response (Requirements 7.2)
+    return createErrorResponse('Failed to generate definition', 500, corsHeaders, 'INTERNAL_ERROR');
   }
 });

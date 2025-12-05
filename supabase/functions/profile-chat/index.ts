@@ -3,17 +3,28 @@
  * Handles conversational onboarding using Gemini chat API (gemini-2.5-flash model)
  * 
  * Requirements: 10.1, 10.2
+ * Security: 1.1, 1.2, 2.1, 3.1, 3.2, 3.4, 7.2
  */
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+import {
+  validateAuth,
+  getCorsHeaders,
+  validateStringInput,
+  sanitizeForPrompt,
+  checkRateLimit,
+  createRateLimitResponse,
+  createUnauthorizedResponse,
+  createValidationErrorResponse,
+  createErrorResponse,
+} from '../_shared/security.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+
+// Maximum limits for input validation (Requirements 3.2)
+const MAX_MESSAGE_LENGTH = 5000;
+const MAX_CONVERSATION_HISTORY_LENGTH = 50;
+const MAX_HISTORY_MESSAGE_LENGTH = 10000;
 
 interface ConversationMessage {
   role: 'user' | 'assistant';
@@ -73,12 +84,70 @@ function checkConversationComplete(response: string): boolean {
   );
 }
 
+/**
+ * Validate conversation history array
+ * Requirements: 3.1, 3.2
+ */
+function validateConversationHistory(
+  history: unknown
+): { valid: boolean; error?: string; sanitizedHistory?: ConversationMessage[] } {
+  if (!Array.isArray(history)) {
+    return { valid: false, error: 'conversationHistory must be an array' };
+  }
+
+  if (history.length > MAX_CONVERSATION_HISTORY_LENGTH) {
+    return { valid: false, error: `conversationHistory exceeds maximum length of ${MAX_CONVERSATION_HISTORY_LENGTH}` };
+  }
+
+  const sanitizedHistory: ConversationMessage[] = [];
+
+  for (let i = 0; i < history.length; i++) {
+    const msg = history[i];
+    
+    if (!msg || typeof msg !== 'object') {
+      return { valid: false, error: `conversationHistory[${i}] must be an object` };
+    }
+
+    const typedMsg = msg as Record<string, unknown>;
+
+    if (typedMsg.role !== 'user' && typedMsg.role !== 'assistant') {
+      return { valid: false, error: `conversationHistory[${i}].role must be 'user' or 'assistant'` };
+    }
+
+    const contentValidation = validateStringInput(
+      typedMsg.content,
+      `conversationHistory[${i}].content`,
+      MAX_HISTORY_MESSAGE_LENGTH
+    );
+    if (!contentValidation.valid) {
+      return { valid: false, error: contentValidation.error };
+    }
+
+    // Sanitize user messages for prompt injection (Requirements 3.4)
+    const sanitizedContent = typedMsg.role === 'user' 
+      ? sanitizeForPrompt(typedMsg.content as string)
+      : typedMsg.content as string;
+
+    sanitizedHistory.push({
+      role: typedMsg.role,
+      content: sanitizedContent,
+      timestamp: typeof typedMsg.timestamp === 'string' ? typedMsg.timestamp : undefined,
+    });
+  }
+
+  return { valid: true, sanitizedHistory };
+}
+
 interface GeminiContent {
   role: string;
   parts: Array<{ text: string }>;
 }
 
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
+  // Handle preflight requests (Requirements 2.2)
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
@@ -88,47 +157,72 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (!GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not configured');
+      console.error('GEMINI_API_KEY not configured');
+      return createErrorResponse(
+        'Service configuration error',
+        500,
+        corsHeaders,
+        'INTERNAL_ERROR'
+      );
     }
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
+    // Validate authentication (Requirements 1.1, 1.2, 1.3)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      throw new Error('Invalid user token');
+    const authResult = await validateAuth(req, supabase);
+    if (authResult.error || !authResult.user) {
+      console.warn('Authentication failed:', authResult.error);
+      return createUnauthorizedResponse(corsHeaders, authResult.error || 'Unauthorized');
     }
 
-    const requestData: ProfileChatRequest = await req.json();
+    // Check rate limit (Requirements 4.1, 4.2)
+    const rateLimitResult = await checkRateLimit(supabase, authResult.user.id, 'profile-chat');
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult.retryAfter || 60, corsHeaders);
+    }
+
+    // Parse and validate request body
+    let requestData: ProfileChatRequest;
+    try {
+      requestData = await req.json();
+    } catch {
+      return createValidationErrorResponse(corsHeaders, 'Invalid JSON in request body');
+    }
+
     const { message, conversationHistory } = requestData;
 
-    if (!message || typeof message !== 'string') {
-      throw new Error('No message provided');
+    // Validate message input (Requirements 3.1, 3.2)
+    const messageValidation = validateStringInput(message, 'message', MAX_MESSAGE_LENGTH);
+    if (!messageValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, messageValidation.error || 'Invalid message');
     }
+
+    // Validate conversation history (Requirements 3.1, 3.2)
+    const historyValidation = validateConversationHistory(conversationHistory || []);
+    if (!historyValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, historyValidation.error || 'Invalid conversation history');
+    }
+
+    // Sanitize user message for prompt injection (Requirements 3.4)
+    const sanitizedMessage = sanitizeForPrompt(message);
 
     // Build conversation contents for Gemini
     const contents: GeminiContent[] = [];
 
-    // Add conversation history
-    for (const msg of conversationHistory) {
+    // Add sanitized conversation history
+    for (const msg of historyValidation.sanitizedHistory || []) {
       contents.push({
         role: msg.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: msg.content }],
       });
     }
 
-    // Add current user message
+    // Add current sanitized user message
     contents.push({
       role: 'user',
-      parts: [{ text: message }],
+      parts: [{ text: sanitizedMessage }],
     });
 
     // Use gemini-2.5-flash model as per Requirements 10.1
@@ -154,26 +248,33 @@ Deno.serve(async (req: Request) => {
 
     if (!geminiResponse.ok) {
       const errorText = await geminiResponse.text();
-      let errorMessage = 'Gemini API error';
+      let errorMessage = 'AI service error';
 
       try {
         const errorData = JSON.parse(errorText);
         if (errorData.error?.code === 429) {
-          errorMessage = 'Rate limit exceeded. Please wait a moment and try again.';
+          return createRateLimitResponse(60, corsHeaders);
         } else if (errorData.error?.message) {
-          errorMessage = errorData.error.message.split('\n')[0];
+          // Don't expose internal API error details (Requirements 7.2)
+          console.error('Gemini API error:', errorData.error.message);
+          errorMessage = 'AI service temporarily unavailable';
         }
       } catch {
-        errorMessage = errorText.substring(0, 200);
+        console.error('Gemini API error:', errorText.substring(0, 200));
       }
 
-      throw new Error(errorMessage);
+      return createErrorResponse(errorMessage, 503, corsHeaders, 'SERVICE_UNAVAILABLE');
     }
 
     const geminiData = await geminiResponse.json();
 
     if (!geminiData.candidates?.[0]?.content?.parts?.[0]?.text) {
-      throw new Error('Failed to generate response');
+      return createErrorResponse(
+        'Failed to generate response',
+        500,
+        corsHeaders,
+        'INTERNAL_ERROR'
+      );
     }
 
     const responseText = geminiData.candidates[0].content.parts[0].text.trim();
@@ -197,31 +298,14 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error: unknown) {
+    // Log error internally but don't expose details (Requirements 7.2)
     console.error('Error in profile-chat:', error);
 
-    const errorMessage = error instanceof Error ? error.message : 'Failed to process chat message';
-    
-    let statusCode = 500;
-    if (errorMessage.includes('Rate limit') || errorMessage.includes('429')) {
-      statusCode = 429;
-    } else if (errorMessage.includes('unavailable') || errorMessage.includes('503')) {
-      statusCode = 503;
-    }
-
-    const errorResponse: ProfileChatResponse = {
-      success: false,
-      error: errorMessage,
-    };
-
-    return new Response(
-      JSON.stringify(errorResponse),
-      {
-        status: statusCode,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
+    return createErrorResponse(
+      'An error occurred processing your request',
+      500,
+      corsHeaders,
+      'INTERNAL_ERROR'
     );
   }
 });

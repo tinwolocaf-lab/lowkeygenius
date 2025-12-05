@@ -1,11 +1,20 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { validateUserQuota } from './quota-validation.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+import {
+  validateAuth,
+  getCorsHeaders,
+  validateStringInput,
+  sanitizeForPrompt,
+  checkRateLimit,
+  createRateLimitResponse,
+  createErrorResponse,
+  createSafeErrorResponse,
+  createUnauthorizedResponse,
+  createValidationErrorResponse,
+  MAX_TOPIC_LENGTH,
+  MAX_STRING_LENGTH,
+  MAX_CONTENT_LENGTH,
+} from '../_shared/security.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
@@ -58,6 +67,10 @@ interface OutlineResponse {
 }
 
 Deno.serve(async (req: Request) => {
+  // Get CORS headers based on request origin (Requirements 2.1, 2.2, 2.3)
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin, 'POST, OPTIONS');
+
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
@@ -65,25 +78,34 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Initialize Supabase client early for auth and rate limiting
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
   try {
     if (!GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not configured');
+      console.error('GEMINI_API_KEY not configured');
+      return createErrorResponse(
+        'Service configuration error',
+        500,
+        corsHeaders,
+        'INTERNAL_ERROR'
+      );
     }
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
+    // Validate authentication (Requirements 1.1, 1.2, 1.3)
+    const authResult = await validateAuth(req, supabase);
+    if (authResult.error || !authResult.user) {
+      return createUnauthorizedResponse(corsHeaders, authResult.error || 'Unauthorized');
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const user = authResult.user;
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      throw new Error('Invalid user token');
+    // Check rate limit before processing (Requirements 4.1, 4.2, 4.3)
+    const rateLimitResult = await checkRateLimit(supabase, user.id, 'generate-outline');
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult.retryAfter || 60, corsHeaders);
     }
 
     // Validate user quota before processing (Requirements 2.1, 2.2, 4.1)
@@ -110,18 +132,97 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const requestData: OutlineRequest = await req.json();
+    // Parse and validate request body
+    let requestData: OutlineRequest;
+    try {
+      requestData = await req.json();
+    } catch {
+      return createValidationErrorResponse(corsHeaders, 'Invalid JSON in request body');
+    }
+
     const { topic, level, intensity, background, materials, materialsForStorage, profileContext } = requestData;
+
+    // Validate required fields (Requirements 3.1, 3.2)
+    const topicValidation = validateStringInput(topic, 'topic', MAX_TOPIC_LENGTH, true);
+    if (!topicValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, topicValidation.error || 'Invalid topic');
+    }
+
+    // Validate level enum
+    const validLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
+    if (!level || !validLevels.includes(level)) {
+      return createValidationErrorResponse(corsHeaders, 'level must be one of: beginner, intermediate, advanced, expert');
+    }
+
+    // Validate intensity enum
+    const validIntensities = ['short', 'standard', 'deep'];
+    if (!intensity || !validIntensities.includes(intensity)) {
+      return createValidationErrorResponse(corsHeaders, 'intensity must be one of: short, standard, deep');
+    }
+
+    // Validate background fields if provided (Requirements 3.1, 3.2)
+    if (background) {
+      if (background.degree) {
+        const degreeValidation = validateStringInput(background.degree, 'background.degree', MAX_STRING_LENGTH, false);
+        if (!degreeValidation.valid) {
+          return createValidationErrorResponse(corsHeaders, degreeValidation.error || 'Invalid background.degree');
+        }
+      }
+      if (background.experience) {
+        const experienceValidation = validateStringInput(background.experience, 'background.experience', MAX_STRING_LENGTH, false);
+        if (!experienceValidation.valid) {
+          return createValidationErrorResponse(corsHeaders, experienceValidation.error || 'Invalid background.experience');
+        }
+      }
+      if (background.interests) {
+        const interestsValidation = validateStringInput(background.interests, 'background.interests', MAX_STRING_LENGTH, false);
+        if (!interestsValidation.valid) {
+          return createValidationErrorResponse(corsHeaders, interestsValidation.error || 'Invalid background.interests');
+        }
+      }
+    }
+
+    // Validate materials if provided (Requirements 3.1, 3.2)
+    if (materials && Array.isArray(materials)) {
+      for (let i = 0; i < materials.length; i++) {
+        const material = materials[i];
+        if (material.title) {
+          const titleValidation = validateStringInput(material.title, `materials[${i}].title`, MAX_STRING_LENGTH, false);
+          if (!titleValidation.valid) {
+            return createValidationErrorResponse(corsHeaders, titleValidation.error || `Invalid materials[${i}].title`);
+          }
+        }
+        if (material.summary) {
+          const summaryValidation = validateStringInput(material.summary, `materials[${i}].summary`, MAX_CONTENT_LENGTH, false);
+          if (!summaryValidation.valid) {
+            return createValidationErrorResponse(corsHeaders, summaryValidation.error || `Invalid materials[${i}].summary`);
+          }
+        }
+      }
+    }
+
+    // Sanitize user-provided content for AI prompts (Requirements 3.4)
+    const sanitizedTopic = sanitizeForPrompt(topic);
+    const sanitizedBackground = {
+      degree: background?.degree ? sanitizeForPrompt(background.degree) : undefined,
+      experience: background?.experience ? sanitizeForPrompt(background.experience) : undefined,
+      interests: background?.interests ? sanitizeForPrompt(background.interests) : undefined,
+    };
+    const sanitizedMaterials = materials?.map(m => ({
+      title: m.title ? sanitizeForPrompt(m.title) : m.title,
+      summary: m.summary ? sanitizeForPrompt(m.summary) : m.summary,
+    }));
 
     // Create course record AFTER quota validation passes (Requirements 2.1, 2.2, 2.3)
     // This ensures no orphaned courses are created if quota check fails
+    // Note: Store original topic for display, sanitized values are only used in AI prompts
     const { data: course, error: courseError } = await supabase
       .from('courses')
       .insert({
         owner_id: user.id,
-        title: topic, // Will be updated with AI-generated title
+        title: topic, // Will be updated with AI-generated title (original for display)
         description: `A ${level} level course on ${topic}`,
-        topic,
+        topic: topic, // Store original topic
         level,
         intensity,
         status: 'draft_outline',
@@ -155,11 +256,11 @@ Deno.serve(async (req: Request) => {
     const moduleCount = intensity === 'short' ? 3 : intensity === 'standard' ? 5 : 8;
     const lessonsPerModule = intensity === 'short' ? 2 : intensity === 'standard' ? 3 : 4;
 
-    // Build comprehensive materials context with full content
+    // Build comprehensive materials context with full content (using sanitized values for AI prompt)
     let materialsContext = '';
-    if (materials && materials.length > 0) {
-      const materialsWithContent = materials.filter(m => m.summary && m.summary.length > 50);
-      const materialsWithoutContent = materials.filter(m => !m.summary || m.summary.length <= 50);
+    if (sanitizedMaterials && sanitizedMaterials.length > 0) {
+      const materialsWithContent = sanitizedMaterials.filter(m => m.summary && m.summary.length > 50);
+      const materialsWithoutContent = sanitizedMaterials.filter(m => !m.summary || m.summary.length <= 50);
       
       if (materialsWithContent.length > 0) {
         materialsContext = `\n\n=== USER-PROVIDED LEARNING MATERIALS ===
@@ -184,24 +285,27 @@ Instructions for using materials:
     }
 
     // Build learner background section - prefer profile data over onboarding background
+    // Uses sanitized values for AI prompt safety (Requirements 3.4)
     const buildLearnerBackground = (): string => {
       if (userProfileContext) {
-        // Use profile data (Requirements 6.3)
-        const expertiseStr = userProfileContext.expertise?.length > 0 
-          ? userProfileContext.expertise.join(', ') 
+        // Use profile data (Requirements 6.3) - sanitize profile context for prompt
+        const sanitizedExpertise = userProfileContext.expertise?.map(e => sanitizeForPrompt(e)) || [];
+        const expertiseStr = sanitizedExpertise.length > 0 
+          ? sanitizedExpertise.join(', ') 
           : 'Not specified';
-        const preferencesStr = userProfileContext.preferences?.length > 0
-          ? userProfileContext.preferences.join(', ')
+        const sanitizedPreferences = userProfileContext.preferences?.map(p => sanitizeForPrompt(p)) || [];
+        const preferencesStr = sanitizedPreferences.length > 0
+          ? sanitizedPreferences.join(', ')
           : '';
         
         let backgroundStr = `Learner Background (from profile):
-- Education: ${userProfileContext.education || 'Not specified'}
-- Experience: ${userProfileContext.experience || 'Not specified'}
-- Interests: ${userProfileContext.interests || 'Not specified'}
+- Education: ${sanitizeForPrompt(userProfileContext.education || '') || 'Not specified'}
+- Experience: ${sanitizeForPrompt(userProfileContext.experience || '') || 'Not specified'}
+- Interests: ${sanitizeForPrompt(userProfileContext.interests || '') || 'Not specified'}
 - Expertise/Skills: ${expertiseStr}`;
         
         if (userProfileContext.learningStyle) {
-          backgroundStr += `\n- Learning Style: ${userProfileContext.learningStyle}`;
+          backgroundStr += `\n- Learning Style: ${sanitizeForPrompt(userProfileContext.learningStyle)}`;
         }
         if (preferencesStr) {
           backgroundStr += `\n- Preferences: ${preferencesStr}`;
@@ -210,16 +314,17 @@ Instructions for using materials:
         return backgroundStr;
       }
       
-      // Fallback to onboarding background data
+      // Fallback to onboarding background data (using sanitized values)
       return `Learner Background:
-- Education: ${background.degree || 'Not specified'}
-- Experience: ${background.experience || 'Not specified'}
-- Interests: ${background.interests || 'Not specified'}`;
+- Education: ${sanitizedBackground.degree || 'Not specified'}
+- Experience: ${sanitizedBackground.experience || 'Not specified'}
+- Interests: ${sanitizedBackground.interests || 'Not specified'}`;
     };
 
+    // Build prompt using sanitized user input (Requirements 3.4)
     const prompt = `You are an expert instructional designer. Create a detailed course outline for the following:
 
-Topic: ${topic}
+Topic: ${sanitizedTopic}
 Level: ${level}
 Intensity: ${intensity}
 ${buildLearnerBackground()}${materialsContext}
@@ -338,24 +443,23 @@ Make the course comprehensive, practical, and tailored to the learner's backgrou
       }
     );
   } catch (error: unknown) {
+    // Log full error for debugging (server-side only)
     console.error('Error generating outline:', error);
 
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate course outline';
-    const errorStack = error instanceof Error ? error.stack?.substring(0, 500) : undefined;
-    const statusCode = errorMessage.includes('Rate limit') ? 429 : 500;
+    // Determine appropriate status code based on error type
+    const errorMessage = error instanceof Error ? error.message.toLowerCase() : '';
+    let statusCode = 500;
+    let errorCode = 'INTERNAL_ERROR';
+    
+    if (errorMessage.includes('rate limit')) {
+      statusCode = 429;
+      errorCode = 'RATE_LIMITED';
+    } else if (errorMessage.includes('invalid') || errorMessage.includes('required')) {
+      statusCode = 400;
+      errorCode = 'VALIDATION_ERROR';
+    }
 
-    return new Response(
-      JSON.stringify({
-        error: errorMessage,
-        details: errorStack
-      }),
-      {
-        status: statusCode,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    // Use createSafeErrorResponse to ensure no stack traces or internal paths are exposed (Requirements 7.2)
+    return createSafeErrorResponse(error, statusCode, corsHeaders, errorCode, 'Failed to generate course outline');
   }
 });

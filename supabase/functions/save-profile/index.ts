@@ -3,17 +3,27 @@
  * Saves anonymized profile data to database with AI-powered context extraction
  * 
  * Requirements: 5.3, 6.1, 6.2, 10.3
+ * Security: 1.1, 1.2, 2.1, 3.1, 7.1, 7.2
  */
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
+import {
+  validateAuth,
+  getCorsHeaders,
+  validateStringInput,
+  checkRateLimit,
+  createRateLimitResponse,
+  createUnauthorizedResponse,
+  createValidationErrorResponse,
+  createErrorResponse,
+} from '../_shared/security.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+
+// Maximum limits for input validation (Requirements 3.1)
+const MAX_RAW_CONTENT_LENGTH = 50000;
+const MAX_CONVERSATION_HISTORY_LENGTH = 50;
+const MAX_HISTORY_MESSAGE_LENGTH = 10000;
 
 type InputMethod = 'text' | 'voice' | 'conversation';
 
@@ -103,7 +113,7 @@ function escapeRegExp(string: string): string {
 
 /**
  * Anonymize text by replacing PII with placeholder tokens
- * Requirements: 5.1, 5.2
+ * Requirements: 5.1, 5.2, 7.1
  */
 function anonymizeText(text: string): AnonymizationResult {
   if (!text || typeof text !== 'string') {
@@ -162,12 +172,17 @@ function anonymizeText(text: string): AnonymizationResult {
     }
   }
 
-  // Validate that no PII remains
+  // Validate that no PII remains (Requirements 7.1)
+  // Reset regex lastIndex before validation
+  EMAIL_PATTERN.lastIndex = 0;
+  PHONE_PATTERN.lastIndex = 0;
+  ADDRESS_PATTERN.lastIndex = 0;
+
   const validationPassed = !EMAIL_PATTERN.test(anonymizedText) && 
                            !PHONE_PATTERN.test(anonymizedText) &&
                            !ADDRESS_PATTERN.test(anonymizedText);
 
-  // Reset regex lastIndex
+  // Reset regex lastIndex after validation
   EMAIL_PATTERN.lastIndex = 0;
   PHONE_PATTERN.lastIndex = 0;
   ADDRESS_PATTERN.lastIndex = 0;
@@ -177,6 +192,51 @@ function anonymizeText(text: string): AnonymizationResult {
     piiDetected,
     validationPassed,
   };
+}
+
+/**
+ * Validate conversation history array
+ * Requirements: 3.1
+ */
+function validateConversationHistory(
+  history: unknown
+): { valid: boolean; error?: string } {
+  if (history === undefined || history === null) {
+    return { valid: true };
+  }
+
+  if (!Array.isArray(history)) {
+    return { valid: false, error: 'conversationHistory must be an array' };
+  }
+
+  if (history.length > MAX_CONVERSATION_HISTORY_LENGTH) {
+    return { valid: false, error: `conversationHistory exceeds maximum length of ${MAX_CONVERSATION_HISTORY_LENGTH}` };
+  }
+
+  for (let i = 0; i < history.length; i++) {
+    const msg = history[i];
+    
+    if (!msg || typeof msg !== 'object') {
+      return { valid: false, error: `conversationHistory[${i}] must be an object` };
+    }
+
+    const typedMsg = msg as Record<string, unknown>;
+
+    if (typedMsg.role !== 'user' && typedMsg.role !== 'assistant') {
+      return { valid: false, error: `conversationHistory[${i}].role must be 'user' or 'assistant'` };
+    }
+
+    const contentValidation = validateStringInput(
+      typedMsg.content,
+      `conversationHistory[${i}].content`,
+      MAX_HISTORY_MESSAGE_LENGTH
+    );
+    if (!contentValidation.valid) {
+      return { valid: false, error: contentValidation.error };
+    }
+  }
+
+  return { valid: true };
 }
 
 /**
@@ -276,6 +336,10 @@ IMPORTANT:
 }
 
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
+  // Handle preflight requests (Requirements 2.2)
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
@@ -285,41 +349,65 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (!GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not configured');
+      console.error('GEMINI_API_KEY not configured');
+      return createErrorResponse(
+        'Service configuration error',
+        500,
+        corsHeaders,
+        'INTERNAL_ERROR'
+      );
     }
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
+    // Validate authentication (Requirements 1.1, 1.2, 1.3)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      throw new Error('Invalid user token');
+    const authResult = await validateAuth(req, supabase);
+    if (authResult.error || !authResult.user) {
+      console.warn('Authentication failed:', authResult.error);
+      return createUnauthorizedResponse(corsHeaders, authResult.error || 'Unauthorized');
     }
 
-    const requestData: SaveProfileRequest = await req.json();
+    // Check rate limit (Requirements 4.1, 4.2)
+    const rateLimitResult = await checkRateLimit(supabase, authResult.user.id, 'save-profile');
+    if (!rateLimitResult.allowed) {
+      return createRateLimitResponse(rateLimitResult.retryAfter || 60, corsHeaders);
+    }
+
+    // Parse and validate request body
+    let requestData: SaveProfileRequest;
+    try {
+      requestData = await req.json();
+    } catch {
+      return createValidationErrorResponse(corsHeaders, 'Invalid JSON in request body');
+    }
+
     const { inputMethod, rawContent, conversationHistory } = requestData;
 
+    // Validate inputMethod (Requirements 3.1)
     if (!inputMethod || !['text', 'voice', 'conversation'].includes(inputMethod)) {
-      throw new Error('Invalid input method');
+      return createValidationErrorResponse(corsHeaders, 'Invalid input method. Must be text, voice, or conversation');
     }
 
-    if (!rawContent || typeof rawContent !== 'string') {
-      throw new Error('No content provided');
+    // Validate rawContent (Requirements 3.1)
+    const contentValidation = validateStringInput(rawContent, 'rawContent', MAX_RAW_CONTENT_LENGTH);
+    if (!contentValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, contentValidation.error || 'Invalid content');
     }
 
-    // Anonymize the content (Requirements 5.3)
+    // Validate conversation history if provided (Requirements 3.1)
+    const historyValidation = validateConversationHistory(conversationHistory);
+    if (!historyValidation.valid) {
+      return createValidationErrorResponse(corsHeaders, historyValidation.error || 'Invalid conversation history');
+    }
+
+    // Anonymize the content (Requirements 5.3, 7.1)
     const anonymizationResult = anonymizeText(rawContent);
     
     if (!anonymizationResult.validationPassed) {
-      console.warn('Anonymization validation failed, some PII may remain');
+      // Log warning but continue - some edge cases may slip through
+      console.warn('Anonymization validation failed for user:', authResult.user.id);
     }
 
     // Extract structured context using AI (Requirements 10.3)
@@ -332,7 +420,7 @@ Deno.serve(async (req: Request) => {
     const { data: existingProfile } = await supabase
       .from('user_profiles')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', authResult.user.id)
       .single();
 
     let profileId: string;
@@ -348,12 +436,18 @@ Deno.serve(async (req: Request) => {
           anonymization_metadata: anonymizationResult.piiDetected,
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', user.id)
+        .eq('user_id', authResult.user.id)
         .select('id')
         .single();
 
       if (updateError) {
-        throw new Error(`Failed to update profile: ${updateError.message}`);
+        console.error('Failed to update profile:', updateError);
+        return createErrorResponse(
+          'Failed to update profile',
+          500,
+          corsHeaders,
+          'INTERNAL_ERROR'
+        );
       }
 
       profileId = updatedProfile.id;
@@ -362,7 +456,7 @@ Deno.serve(async (req: Request) => {
       const { data: newProfile, error: insertError } = await supabase
         .from('user_profiles')
         .insert({
-          user_id: user.id,
+          user_id: authResult.user.id,
           input_method: inputMethod,
           anonymized_content: anonymizationResult.anonymizedText,
           extracted_context: extractedContext,
@@ -372,7 +466,13 @@ Deno.serve(async (req: Request) => {
         .single();
 
       if (insertError) {
-        throw new Error(`Failed to create profile: ${insertError.message}`);
+        console.error('Failed to create profile:', insertError);
+        return createErrorResponse(
+          'Failed to create profile',
+          500,
+          corsHeaders,
+          'INTERNAL_ERROR'
+        );
       }
 
       profileId = newProfile.id;
@@ -394,29 +494,14 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error: unknown) {
+    // Log error internally but don't expose details (Requirements 7.2)
     console.error('Error in save-profile:', error);
 
-    const errorMessage = error instanceof Error ? error.message : 'Failed to save profile';
-    
-    let statusCode = 500;
-    if (errorMessage.includes('Rate limit') || errorMessage.includes('429')) {
-      statusCode = 429;
-    }
-
-    const errorResponse: SaveProfileResponse = {
-      success: false,
-      error: errorMessage,
-    };
-
-    return new Response(
-      JSON.stringify(errorResponse),
-      {
-        status: statusCode,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
+    return createErrorResponse(
+      'An error occurred processing your request',
+      500,
+      corsHeaders,
+      'INTERNAL_ERROR'
     );
   }
 });
