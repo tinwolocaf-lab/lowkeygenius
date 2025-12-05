@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, useScroll, useTransform, MotionValue } from 'framer-motion';
 import { fetchPublicCoursePreviews, fillGridCourses } from '../lib/publicCourses';
 import { ImageIcon } from 'lucide-react';
@@ -10,18 +10,22 @@ interface HeroScrollGridProps {
   className?: string;
 }
 
-// Grid configuration - 3x3 grid with center slot (index 4) as "The Hole"
+// Grid configuration - responsive
 const GRID_CONFIG = {
-  columns: 3,
-  total: 9,
-  holeIndex: 4, // Center slot (0-indexed: row 1, col 1)
+  desktop: { columns: 3, total: 9, holeIndex: 4 },  // 3x3, center is index 4
+  mobile: { columns: 2, total: 10, holeIndex: 4 },  // 2x5, center-ish is index 4
 };
 
+const DESKTOP_BREAKPOINT = 1024;
+
+// Uniform aspect ratio for both hero and grid items
+const ASPECT_RATIO = 'aspect-[4/3]';
+
+// Initial hero scale (how much bigger than grid cell it starts)
+const HERO_INITIAL_SCALE = 2.5;
+
 /**
- * HeroScrollGrid Component - "Hollow Grid" Architecture
- * 
- * A scroll-linked animation where a hero card shrinks from full-screen
- * into the center slot of a 3x3 grid as the user scrolls.
+ * HeroScrollGrid Component - "Hollow Grid" Architecture with Target Ref Strategy
  */
 export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
   const navigate = useNavigate();
@@ -31,66 +35,76 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [featuredCourse, setFeaturedCourse] = useState<PublicCoursePreview | null>(null);
+  const [isDesktop, setIsDesktop] = useState(true);
   
-  // Refs for position calculation
+  // Target slot position relative to grid container
+  const [targetSlotPosition, setTargetSlotPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  
+  // Refs
   const containerRef = useRef<HTMLDivElement>(null);
-  const holeRef = useRef<HTMLDivElement>(null);
-  const stickyRef = useRef<HTMLDivElement>(null);
+  const targetSlotRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
-  // Scroll progress of the outer 300vh wrapper
+  // Scroll progress
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start start', 'end end'],
   });
 
-  // === HERO TRANSFORMS ===
-  // Hero starts scaled up (3x) to fill screen, shrinks to 1x at end
-  const heroScale = useTransform(scrollYProgress, [0, 1], [2.5, 1]);
-  
-  // Hero text fades out quickly (within first 20% of scroll)
-  const heroTextOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
-  
-  // Hero position - starts centered, moves to hole position
-  const [holePosition, setHolePosition] = useState({ x: 0, y: 0 });
-  
-  const heroX = useTransform(scrollYProgress, [0, 1], [0, holePosition.x]);
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, holePosition.y]);
-
-  // === GRID ITEM TRANSFORMS ===
-  // Grid items start scaled up and invisible, animate to normal
-  const gridItemScale = useTransform(scrollYProgress, [0, 0.8, 1], [1.3, 1.1, 1]);
-  const gridItemOpacity = useTransform(scrollYProgress, [0, 0.6, 1], [0, 0, 1]);
-
-  // Calculate hole position relative to viewport center
+  // Responsive breakpoint detection
   useEffect(() => {
-    const calculateHolePosition = () => {
-      if (!holeRef.current || !stickyRef.current) return;
-      
-      const holeRect = holeRef.current.getBoundingClientRect();
-      const stickyRect = stickyRef.current.getBoundingClientRect();
-      
-      // Calculate offset from center of sticky container to center of hole
-      const stickyCenterX = stickyRect.width / 2;
-      const stickyCenterY = stickyRect.height / 2;
-      
-      const holeCenterX = holeRect.left - stickyRect.left + holeRect.width / 2;
-      const holeCenterY = holeRect.top - stickyRect.top + holeRect.height / 2;
-      
-      setHolePosition({
-        x: holeCenterX - stickyCenterX,
-        y: holeCenterY - stickyCenterY,
-      });
+    const checkBreakpoint = () => {
+      setIsDesktop(window.innerWidth >= DESKTOP_BREAKPOINT);
     };
 
-    // Calculate after render and on resize
-    const timeout = setTimeout(calculateHolePosition, 100);
-    window.addEventListener('resize', calculateHolePosition);
+    checkBreakpoint();
+    window.addEventListener('resize', checkBreakpoint);
+    return () => window.removeEventListener('resize', checkBreakpoint);
+  }, []);
+
+  // Get current grid config based on viewport
+  const gridConfig = isDesktop ? GRID_CONFIG.desktop : GRID_CONFIG.mobile;
+
+  // Calculate target slot position relative to grid container
+  const calculateTargetPosition = useCallback(() => {
+    if (!targetSlotRef.current || !gridRef.current) return;
+    
+    const targetRect = targetSlotRef.current.getBoundingClientRect();
+    const gridRect = gridRef.current.getBoundingClientRect();
+    
+    setTargetSlotPosition({
+      top: targetRect.top - gridRect.top,
+      left: targetRect.left - gridRect.left,
+      width: targetRect.width,
+      height: targetRect.height,
+    });
+  }, []);
+
+  // Recalculate on mount, resize, and when content loads
+  useEffect(() => {
+    if (loading) return;
+    
+    const timeout = setTimeout(calculateTargetPosition, 100);
+    window.addEventListener('resize', calculateTargetPosition);
     
     return () => {
       clearTimeout(timeout);
-      window.removeEventListener('resize', calculateHolePosition);
+      window.removeEventListener('resize', calculateTargetPosition);
     };
-  }, [loading, courses]);
+  }, [loading, courses, isDesktop, calculateTargetPosition]);
+
+  // === HERO TRANSFORMS ===
+  const heroScale = useTransform(scrollYProgress, [0, 1], [HERO_INITIAL_SCALE, 1]);
+  const heroTextOpacity = useTransform(scrollYProgress, [0, 0.05], [1, 0]);
+
+  // === GRID ITEM TRANSFORMS ===
+  const gridItemScale = useTransform(scrollYProgress, [0, 0.7, 1], [1.3, 1.05, 1]);
+  const gridItemOpacity = useTransform(scrollYProgress, [0, 0.5, 0.9], [0, 0, 1]);
 
   // Fetch courses on mount
   useEffect(() => {
@@ -118,7 +132,7 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
   // Fill grid with courses (excluding featured course)
   const gridCourses = fillGridCourses(
     courses.filter(c => c.id !== featuredCourse?.id),
-    GRID_CONFIG.total - 1 // -1 because center is the hole
+    gridConfig.total - 1
   );
 
   const handleCardClick = () => {
@@ -136,22 +150,21 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
 
   return (
     <section className={`relative ${className}`}>
-      {/* 1. OUTER WRAPPER - 300vh scroll space */}
+      {/* OUTER WRAPPER - 300vh scroll space */}
       <div
         ref={containerRef}
         className="relative"
         style={{ height: '300vh' }}
       >
-        {/* 2. STICKY CONTAINER - stays in viewport, high z-index */}
+        {/* STICKY CONTAINER */}
         <div
-          ref={stickyRef}
           className="sticky top-0 h-screen flex flex-col items-center justify-center overflow-hidden bg-neutral-bg"
           style={{ zIndex: 20 }}
         >
           {loading ? (
-            <LoadingSkeleton />
+            <LoadingSkeleton isDesktop={isDesktop} />
           ) : (
-            <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
               {/* Section heading */}
               <div className="text-center mb-8">
                 <h2 className="font-display text-3xl sm:text-4xl font-bold text-neutral-text mb-2">
@@ -162,24 +175,26 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
                 </p>
               </div>
 
-              {/* 3. THE GRID WRAPPER - 3 columns */}
-              <div className="grid grid-cols-3 gap-4">
-                {Array.from({ length: GRID_CONFIG.total }).map((_, index) => {
-                  // Grid Item 5 (index 4) is THE HOLE
-                  if (index === GRID_CONFIG.holeIndex) {
+              {/* THE GRID WRAPPER - position relative for hero positioning */}
+              <div 
+                ref={gridRef}
+                className={`relative grid gap-4 ${isDesktop ? 'grid-cols-3' : 'grid-cols-2'}`}
+              >
+                {Array.from({ length: gridConfig.total }).map((_, index) => {
+                  // THE HOLE - invisible placeholder
+                  if (index === gridConfig.holeIndex) {
                     return (
                       <div
                         key="hole"
-                        ref={holeRef}
-                        className="aspect-video rounded-2xl"
-                        style={{ visibility: 'hidden' }}
+                        ref={targetSlotRef}
+                        className={`${ASPECT_RATIO} rounded-2xl`}
+                        style={{ opacity: 0 }}
                         aria-hidden="true"
                       />
                     );
                   }
 
-                  // Calculate course index (accounting for the hole)
-                  const courseIndex = index < GRID_CONFIG.holeIndex ? index : index - 1;
+                  const courseIndex = index < gridConfig.holeIndex ? index : index - 1;
                   const course = gridCourses[courseIndex];
 
                   if (!course) {
@@ -187,7 +202,7 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
                       <motion.div
                         key={`empty-${index}`}
                         style={{ scale: gridItemScale, opacity: gridItemOpacity }}
-                        className="aspect-video rounded-2xl bg-neutral-surface"
+                        className={`${ASPECT_RATIO} rounded-2xl bg-neutral-surface`}
                       />
                     );
                   }
@@ -199,29 +214,23 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
                       onClick={handleCardClick}
                       className="cursor-pointer"
                     >
-                      <GridCourseCard course={course} />
+                      <GridCourseCard course={course} aspectRatio={ASPECT_RATIO} />
                     </motion.div>
                   );
                 })}
-              </div>
 
-              {/* 4. THE HERO - absolute positioned, animates from center to hole */}
-              {featuredCourse && (
-                <motion.div
-                  style={{
-                    scale: heroScale,
-                    x: heroX,
-                    y: heroY,
-                  }}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/3 z-30"
-                >
-                  <HeroCard
+                {/* THE HERO - positioned absolutely within grid, starts at center slot */}
+                {featuredCourse && targetSlotPosition && (
+                  <HeroElement
                     course={featuredCourse}
-                    textOpacity={heroTextOpacity}
+                    targetSlotPosition={targetSlotPosition}
+                    heroScale={heroScale}
+                    heroTextOpacity={heroTextOpacity}
+                    scrollYProgress={scrollYProgress}
                     onClick={handleCardClick}
                   />
-                </motion.div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -231,23 +240,82 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
 }
 
 /**
- * Hero Card - the main animated card with fading text
+ * Hero Element - positioned absolutely, animates from scaled-up center to grid slot
+ */
+interface HeroElementProps {
+  course: PublicCoursePreview;
+  targetSlotPosition: { top: number; left: number; width: number; height: number };
+  heroScale: MotionValue<number>;
+  heroTextOpacity: MotionValue<number>;
+  scrollYProgress: MotionValue<number>;
+  onClick: () => void;
+}
+
+function HeroElement({ 
+  course, 
+  targetSlotPosition, 
+  heroScale, 
+  heroTextOpacity,
+  scrollYProgress,
+  onClick 
+}: HeroElementProps) {
+  // Calculate the center offset needed when scaled up
+  // At scale 2.5, the hero is 2.5x bigger, so we need to offset to keep it centered
+  const scaledWidth = targetSlotPosition.width * HERO_INITIAL_SCALE;
+  const scaledHeight = targetSlotPosition.height * HERO_INITIAL_SCALE;
+  
+  // Offset to center the scaled hero over the grid
+  const startOffsetX = (scaledWidth - targetSlotPosition.width) / 2;
+  const startOffsetY = (scaledHeight - targetSlotPosition.height) / 2;
+  
+  // At scroll 0: hero is centered (offset by startOffset)
+  // At scroll 1: hero is at target slot position (no offset)
+  const heroX = useTransform(scrollYProgress, [0, 1], [-startOffsetX, 0]);
+  const heroY = useTransform(scrollYProgress, [0, 1], [-startOffsetY, 0]);
+
+  return (
+    <motion.div
+      style={{
+        position: 'absolute',
+        top: targetSlotPosition.top,
+        left: targetSlotPosition.left,
+        width: targetSlotPosition.width,
+        height: targetSlotPosition.height,
+        scale: heroScale,
+        x: heroX,
+        y: heroY,
+        transformOrigin: 'center center',
+        zIndex: 30,
+      }}
+    >
+      <HeroCard
+        course={course}
+        textOpacity={heroTextOpacity}
+        onClick={onClick}
+        aspectRatio={ASPECT_RATIO}
+      />
+    </motion.div>
+  );
+}
+
+/**
+ * Hero Card - the main animated card with instantly-fading text
  */
 interface HeroCardProps {
   course: PublicCoursePreview;
   textOpacity: MotionValue<number>;
   onClick: () => void;
+  aspectRatio: string;
 }
 
-function HeroCard({ course, textOpacity, onClick }: HeroCardProps) {
+function HeroCard({ course, textOpacity, onClick, aspectRatio }: HeroCardProps) {
   const [imgError, setImgError] = useState(false);
 
   return (
     <div
       onClick={onClick}
-      className="relative aspect-video rounded-2xl overflow-hidden cursor-pointer bg-neutral-bg border border-neutral-border shadow-soft"
+      className={`relative ${aspectRatio} w-full h-full rounded-2xl overflow-hidden cursor-pointer bg-neutral-bg border border-neutral-border shadow-soft`}
     >
-      {/* Thumbnail */}
       {course.thumbnail_url && !imgError ? (
         <img
           src={course.thumbnail_url}
@@ -261,10 +329,9 @@ function HeroCard({ course, textOpacity, onClick }: HeroCardProps) {
         </div>
       )}
 
-      {/* Text overlay - fades out during scroll */}
       <motion.div
         style={{ opacity: textOpacity }}
-        className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-end p-4"
+        className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-end p-4 pointer-events-none"
       >
         <h3 className="font-display text-lg font-bold text-white line-clamp-2">
           {course.title}
@@ -278,17 +345,18 @@ function HeroCard({ course, textOpacity, onClick }: HeroCardProps) {
 }
 
 /**
- * Grid Course Card - simple image-only card for grid items
+ * Grid Course Card
  */
 interface GridCourseCardProps {
   course: PublicCoursePreview;
+  aspectRatio: string;
 }
 
-function GridCourseCard({ course }: GridCourseCardProps) {
+function GridCourseCard({ course, aspectRatio }: GridCourseCardProps) {
   const [imgError, setImgError] = useState(false);
 
   return (
-    <div className="aspect-video rounded-2xl overflow-hidden bg-neutral-bg border border-neutral-border shadow-soft hover:shadow-tile hover:scale-[1.02] transition-all duration-200">
+    <div className={`${aspectRatio} rounded-2xl overflow-hidden bg-neutral-bg border border-neutral-border shadow-soft hover:shadow-tile hover:scale-[1.02] transition-all duration-200`}>
       {course.thumbnail_url && !imgError ? (
         <img
           src={course.thumbnail_url}
@@ -308,18 +376,20 @@ function GridCourseCard({ course }: GridCourseCardProps) {
 /**
  * Loading skeleton
  */
-function LoadingSkeleton() {
+function LoadingSkeleton({ isDesktop }: { isDesktop: boolean }) {
+  const total = isDesktop ? 9 : 10;
+  
   return (
     <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center mb-8">
         <div className="h-10 w-64 bg-neutral-surface animate-pulse rounded-lg mx-auto mb-4" />
         <div className="h-6 w-96 bg-neutral-surface animate-pulse rounded-lg mx-auto" />
       </div>
-      <div className="grid grid-cols-3 gap-4">
-        {Array.from({ length: 9 }).map((_, index) => (
+      <div className={`grid gap-4 ${isDesktop ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        {Array.from({ length: total }).map((_, index) => (
           <div
             key={index}
-            className="aspect-video bg-neutral-surface animate-pulse rounded-2xl"
+            className={`${ASPECT_RATIO} bg-neutral-surface animate-pulse rounded-2xl`}
           />
         ))}
       </div>
