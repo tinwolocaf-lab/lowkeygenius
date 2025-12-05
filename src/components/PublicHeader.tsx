@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { Button } from './Button';
@@ -8,6 +8,50 @@ import { HorrorLogo } from './horror/HorrorLogo';
 export function PublicHeader() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [visibleItems, setVisibleItems] = useState<number[]>([]);
+
+  const totalItems = 7; // 4 nav links + theme + 2 buttons
+  const staggerDelay = 60; // ms between each item
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      setShowMenu(true);
+      setIsAnimating(true);
+      // Animate items in from top to bottom
+      const timeouts: NodeJS.Timeout[] = [];
+      for (let i = 0; i < totalItems; i++) {
+        timeouts.push(
+          setTimeout(() => {
+            setVisibleItems((prev) => [...prev, i]);
+          }, i * staggerDelay)
+        );
+      }
+      timeouts.push(
+        setTimeout(() => setIsAnimating(false), totalItems * staggerDelay)
+      );
+      return () => timeouts.forEach(clearTimeout);
+    } else if (showMenu) {
+      setIsAnimating(true);
+      // Animate items out from bottom to top
+      const timeouts: NodeJS.Timeout[] = [];
+      for (let i = totalItems - 1; i >= 0; i--) {
+        timeouts.push(
+          setTimeout(() => {
+            setVisibleItems((prev) => prev.filter((idx) => idx !== i));
+          }, (totalItems - 1 - i) * staggerDelay)
+        );
+      }
+      timeouts.push(
+        setTimeout(() => {
+          setShowMenu(false);
+          setIsAnimating(false);
+        }, totalItems * staggerDelay + 100)
+      );
+      return () => timeouts.forEach(clearTimeout);
+    }
+  }, [mobileMenuOpen]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -71,10 +115,10 @@ export function PublicHeader() {
         </div>
       </div>
 
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-neutral-bg border-t-2 border-neutral-border shadow-soft">
+      {showMenu && (
+        <div className="md:hidden absolute left-0 right-0 top-20 bg-neutral-bg border-t-2 border-neutral-border shadow-soft overflow-hidden z-50">
           <div className="px-4 py-6 space-y-4">
-            {navLinks.map((link) => (
+            {navLinks.map((link, index) => (
               <button
                 key={link.id || link.path}
                 onClick={() => {
@@ -85,15 +129,33 @@ export function PublicHeader() {
                     scrollToSection(link.id!);
                   }
                 }}
-                className="block w-full text-left font-body font-semibold text-neutral-text hover:text-primary py-2 transition-colors"
+                className={`block w-full text-center font-body font-semibold text-neutral-text hover:text-primary py-2 transition-all duration-300 ease-out ${
+                  visibleItems.includes(index)
+                    ? 'opacity-100 translate-y-0'
+                    : 'opacity-0 -translate-y-4'
+                }`}
               >
                 {link.label}
               </button>
             ))}
-            <div className="pt-4 border-t-2 border-neutral-border space-y-2">
-              <div className="mb-4">
+            <div
+              className={`pt-4 border-t-2 border-neutral-border space-y-2 transition-all duration-300 ease-out ${
+                visibleItems.includes(4)
+                  ? 'opacity-100 translate-y-0'
+                  : 'opacity-0 -translate-y-4'
+              }`}
+            >
+              <div className="mb-4 flex justify-center">
                 <ThemeSelector />
               </div>
+            </div>
+            <div
+              className={`transition-all duration-300 ease-out ${
+                visibleItems.includes(5)
+                  ? 'opacity-100 translate-y-0'
+                  : 'opacity-0 -translate-y-4'
+              }`}
+            >
               <Button
                 variant="secondary"
                 className="w-full"
@@ -101,6 +163,14 @@ export function PublicHeader() {
               >
                 Log In
               </Button>
+            </div>
+            <div
+              className={`transition-all duration-300 ease-out ${
+                visibleItems.includes(6)
+                  ? 'opacity-100 translate-y-0'
+                  : 'opacity-0 -translate-y-4'
+              }`}
+            >
               <Button
                 variant="primary"
                 className="w-full"

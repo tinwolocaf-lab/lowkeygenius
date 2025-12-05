@@ -75,7 +75,7 @@ export function MarketplaceCourseCard({
 
       {/* Header with level and duration */}
       <div className="flex items-center justify-between mb-3">
-        <span className={`px-3 py-1 rounded-full font-body font-semibold text-xs capitalize ${levelColor}`}>
+        <span className={`px-3 py-1 rounded-lg font-body font-semibold text-xs capitalize ${levelColor}`}>
           {course.level}
         </span>
         <div className="flex items-center gap-1 text-neutral-text-muted">
@@ -96,7 +96,7 @@ export function MarketplaceCourseCard({
 
       {/* Topic Badge */}
       <div className="mb-4">
-        <span className="px-3 py-1 bg-neutral-surface text-neutral-text rounded-full font-body text-xs">
+        <span className="px-3 py-1 bg-neutral-surface text-neutral-text rounded-lg font-body text-xs">
           {course.topic}
         </span>
       </div>

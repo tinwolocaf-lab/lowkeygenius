@@ -17,7 +17,7 @@ export function Button({
 }: ButtonProps) {
   const { isHorror } = useHorrorTheme();
 
-  const baseStyles = 'font-display font-bold transition-all duration-200 active:scale-95 active:translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:active:translate-y-0';
+  const baseStyles = 'font-display font-bold transition-all duration-200 active:scale-95 active:translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:active:translate-y-0 whitespace-nowrap';
 
   const variantStyles = {
     primary: 'bg-primary text-white hover:bg-primary-dark shadow-button hover:shadow-button-hover',
@@ -29,9 +29,9 @@ export function Button({
   };
 
   const sizeStyles = {
-    sm: 'px-5 py-2.5 text-sm rounded-xl',
-    md: 'px-7 py-4 text-base rounded-2xl',
-    lg: 'px-10 py-5 text-lg rounded-2xl',
+    sm: 'px-3 md:px-5 py-2.5 text-sm rounded-xl',
+    md: 'px-4 md:px-7 py-4 text-base rounded-2xl',
+    lg: 'px-6 md:px-10 py-5 text-lg rounded-2xl',
   };
 
   // Horror theme adds blood drip effect and glitch animation on hover
