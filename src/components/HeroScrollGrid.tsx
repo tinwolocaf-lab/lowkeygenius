@@ -21,6 +21,31 @@ const DESKTOP_BREAKPOINT = 1024;
 // Uniform aspect ratio for both hero and grid items
 const ASPECT_RATIO = 'aspect-[4/3]';
 
+// Direction offsets for each grid position (relative to center)
+// For 3x3 grid: positions 0-8, center is 4
+// Each item flies in from outside the viewport from its respective direction
+const getDirectionOffset = (index: number, columns: number): { x: number; y: number } => {
+  // Calculate row and column position
+  const row = Math.floor(index / columns);
+  const col = index % columns;
+  
+  // Center position
+  const centerRow = Math.floor((columns === 3 ? 3 : 5) / 2); // 1 for 3x3, 2 for 2x5
+  const centerCol = Math.floor(columns / 2); // 1 for 3 cols, 1 for 2 cols
+  
+  // Calculate direction from center (normalized)
+  const dirX = col - centerCol; // -1, 0, or 1
+  const dirY = row - centerRow; // -1, 0, or 1
+  
+  // Distance to fly in from (in viewport units, will be multiplied by actual distance)
+  const flyDistance = 150; // percentage of item size
+  
+  return {
+    x: dirX * flyDistance,
+    y: dirY * flyDistance,
+  };
+};
+
 /**
  * HeroScrollGrid Component - "Hollow Grid" Architecture with Target Ref Strategy
  */
@@ -36,12 +61,10 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
   
   // Animation positions calculated from DOM
   const [positions, setPositions] = useState<{
-    // Target slot (the hole) position relative to sticky container
     targetTop: number;
     targetLeft: number;
     targetWidth: number;
     targetHeight: number;
-    // Starting position (centered, below title)
     startTop: number;
     startLeft: number;
     startWidth: number;
@@ -82,16 +105,14 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
     const contentRect = contentRef.current.getBoundingClientRect();
     const titleRect = titleRef.current.getBoundingClientRect();
     
-    // Target position relative to content container (not sticky)
     const targetTop = targetRect.top - contentRect.top;
     const targetLeft = targetRect.left - contentRect.left;
     const targetWidth = targetRect.width;
     const targetHeight = targetRect.height;
     
-    // Starting position: centered horizontally within content, below title with gap
     const startWidth = isDesktop ? contentRect.width * 0.6 : contentRect.width * 0.85;
     const startLeft = (contentRect.width - startWidth) / 2;
-    const startTop = titleRect.bottom - contentRect.top + 32; // 32px gap below title
+    const startTop = titleRect.bottom - contentRect.top + 32;
     
     setPositions({
       targetTop,
@@ -119,8 +140,9 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
 
   // === TRANSFORMS ===
   const heroTextOpacity = useTransform(scrollYProgress, [0, 0.05], [1, 0]);
-  const gridItemScale = useTransform(scrollYProgress, [0, 0.7, 1], [1.3, 1.05, 1]);
-  const gridItemOpacity = useTransform(scrollYProgress, [0, 0.5, 0.9], [0, 0, 1]);
+  
+  // Grid items opacity - fade in as they fly toward center
+  const gridItemOpacity = useTransform(scrollYProgress, [0, 0.15, 0.6, 1], [0, 0.3, 0.7, 1]);
 
   // Fetch courses on mount
   useEffect(() => {
@@ -210,26 +232,32 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
 
                   const courseIndex = index < gridConfig.holeIndex ? index : index - 1;
                   const course = gridCourses[courseIndex];
+                  const direction = getDirectionOffset(index, gridConfig.columns);
 
                   if (!course) {
                     return (
-                      <motion.div
+                      <GridItemAnimated
                         key={`empty-${index}`}
-                        style={{ scale: gridItemScale, opacity: gridItemOpacity }}
-                        className={`${ASPECT_RATIO} rounded-2xl bg-neutral-surface`}
-                      />
+                        direction={direction}
+                        scrollYProgress={scrollYProgress}
+                        opacity={gridItemOpacity}
+                      >
+                        <div className={`${ASPECT_RATIO} rounded-2xl bg-neutral-surface`} />
+                      </GridItemAnimated>
                     );
                   }
 
                   return (
-                    <motion.div
+                    <GridItemAnimated
                       key={`${course.id}-${index}`}
-                      style={{ scale: gridItemScale, opacity: gridItemOpacity }}
-                      onClick={handleCardClick}
-                      className="cursor-pointer"
+                      direction={direction}
+                      scrollYProgress={scrollYProgress}
+                      opacity={gridItemOpacity}
                     >
-                      <GridCourseCard course={course} aspectRatio={ASPECT_RATIO} />
-                    </motion.div>
+                      <div onClick={handleCardClick} className="cursor-pointer">
+                        <GridCourseCard course={course} aspectRatio={ASPECT_RATIO} />
+                      </div>
+                    </GridItemAnimated>
                   );
                 })}
               </div>
@@ -249,6 +277,34 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * Grid Item with directional fly-in animation
+ */
+interface GridItemAnimatedProps {
+  children: React.ReactNode;
+  direction: { x: number; y: number };
+  scrollYProgress: MotionValue<number>;
+  opacity: MotionValue<number>;
+}
+
+function GridItemAnimated({ children, direction, scrollYProgress, opacity }: GridItemAnimatedProps) {
+  // Animate from outside viewport to final position
+  const x = useTransform(scrollYProgress, [0, 1], [direction.x, 0]);
+  const y = useTransform(scrollYProgress, [0, 1], [direction.y, 0]);
+  
+  return (
+    <motion.div
+      style={{
+        x,
+        y,
+        opacity,
+      }}
+    >
+      {children}
+    </motion.div>
   );
 }
 
@@ -278,7 +334,6 @@ function HeroElement({
   scrollYProgress,
   onClick 
 }: HeroElementProps) {
-  // Animate from start position/size to target position/size
   const heroTop = useTransform(
     scrollYProgress, 
     [0, 1], 
