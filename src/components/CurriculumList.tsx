@@ -63,9 +63,12 @@ export function CurriculumList({
     moduleIndex: number,
     lessonIndex: number
   ) => {
+    console.log('Lesson clicked:', { lessonId, moduleIndex, lessonIndex, canAccess: canAccessLesson(moduleIndex, lessonIndex) });
     // Only allow click if user has access AND we have a valid lesson ID
     if (lessonId && canAccessLesson(moduleIndex, lessonIndex)) {
       onLessonClick(lessonId, moduleIndex, lessonIndex);
+    } else {
+      console.log('Click blocked - lessonId:', lessonId, 'canAccess:', canAccessLesson(moduleIndex, lessonIndex));
     }
   };
 

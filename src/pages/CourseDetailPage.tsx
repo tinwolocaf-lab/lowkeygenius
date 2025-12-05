@@ -114,14 +114,18 @@ export function CourseDetailPage() {
           enrollment_count: enrollmentCount || 0,
         });
 
-        // Fetch lessons to get audio status
-        const { data: lessonsData } = await supabase
+        // Fetch lessons that user has access to (based on RLS)
+        const { data: lessonsData, error: lessonsError } = await supabase
           .from('lessons')
           .select('id, title, module_index, lesson_index, audio_url')
           .eq('course_id', courseId)
           .order('module_index', { ascending: true })
           .order('lesson_index', { ascending: true });
 
+        console.log('Lessons query result:', { data: lessonsData, error: lessonsError });
+        if (lessonsError) {
+          console.error('Error fetching lessons:', lessonsError);
+        }
         if (lessonsData) {
           setLessons(lessonsData);
         }
