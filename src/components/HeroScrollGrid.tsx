@@ -21,9 +21,6 @@ const DESKTOP_BREAKPOINT = 1024;
 // Uniform aspect ratio for both hero and grid items
 const ASPECT_RATIO = 'aspect-[4/3]';
 
-// Initial hero scale (how much bigger than grid cell it starts)
-const HERO_INITIAL_SCALE = 2.5;
-
 /**
  * HeroScrollGrid Component - "Hollow Grid" Architecture with Target Ref Strategy
  */
@@ -37,18 +34,25 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
   const [featuredCourse, setFeaturedCourse] = useState<PublicCoursePreview | null>(null);
   const [isDesktop, setIsDesktop] = useState(true);
   
-  // Target slot position relative to grid container
-  const [targetSlotPosition, setTargetSlotPosition] = useState<{
-    top: number;
-    left: number;
-    width: number;
-    height: number;
+  // Animation positions calculated from DOM
+  const [positions, setPositions] = useState<{
+    // Target slot (the hole) position relative to sticky container
+    targetTop: number;
+    targetLeft: number;
+    targetWidth: number;
+    targetHeight: number;
+    // Starting position (centered, below title)
+    startTop: number;
+    startLeft: number;
+    startWidth: number;
   } | null>(null);
   
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
+  const stickyRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const targetSlotRef = useRef<HTMLDivElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
 
   // Scroll progress
   const { scrollYProgress } = useScroll({
@@ -70,39 +74,51 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
   // Get current grid config based on viewport
   const gridConfig = isDesktop ? GRID_CONFIG.desktop : GRID_CONFIG.mobile;
 
-  // Calculate target slot position relative to grid container
-  const calculateTargetPosition = useCallback(() => {
-    if (!targetSlotRef.current || !gridRef.current) return;
+  // Calculate positions for animation
+  const calculatePositions = useCallback(() => {
+    if (!targetSlotRef.current || !contentRef.current || !titleRef.current) return;
     
     const targetRect = targetSlotRef.current.getBoundingClientRect();
-    const gridRect = gridRef.current.getBoundingClientRect();
+    const contentRect = contentRef.current.getBoundingClientRect();
+    const titleRect = titleRef.current.getBoundingClientRect();
     
-    setTargetSlotPosition({
-      top: targetRect.top - gridRect.top,
-      left: targetRect.left - gridRect.left,
-      width: targetRect.width,
-      height: targetRect.height,
+    // Target position relative to content container (not sticky)
+    const targetTop = targetRect.top - contentRect.top;
+    const targetLeft = targetRect.left - contentRect.left;
+    const targetWidth = targetRect.width;
+    const targetHeight = targetRect.height;
+    
+    // Starting position: centered horizontally within content, below title with gap
+    const startWidth = isDesktop ? contentRect.width * 0.6 : contentRect.width * 0.85;
+    const startLeft = (contentRect.width - startWidth) / 2;
+    const startTop = titleRect.bottom - contentRect.top + 32; // 32px gap below title
+    
+    setPositions({
+      targetTop,
+      targetLeft,
+      targetWidth,
+      targetHeight,
+      startTop,
+      startLeft,
+      startWidth,
     });
-  }, []);
+  }, [isDesktop]);
 
   // Recalculate on mount, resize, and when content loads
   useEffect(() => {
     if (loading) return;
     
-    const timeout = setTimeout(calculateTargetPosition, 100);
-    window.addEventListener('resize', calculateTargetPosition);
+    const timeout = setTimeout(calculatePositions, 100);
+    window.addEventListener('resize', calculatePositions);
     
     return () => {
       clearTimeout(timeout);
-      window.removeEventListener('resize', calculateTargetPosition);
+      window.removeEventListener('resize', calculatePositions);
     };
-  }, [loading, courses, isDesktop, calculateTargetPosition]);
+  }, [loading, courses, isDesktop, calculatePositions]);
 
-  // === HERO TRANSFORMS ===
-  const heroScale = useTransform(scrollYProgress, [0, 1], [HERO_INITIAL_SCALE, 1]);
+  // === TRANSFORMS ===
   const heroTextOpacity = useTransform(scrollYProgress, [0, 0.05], [1, 0]);
-
-  // === GRID ITEM TRANSFORMS ===
   const gridItemScale = useTransform(scrollYProgress, [0, 0.7, 1], [1.3, 1.05, 1]);
   const gridItemOpacity = useTransform(scrollYProgress, [0, 0.5, 0.9], [0, 0, 1]);
 
@@ -158,15 +174,16 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
       >
         {/* STICKY CONTAINER */}
         <div
+          ref={stickyRef}
           className="sticky top-0 h-screen flex flex-col items-center justify-center overflow-hidden bg-neutral-bg"
           style={{ zIndex: 20 }}
         >
           {loading ? (
             <LoadingSkeleton isDesktop={isDesktop} />
           ) : (
-            <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div ref={contentRef} className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative h-full flex flex-col justify-center">
               {/* Section heading */}
-              <div className="text-center mb-8">
+              <div ref={titleRef} className="text-center mb-8">
                 <h2 className="font-display text-3xl sm:text-4xl font-bold text-neutral-text mb-2">
                   Discover Community Courses
                 </h2>
@@ -175,11 +192,8 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
                 </p>
               </div>
 
-              {/* THE GRID WRAPPER - position relative for hero positioning */}
-              <div 
-                ref={gridRef}
-                className={`relative grid gap-4 ${isDesktop ? 'grid-cols-3' : 'grid-cols-2'}`}
-              >
+              {/* THE GRID WRAPPER */}
+              <div className={`relative grid gap-4 ${isDesktop ? 'grid-cols-3' : 'grid-cols-2'}`}>
                 {Array.from({ length: gridConfig.total }).map((_, index) => {
                   // THE HOLE - invisible placeholder
                   if (index === gridConfig.holeIndex) {
@@ -218,19 +232,18 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
                     </motion.div>
                   );
                 })}
-
-                {/* THE HERO - positioned absolutely within grid, starts at center slot */}
-                {featuredCourse && targetSlotPosition && (
-                  <HeroElement
-                    course={featuredCourse}
-                    targetSlotPosition={targetSlotPosition}
-                    heroScale={heroScale}
-                    heroTextOpacity={heroTextOpacity}
-                    scrollYProgress={scrollYProgress}
-                    onClick={handleCardClick}
-                  />
-                )}
               </div>
+
+              {/* THE HERO - positioned absolutely within sticky container */}
+              {featuredCourse && positions && (
+                <HeroElement
+                  course={featuredCourse}
+                  positions={positions}
+                  heroTextOpacity={heroTextOpacity}
+                  scrollYProgress={scrollYProgress}
+                  onClick={handleCardClick}
+                />
+              )}
             </div>
           )}
         </div>
@@ -240,12 +253,19 @@ export function HeroScrollGrid({ className = '' }: HeroScrollGridProps) {
 }
 
 /**
- * Hero Element - positioned absolutely, animates from scaled-up center to grid slot
+ * Hero Element - animates from centered position below title to grid slot
  */
 interface HeroElementProps {
   course: PublicCoursePreview;
-  targetSlotPosition: { top: number; left: number; width: number; height: number };
-  heroScale: MotionValue<number>;
+  positions: {
+    targetTop: number;
+    targetLeft: number;
+    targetWidth: number;
+    targetHeight: number;
+    startTop: number;
+    startLeft: number;
+    startWidth: number;
+  };
   heroTextOpacity: MotionValue<number>;
   scrollYProgress: MotionValue<number>;
   onClick: () => void;
@@ -253,38 +273,37 @@ interface HeroElementProps {
 
 function HeroElement({ 
   course, 
-  targetSlotPosition, 
-  heroScale, 
+  positions, 
   heroTextOpacity,
   scrollYProgress,
   onClick 
 }: HeroElementProps) {
-  // Calculate the center offset needed when scaled up
-  // At scale 2.5, the hero is 2.5x bigger, so we need to offset to keep it centered
-  const scaledWidth = targetSlotPosition.width * HERO_INITIAL_SCALE;
-  const scaledHeight = targetSlotPosition.height * HERO_INITIAL_SCALE;
+  // Animate from start position/size to target position/size
+  const heroTop = useTransform(
+    scrollYProgress, 
+    [0, 1], 
+    [positions.startTop, positions.targetTop]
+  );
   
-  // Offset to center the scaled hero over the grid
-  const startOffsetX = (scaledWidth - targetSlotPosition.width) / 2;
-  const startOffsetY = (scaledHeight - targetSlotPosition.height) / 2;
+  const heroLeft = useTransform(
+    scrollYProgress, 
+    [0, 1], 
+    [positions.startLeft, positions.targetLeft]
+  );
   
-  // At scroll 0: hero is centered (offset by startOffset)
-  // At scroll 1: hero is at target slot position (no offset)
-  const heroX = useTransform(scrollYProgress, [0, 1], [-startOffsetX, 0]);
-  const heroY = useTransform(scrollYProgress, [0, 1], [-startOffsetY, 0]);
+  const heroWidth = useTransform(
+    scrollYProgress, 
+    [0, 1], 
+    [positions.startWidth, positions.targetWidth]
+  );
 
   return (
     <motion.div
       style={{
         position: 'absolute',
-        top: targetSlotPosition.top,
-        left: targetSlotPosition.left,
-        width: targetSlotPosition.width,
-        height: targetSlotPosition.height,
-        scale: heroScale,
-        x: heroX,
-        y: heroY,
-        transformOrigin: 'center center',
+        top: heroTop,
+        left: heroLeft,
+        width: heroWidth,
         zIndex: 30,
       }}
     >
@@ -314,7 +333,7 @@ function HeroCard({ course, textOpacity, onClick, aspectRatio }: HeroCardProps) 
   return (
     <div
       onClick={onClick}
-      className={`relative ${aspectRatio} w-full h-full rounded-2xl overflow-hidden cursor-pointer bg-neutral-bg border border-neutral-border shadow-soft`}
+      className={`relative ${aspectRatio} w-full rounded-2xl overflow-hidden cursor-pointer bg-neutral-bg border border-neutral-border shadow-soft`}
     >
       {course.thumbnail_url && !imgError ? (
         <img
