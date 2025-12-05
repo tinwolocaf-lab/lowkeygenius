@@ -176,8 +176,8 @@
     - **Property 6: RLS Data Isolation**
     - **Validates: Requirements 5.1, 5.2, 5.3**
 
-- [-] 14. Add error response safety
-  - [-] 14.1 Create safe error response utility
+- [x] 14. Add error response safety
+  - [x] 14.1 Create safe error response utility
     - Add utility to strip stack traces and internal paths from error messages
     - Update all Edge Functions to use safe error responses
     - _Requirements: 7.2_

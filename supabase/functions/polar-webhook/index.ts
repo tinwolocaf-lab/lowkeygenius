@@ -1,6 +1,6 @@
 import { validateEvent } from 'npm:@polar-sh/sdk@0.41.5/webhooks';
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-import { getCorsHeaders, sanitizeErrorMessage } from '../_shared/security.ts';
+import { getCorsHeaders, getSafeErrorMessage } from '../_shared/security.ts';
 
 interface PolarSubscriptionData {
   id: string;
@@ -294,15 +294,11 @@ Deno.serve(async (req: Request) => {
     );
   } catch (error: unknown) {
     // Log error but don't expose internal details (Requirement 7.2)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Webhook processing error:', errorMessage);
+    console.error('Webhook processing error:', error);
     
-    if (error instanceof Error && error.stack) {
-      console.error('Stack trace:', error.stack);
-    }
-    
+    // Use getSafeErrorMessage to ensure no stack traces or internal paths are exposed
     return new Response(
-      JSON.stringify({ error: sanitizeErrorMessage(errorMessage) }),
+      JSON.stringify({ error: getSafeErrorMessage(error, 'Webhook processing failed') }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

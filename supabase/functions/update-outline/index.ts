@@ -8,6 +8,7 @@ import {
   checkRateLimit,
   createRateLimitResponse,
   createErrorResponse,
+  createSafeErrorResponse,
   createUnauthorizedResponse,
   createValidationErrorResponse,
   MAX_STRING_LENGTH,
@@ -255,10 +256,7 @@ Deno.serve(async (req: Request) => {
     // Log full error for debugging (server-side only)
     console.error('Error updating outline:', error);
 
-    // Return safe error response without exposing internal details (Requirements 7.2)
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update outline';
-    
-    // Use createErrorResponse to ensure no stack traces or internal paths are exposed
-    return createErrorResponse(errorMessage, 500, corsHeaders, 'INTERNAL_ERROR');
+    // Use createSafeErrorResponse to ensure no stack traces or internal paths are exposed (Requirements 7.2)
+    return createSafeErrorResponse(error, 500, corsHeaders, 'INTERNAL_ERROR', 'Failed to update outline');
   }
 });

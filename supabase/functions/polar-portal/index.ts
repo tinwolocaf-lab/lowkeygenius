@@ -4,8 +4,8 @@ import {
   getCorsHeaders,
   validateAuth,
   createErrorResponse,
+  createSafeErrorResponse,
   createUnauthorizedResponse,
-  sanitizeErrorMessage,
 } from '../_shared/security.ts';
 
 Deno.serve(async (req: Request) => {
@@ -89,18 +89,9 @@ Deno.serve(async (req: Request) => {
     );
   } catch (error: unknown) {
     // Log error but don't expose internal details (Requirement 7.2)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Customer portal error:', errorMessage);
+    console.error('Customer portal error:', error);
     
-    if (error instanceof Error && error.stack) {
-      console.error('Stack trace:', error.stack);
-    }
-    
-    return createErrorResponse(
-      sanitizeErrorMessage(errorMessage),
-      500,
-      corsHeaders,
-      'INTERNAL_ERROR'
-    );
+    // Use createSafeErrorResponse to ensure no stack traces or internal paths are exposed
+    return createSafeErrorResponse(error, 500, corsHeaders, 'INTERNAL_ERROR', 'Failed to access customer portal');
   }
 });

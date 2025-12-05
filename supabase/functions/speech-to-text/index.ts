@@ -16,6 +16,7 @@ import {
   createUnauthorizedResponse,
   createValidationErrorResponse,
   createErrorResponse,
+  createSafeErrorResponse,
 } from '../_shared/security.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
@@ -235,11 +236,7 @@ If the audio is unclear or contains no speech, indicate that briefly.`;
   } catch (error: unknown) {
     console.error('Error in speech-to-text:', error);
 
-    return createErrorResponse(
-      'An error occurred processing your request',
-      500,
-      corsHeaders,
-      'INTERNAL_ERROR'
-    );
+    // Use createSafeErrorResponse to ensure no stack traces or internal paths are exposed (Requirements 7.2)
+    return createSafeErrorResponse(error, 500, corsHeaders, 'INTERNAL_ERROR', 'An error occurred processing your request');
   }
 });

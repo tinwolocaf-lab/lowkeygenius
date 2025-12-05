@@ -10,6 +10,7 @@ import {
   createUnauthorizedResponse,
   createValidationErrorResponse,
   createErrorResponse,
+  createSafeErrorResponse,
   MAX_STRING_LENGTH,
   MAX_CONTENT_LENGTH,
   MAX_TOPIC_LENGTH,
@@ -297,7 +298,7 @@ Return the ${sanitizedSection ? 'improved section' : 'complete improved lesson'}
   } catch (error: unknown) {
     console.error('Error regenerating lesson:', error);
 
-    // Return safe error response (Requirements 7.2)
-    return createErrorResponse('Failed to regenerate lesson content', 500, corsHeaders, 'INTERNAL_ERROR');
+    // Use createSafeErrorResponse to ensure no stack traces or internal paths are exposed (Requirements 7.2)
+    return createSafeErrorResponse(error, 500, corsHeaders, 'INTERNAL_ERROR', 'Failed to regenerate lesson content');
   }
 });

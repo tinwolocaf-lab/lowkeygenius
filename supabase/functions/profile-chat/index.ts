@@ -17,6 +17,7 @@ import {
   createUnauthorizedResponse,
   createValidationErrorResponse,
   createErrorResponse,
+  createSafeErrorResponse,
 } from '../_shared/security.ts';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
@@ -301,11 +302,7 @@ Deno.serve(async (req: Request) => {
     // Log error internally but don't expose details (Requirements 7.2)
     console.error('Error in profile-chat:', error);
 
-    return createErrorResponse(
-      'An error occurred processing your request',
-      500,
-      corsHeaders,
-      'INTERNAL_ERROR'
-    );
+    // Use createSafeErrorResponse to ensure no stack traces or internal paths are exposed
+    return createSafeErrorResponse(error, 500, corsHeaders, 'INTERNAL_ERROR', 'An error occurred processing your request');
   }
 });
