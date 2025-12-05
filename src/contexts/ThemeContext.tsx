@@ -81,10 +81,6 @@ export function useTheme() {
   return context;
 }
 
-function isValidTheme(theme: string): boolean {
-  return theme === 'horror';
-}
-
 function applyThemeToDOM(_theme: Theme) {
   const root = document.documentElement;
 
