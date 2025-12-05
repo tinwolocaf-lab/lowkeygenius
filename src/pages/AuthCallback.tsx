@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { AccountLinkDialog } from '../components/AccountLinkDialog';
 
 type ErrorType = 'expired' | 'invalid' | 'network' | 'account_exists' | null;
 type AuthFlowType = 'email_verification' | 'oauth' | null;
@@ -16,6 +17,9 @@ interface AuthCallbackState {
   isNewRegistration: boolean;
   linkedAccount: boolean;
   authFlowType: AuthFlowType;
+  awaitingLinkConfirmation: boolean;
+  linkedAccountEmail: string | null;
+  isFirstTimeLinking: boolean;
 }
 
 export function AuthCallback() {
@@ -30,6 +34,9 @@ export function AuthCallback() {
     isNewRegistration: false,
     linkedAccount: false,
     authFlowType: null,
+    awaitingLinkConfirmation: false,
+    linkedAccountEmail: null,
+    isFirstTimeLinking: false,
   });
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
@@ -53,6 +60,9 @@ export function AuthCallback() {
       isNewRegistration: false,
       linkedAccount: false,
       authFlowType,
+      awaitingLinkConfirmation: false,
+      linkedAccountEmail: null,
+      isFirstTimeLinking: false,
     });
   }, []);
 
@@ -193,6 +203,7 @@ export function AuthCallback() {
         const linkingResult = checkForAccountLinking(sessionUser?.identities);
         const linkedAccount = linkingResult.hasMultipleIdentities;
         const isFirstTimeLinking = linkingResult.isFirstTimeLinking;
+        const linkedEmail = sessionUser?.email ?? null;
         
         // Check if this is a new registration
         const isNewRegistration = checkIsNewRegistration(
@@ -206,16 +217,26 @@ export function AuthCallback() {
           isNewRegistration,
           linkedAccount,
           authFlowType: actualFlowType,
+          linkedAccountEmail: linkedEmail,
+          isFirstTimeLinking,
         }));
 
         // Redirect based on flow type
         if (actualFlowType === 'oauth') {
           if (linkedAccount && isFirstTimeLinking) {
-            // First-time account linking - redirect to success with linked account info
-            navigate('/verify-email/success', { 
-              replace: true,
-              state: { linkedAccount: true, isOAuth: true, isFirstTimeLinking: true }
+            // First-time account linking - confirm with user before continuing
+            setState({
+              loading: false,
+              error: null,
+              errorType: null,
+              isNewRegistration,
+              linkedAccount: true,
+              authFlowType: actualFlowType,
+              awaitingLinkConfirmation: true,
+              linkedAccountEmail: linkedEmail,
+              isFirstTimeLinking: true,
             });
+            return;
           } else if (linkedAccount) {
             // Returning user with linked accounts - redirect to dashboard directly
             navigate('/dashboard', { replace: true });
@@ -246,6 +267,7 @@ export function AuthCallback() {
         const linkingResult = checkForAccountLinking(sessionUser?.identities);
         const linkedAccount = linkingResult.hasMultipleIdentities;
         const isFirstTimeLinking = linkingResult.isFirstTimeLinking;
+        const linkedEmail = sessionUser?.email ?? null;
         const isNewRegistration = checkIsNewRegistration(
           sessionUser?.created_at,
           sessionUser?.last_sign_in_at
@@ -268,16 +290,26 @@ export function AuthCallback() {
           isNewRegistration,
           linkedAccount,
           authFlowType: actualFlowType,
+          linkedAccountEmail: linkedEmail,
+          isFirstTimeLinking,
         }));
 
         // Redirect based on flow type
         if (actualFlowType === 'oauth') {
           if (linkedAccount && isFirstTimeLinking) {
-            // First-time account linking - redirect to success with linked account info
-            navigate('/verify-email/success', { 
-              replace: true,
-              state: { linkedAccount: true, isOAuth: true, isFirstTimeLinking: true }
+            // First-time account linking - confirm with user before continuing
+            setState({
+              loading: false,
+              error: null,
+              errorType: null,
+              isNewRegistration,
+              linkedAccount: true,
+              authFlowType: actualFlowType,
+              awaitingLinkConfirmation: true,
+              linkedAccountEmail: linkedEmail,
+              isFirstTimeLinking: true,
             });
+            return;
           } else if (linkedAccount) {
             // Returning user with linked accounts - redirect to dashboard directly
             navigate('/dashboard', { replace: true });
@@ -321,6 +353,9 @@ export function AuthCallback() {
       isNewRegistration: false,
       linkedAccount: false,
       authFlowType: null,
+      awaitingLinkConfirmation: false,
+      linkedAccountEmail: null,
+      isFirstTimeLinking: false,
     });
     verifyToken();
   };
@@ -360,6 +395,18 @@ export function AuthCallback() {
     return 'Verifying your email address...';
   };
 
+  const handleLinkConfirm = () => {
+    navigate('/verify-email/success', { 
+      replace: true,
+      state: { linkedAccount: true, isOAuth: true, isFirstTimeLinking: true }
+    });
+  };
+
+  const handleLinkCancel = async () => {
+    await supabase.auth.signOut();
+    navigate('/login', { replace: true });
+  };
+
   // Loading state
   if (state.loading) {
     const isOAuthFlow = state.authFlowType === 'oauth' || searchParams.get('provider') === 'google';
@@ -381,6 +428,22 @@ export function AuthCallback() {
             </div>
           </Card>
         </div>
+      </div>
+    );
+  }
+
+  // Account linking confirmation state
+  if (state.awaitingLinkConfirmation) {
+    const emailForDialog = state.linkedAccountEmail ?? 'your account';
+
+    return (
+      <div className="min-h-screen bg-neutral-bg flex items-center justify-center p-4">
+        <AccountLinkDialog
+          isOpen={true}
+          email={emailForDialog}
+          onConfirm={handleLinkConfirm}
+          onCancel={handleLinkCancel}
+        />
       </div>
     );
   }
