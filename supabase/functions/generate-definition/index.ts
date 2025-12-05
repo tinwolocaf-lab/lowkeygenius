@@ -10,6 +10,7 @@ import {
   createUnauthorizedResponse,
   createValidationErrorResponse,
   createErrorResponse,
+  createSafeErrorResponse,
   MAX_STRING_LENGTH,
   MAX_TOPIC_LENGTH,
 } from '../_shared/security.ts';
@@ -251,7 +252,7 @@ Respond with ONLY the definition text, no additional formatting or explanation.`
   } catch (error: unknown) {
     console.error('Error generating definition:', error);
 
-    // Return safe error response (Requirements 7.2)
-    return createErrorResponse('Failed to generate definition', 500, corsHeaders, 'INTERNAL_ERROR');
+    // Use createSafeErrorResponse to ensure no stack traces or internal paths are exposed (Requirements 7.2)
+    return createSafeErrorResponse(error, 500, corsHeaders, 'INTERNAL_ERROR', 'Failed to generate definition');
   }
 });
