@@ -1,15 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Home, BookOpen, StickyNote, ChevronLeft, ChevronRight, User, Settings, LogOut, Store } from 'lucide-react';
+import { Home, BookOpen, StickyNote, ChevronLeft, ChevronRight, User, Settings, LogOut, Store, BarChart3 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useHorrorTheme } from '../hooks/useHorrorTheme';
+import { useGamification } from '../hooks/useGamification';
 import { HorrorDecorations, HorrorLogo, SidebarDecorations } from './horror';
+import { StreakWidget } from './StreakWidget';
 
 export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, signOut } = useAuth();
   const { isHorror } = useHorrorTheme();
+  const { stats } = useGamification();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -36,6 +39,7 @@ export function Layout() {
     { icon: BookOpen, label: 'My Courses', path: '/courses' },
     { icon: Store, label: 'Marketplace', path: '/marketplace' },
     { icon: StickyNote, label: 'Notes', path: '/notes' },
+    { icon: BarChart3, label: 'Analytics', path: '/analytics' },
   ];
 
   const isActivePath = (path: string) => location.pathname === path;
@@ -87,6 +91,21 @@ export function Layout() {
               );
             })}
           </nav>
+
+          {/* Streak Widget - Links to Analytics */}
+          <div className={`px-4 py-3 border-t-2 border-neutral-border ${sidebarCollapsed ? 'flex justify-center' : ''}`}>
+            <button
+              onClick={() => navigate('/analytics')}
+              className="w-full flex items-center justify-center hover:scale-105 transition-transform"
+              title={sidebarCollapsed ? 'View Analytics' : undefined}
+            >
+              <StreakWidget
+                currentStreak={stats?.current_streak ?? 0}
+                longestStreak={stats?.longest_streak ?? 0}
+                className={sidebarCollapsed ? '' : 'w-full justify-center'}
+              />
+            </button>
+          </div>
 
           <div className="p-4 border-t-2 border-neutral-border">
             <button

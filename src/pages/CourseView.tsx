@@ -11,9 +11,14 @@ import { QuizService, QuizWithQuestions } from '../lib/quizService';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useHorrorTheme } from '../hooks/useHorrorTheme';
+import { useGamification } from '../hooks/useGamification';
+import { useXPNotifications } from '../hooks/useXPNotifications';
+import { useLeaderboard } from '../hooks/useLeaderboard';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
+import { XPNotificationContainer } from '../components/XPNotification';
+import { LeaderboardPanel } from '../components/LeaderboardPanel';
 import type { Flashcard, QuizAttempt, CourseLevel } from '../types/database';
 
 interface Lesson {
@@ -68,6 +73,15 @@ export function CourseView() {
   const location = useLocation();
   const { user } = useAuth();
   const { isHorror } = useHorrorTheme();
+  const { awardXP } = useGamification();
+  const { notifications, showNotification, dismissNotification } = useXPNotifications();
+  const { 
+    entries: leaderboardEntries, 
+    userRank, 
+    participantCount, 
+    hasEnoughParticipants, 
+    isLoading: leaderboardLoading 
+  } = useLeaderboard(courseId || null);
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [progress, setProgress] = useState<Progress[]>([]);
@@ -328,8 +342,15 @@ export function CourseView() {
     }
   }, [currentLesson, user, lessonStudyContent]);
 
+  /**
+   * Marks the current lesson as complete and awards XP.
+   * Requirements: 1.1 - Award 10 XP for lesson completion
+   */
   const markAsComplete = async () => {
     if (!currentLesson || !user || !courseId) return;
+
+    // Check if lesson is already complete to avoid duplicate XP awards
+    const alreadyComplete = isLessonComplete(currentLesson.id);
 
     const { error } = await supabase.from('user_progress').upsert({
       user_id: user.id,
@@ -346,6 +367,16 @@ export function CourseView() {
         const updated = prev.filter(p => p.lesson_id !== currentLesson.id);
         return [...updated, { lesson_id: currentLesson.id, completed: true, last_viewed_at: new Date().toISOString() }];
       });
+
+      // Award XP only if lesson wasn't already complete (Requirements: 1.1)
+      if (!alreadyComplete) {
+        try {
+          await awardXP(courseId, 'lesson_complete', { lessonId: currentLesson.id });
+          showNotification(10, 'lesson_complete');
+        } catch (err) {
+          console.error('Failed to award XP for lesson completion:', err);
+        }
+      }
     }
   };
 
@@ -487,6 +518,17 @@ export function CourseView() {
               </div>
             );
           })}
+        </div>
+
+        {/* Leaderboard Section - Requirements: 6.1, 6.5 */}
+        <div className={`p-4 border-t-2 ${isHorror ? 'border-primary-dark' : 'border-neutral-border'}`}>
+          <LeaderboardPanel
+            entries={leaderboardEntries}
+            userRank={userRank}
+            participantCount={participantCount}
+            hasEnoughParticipants={hasEnoughParticipants}
+            isLoading={leaderboardLoading}
+          />
         </div>
       </aside>
 
@@ -687,10 +729,11 @@ export function CourseView() {
       {showAudioPlayer && <div className="h-28" />}
 
       {/* Flashcard Study Modal */}
-      {showFlashcardStudy && currentLesson && currentFlashcards.length > 0 && (
+      {showFlashcardStudy && currentLesson && currentFlashcards.length > 0 && courseId && (
         <FlashcardStudy
           lessonId={currentLesson.id}
           lessonTitle={currentLesson.title}
+          courseId={courseId}
           flashcards={currentFlashcards}
           onComplete={handleFlashcardStudyComplete}
           onClose={() => {
@@ -701,10 +744,11 @@ export function CourseView() {
       )}
 
       {/* Quiz Take Modal */}
-      {showQuizTake && currentLesson && currentQuizData && (
+      {showQuizTake && currentLesson && currentQuizData && courseId && (
         <QuizTake
           lessonId={currentLesson.id}
           lessonTitle={currentLesson.title}
+          courseId={courseId}
           quiz={currentQuizData.quiz}
           questions={currentQuizData.questions}
           onComplete={handleQuizComplete}
@@ -727,6 +771,12 @@ export function CourseView() {
           }}
         />
       )}
+
+      {/* XP Notifications - Requirement 1.1 */}
+      <XPNotificationContainer
+        notifications={notifications}
+        onDismiss={dismissNotification}
+      />
     </div>
   );
 }

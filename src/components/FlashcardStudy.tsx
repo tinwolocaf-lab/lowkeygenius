@@ -2,12 +2,16 @@ import { useState, useCallback, useEffect } from 'react';
 import { X, RotateCcw, Check, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './Button';
 import { useAuth } from '../contexts/AuthContext';
+import { useGamification } from '../hooks/useGamification';
+import { useXPNotifications } from '../hooks/useXPNotifications';
 import { FlashcardService, StudySessionResult } from '../lib/flashcardService';
+import { XPNotificationContainer } from './XPNotification';
 import type { Flashcard, FlashcardResponse } from '../types/database';
 
 interface FlashcardStudyProps {
   lessonId: string;
   lessonTitle: string;
+  courseId: string;
   flashcards: Flashcard[];
   onComplete: (results: StudySessionResult) => void;
   onClose: () => void;
@@ -31,11 +35,14 @@ interface CardState {
 export function FlashcardStudy({
   lessonId,
   lessonTitle,
+  courseId,
   flashcards,
   onComplete,
   onClose,
 }: FlashcardStudyProps) {
   const { user } = useAuth();
+  const { awardXP } = useGamification();
+  const { notifications, showNotification, dismissNotification } = useXPNotifications();
   
   // Initialize card states with prioritization for review cards (Requirement 2.5)
   const [cardStates, setCardStates] = useState<CardState[]>(() => 
@@ -73,6 +80,7 @@ export function FlashcardStudy({
   /**
    * Completes the study session and calculates results.
    * Requirement 2.4: Displays summary with mastered vs review counts.
+   * Requirement 1.4: Awards 5 XP for flashcard session completion.
    */
   const completeSession = useCallback(async () => {
     const responses: FlashcardResponse[] = cardStates.map(state => ({
@@ -94,20 +102,29 @@ export function FlashcardStudy({
     setSessionResults(results);
     setIsSessionComplete(true);
 
-    // Save session to database
+    // Save session to database and award XP
     if (user) {
       setIsSaving(true);
       try {
         await FlashcardService.saveStudySession(lessonId, user.id, results);
+        
+        // Award XP for flashcard session completion (Requirement 1.4)
+        await awardXP(courseId, 'flashcard_session', {
+          lessonId,
+          totalCards: cardStates.length,
+          masteredCards,
+          reviewCards,
+        });
+        showNotification(5, 'flashcard_session');
       } catch (error) {
-        console.error('Failed to save study session:', error);
+        console.error('Failed to save study session or award XP:', error);
       } finally {
         setIsSaving(false);
       }
     }
 
     onComplete(results);
-  }, [cardStates, lessonId, user, onComplete]);
+  }, [cardStates, lessonId, courseId, user, onComplete, awardXP, showNotification]);
 
   /**
    * Records the user's response and advances to the next card.
@@ -326,6 +343,12 @@ export function FlashcardStudy({
             )}
           </div>
         </div>
+
+        {/* XP Notifications - Requirement 1.4 */}
+        <XPNotificationContainer
+          notifications={notifications}
+          onDismiss={dismissNotification}
+        />
       </div>
     );
   }
@@ -453,6 +476,12 @@ export function FlashcardStudy({
           </div>
         </div>
       </div>
+
+      {/* XP Notifications - Requirement 1.4 */}
+      <XPNotificationContainer
+        notifications={notifications}
+        onDismiss={dismissNotification}
+      />
     </div>
   );
 }

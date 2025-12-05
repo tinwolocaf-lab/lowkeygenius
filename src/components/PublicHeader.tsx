@@ -8,7 +8,7 @@ import { HorrorLogo } from './horror/HorrorLogo';
 export function PublicHeader() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [, setIsAnimating] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [visibleItems, setVisibleItems] = useState<number[]>([]);
 

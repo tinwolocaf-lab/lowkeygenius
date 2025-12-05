@@ -2,12 +2,16 @@ import { useState, useCallback, useEffect } from 'react';
 import { X, ChevronRight, Check, XCircle, Trophy, RotateCcw } from 'lucide-react';
 import { Button } from './Button';
 import { useAuth } from '../contexts/AuthContext';
+import { useGamification } from '../hooks/useGamification';
+import { useXPNotifications } from '../hooks/useXPNotifications';
 import { QuizService, QuizAttemptResult } from '../lib/quizService';
+import { XPNotificationContainer } from './XPNotification';
 import type { Quiz, QuizQuestion, QuizAnswer } from '../types/database';
 
 interface QuizTakeProps {
   lessonId: string;
   lessonTitle: string;
+  courseId: string;
   quiz: Quiz;
   questions: QuizQuestion[];
   onComplete: (result: QuizAttemptResult) => void;
@@ -31,12 +35,15 @@ interface QuestionState {
  */
 export function QuizTake({
   lessonTitle,
+  courseId,
   quiz,
   questions,
   onComplete,
   onClose,
 }: QuizTakeProps) {
   const { user } = useAuth();
+  const { awardXP } = useGamification();
+  const { notifications, showNotification, dismissNotification } = useXPNotifications();
   
   // Initialize question states
   const [questionStates, setQuestionStates] = useState<QuestionState[]>(() =>
@@ -127,6 +134,7 @@ export function QuizTake({
   /**
    * Completes the quiz and saves the attempt.
    * Requirements 4.5, 6.1: Displays final score and saves attempt.
+   * Requirements 1.2, 1.3: Awards XP based on score (25 XP for >= 80%, 10 XP otherwise)
    */
   const completeQuiz = useCallback(async () => {
     const { score, totalQuestions: total, percentage } = calculateScore(questionStates);
@@ -153,15 +161,26 @@ export function QuizTake({
       setIsSaving(true);
       try {
         await QuizService.saveQuizAttempt(quiz.id, user.id, result);
+        
+        // Award XP based on score (Requirements 1.2, 1.3)
+        // 25 XP for score >= 80%, 10 XP otherwise
+        const xpAmount = percentage >= 80 ? 25 : 10;
+        await awardXP(courseId, 'quiz_complete', { 
+          quizId: quiz.id, 
+          score: percentage,
+          totalQuestions: total,
+          correctAnswers: score 
+        });
+        showNotification(xpAmount, 'quiz_complete');
       } catch (error) {
-        console.error('Failed to save quiz attempt:', error);
+        console.error('Failed to save quiz attempt or award XP:', error);
       } finally {
         setIsSaving(false);
       }
     }
 
     onComplete(result);
-  }, [questionStates, quiz.id, user, calculateScore, onComplete]);
+  }, [questionStates, quiz.id, user, courseId, calculateScore, onComplete, awardXP, showNotification]);
 
   /**
    * Advances to the next question or completes the quiz.
@@ -358,6 +377,12 @@ export function QuizTake({
             )}
           </div>
         </div>
+
+        {/* XP Notifications - Requirements 1.2, 1.3 */}
+        <XPNotificationContainer
+          notifications={notifications}
+          onDismiss={dismissNotification}
+        />
       </div>
     );
   }
@@ -506,6 +531,12 @@ export function QuizTake({
           </div>
         </div>
       </div>
+
+      {/* XP Notifications - Requirements 1.2, 1.3 */}
+      <XPNotificationContainer
+        notifications={notifications}
+        onDismiss={dismissNotification}
+      />
     </div>
   );
 }

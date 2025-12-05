@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,16 +12,55 @@ import { ThemeSelector } from '../components/ThemeSelector';
 import { ProfileSettings } from '../components/ProfileSettings';
 import { useSubscription } from '../hooks/useSubscription';
 import { openCustomerPortal, initiateCheckout } from '../lib/polar';
-import { Crown, Gift, Zap, Calendar, CreditCard, Palette, LogOut, User, BookOpen, Volume2, Star, Skull } from 'lucide-react';
+import { GamificationService } from '../lib/gamificationService';
+import { Crown, Gift, Zap, Calendar, CreditCard, Palette, LogOut, User, BookOpen, Volume2, Star, Skull, Eye, EyeOff, Globe } from 'lucide-react';
+import type { ProfileVisibility } from '../types/database';
 
 export function Settings() {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, refreshProfile } = useAuth();
   const { theme } = useTheme();
   const { isHorror } = useHorrorTheme();
   const subscription = useSubscription();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [profileVisibility, setProfileVisibility] = useState<ProfileVisibility>('public');
+  const [visibilityLoading, setVisibilityLoading] = useState(false);
+
+  // Load profile visibility on mount
+  useEffect(() => {
+    if (profile?.profile_visibility) {
+      setProfileVisibility(profile.profile_visibility);
+    }
+  }, [profile?.profile_visibility]);
+
+  const handleVisibilityToggle = async () => {
+    if (!profile?.id) return;
+
+    const newVisibility: ProfileVisibility = profileVisibility === 'public' ? 'private' : 'public';
+
+    try {
+      setVisibilityLoading(true);
+      await GamificationService.updateProfileVisibility(profile.id, newVisibility);
+      setProfileVisibility(newVisibility);
+      
+      // Refresh the profile to update the context
+      if (refreshProfile) {
+        await refreshProfile();
+      }
+      
+      toast.success(
+        newVisibility === 'public'
+          ? 'Your profile is now visible to other learners'
+          : 'Your profile is now private'
+      );
+    } catch (error) {
+      console.error('Error updating profile visibility:', error);
+      toast.error('Failed to update profile visibility');
+    } finally {
+      setVisibilityLoading(false);
+    }
+  };
 
   const handleSignOutClick = () => {
     setShowSignOutModal(true);
@@ -198,6 +237,61 @@ export function Settings() {
         </Card>
 
         <ProfileSettings />
+
+        {/* Profile Visibility Settings */}
+        <Card className={isHorror ? 'horror-blood-drip' : ''}>
+          <div className="flex items-center gap-3 mb-4">
+            <Globe className={`w-6 h-6 ${isHorror ? 'text-secondary' : 'text-primary'}`} />
+            <h2 className={`font-display text-display-sm text-neutral-text ${isHorror ? 'horror-flicker' : ''}`}>
+              {isHorror ? 'Visibility Veil' : 'Profile Visibility'}
+            </h2>
+          </div>
+          <p className="text-sm font-body text-neutral-text-muted mb-4">
+            {isHorror
+              ? 'Control who can peer into your dark achievements'
+              : 'Control whether other learners can see your profile, XP, and badges on leaderboards'}
+          </p>
+          <div className={`flex items-center justify-between p-4 rounded-2xl ${isHorror ? 'bg-primary-dark/20' : 'bg-neutral-surface'}`}>
+            <div className="flex items-center gap-3">
+              {profileVisibility === 'public' ? (
+                <Eye className="w-5 h-5 text-accent-green" />
+              ) : (
+                <EyeOff className="w-5 h-5 text-neutral-text-muted" />
+              )}
+              <div>
+                <p className="font-body font-bold text-neutral-text">
+                  {profileVisibility === 'public' ? 'Public Profile' : 'Private Profile'}
+                </p>
+                <p className="text-sm text-neutral-text-muted">
+                  {profileVisibility === 'public'
+                    ? 'Your profile is visible on leaderboards'
+                    : 'Your profile is hidden from other learners'}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleVisibilityToggle}
+              disabled={visibilityLoading}
+              className="flex items-center gap-2"
+            >
+              {visibilityLoading ? (
+                <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              ) : profileVisibility === 'public' ? (
+                <>
+                  <EyeOff className="w-4 h-4" />
+                  Make Private
+                </>
+              ) : (
+                <>
+                  <Eye className="w-4 h-4" />
+                  Make Public
+                </>
+              )}
+            </Button>
+          </div>
+        </Card>
 
         <Card className={isHorror ? 'horror-blood-drip' : ''}>
           <h2 className={`font-display text-display-sm text-neutral-text mb-4 ${isHorror ? 'horror-flicker' : ''}`}>

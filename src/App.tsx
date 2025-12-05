@@ -31,6 +31,8 @@ import { VerifyEmailPending } from './pages/VerifyEmailPending';
 import { VerifyEmailSuccess } from './pages/VerifyEmailSuccess';
 import { AuthCallback } from './pages/AuthCallback';
 import { UserProfileOnboarding } from './pages/UserProfileOnboarding';
+import { Analytics } from './pages/Analytics';
+import { PublicProfile } from './pages/PublicProfile';
 
 function PricingWrapper() {
   const { user } = useAuth();
@@ -122,6 +124,22 @@ function App() {
             </ProtectedRoute>
           }>
             <Route index element={<Marketplace />} />
+          </Route>
+
+          <Route path="/analytics" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Analytics />} />
+          </Route>
+
+          <Route path="/profile/:userId" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<PublicProfile />} />
           </Route>
 
           <Route path="/settings" element={

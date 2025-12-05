@@ -19,6 +19,9 @@ export type VoiceType = 'male' | 'female';
 export type DeletionRequestStatus = 'pending' | 'approved' | 'rejected';
 export type InputMethod = 'text' | 'voice' | 'conversation';
 export type QuestionType = 'multiple_choice' | 'true_false';
+export type ActivityType = 'lesson_complete' | 'quiz_complete' | 'flashcard_session';
+export type BadgeCategory = 'streak' | 'xp' | 'course' | 'quiz' | 'special';
+export type ProfileVisibility = 'public' | 'private';
 
 // Flashcard and Quiz related types
 export interface FlashcardResponse {
@@ -75,6 +78,8 @@ export type Database = {
           billing_cycle: string | null
           theme_preference: string
           is_admin: boolean
+          profile_visibility: ProfileVisibility
+          display_name: string | null
           created_at: string
           updated_at: string
         }
@@ -97,6 +102,8 @@ export type Database = {
           billing_cycle?: string | null
           theme_preference?: string
           is_admin?: boolean
+          profile_visibility?: ProfileVisibility
+          display_name?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -119,6 +126,8 @@ export type Database = {
           billing_cycle?: string | null
           theme_preference?: string
           is_admin?: boolean
+          profile_visibility?: ProfileVisibility
+          display_name?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -838,6 +847,153 @@ export type Database = {
         }
         Relationships: []
       }
+      learner_xp_transactions: {
+        Row: {
+          id: string
+          user_id: string
+          course_id: string
+          activity_type: ActivityType
+          xp_amount: number
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          course_id: string
+          activity_type: ActivityType
+          xp_amount: number
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          course_id?: string
+          activity_type?: ActivityType
+          xp_amount?: number
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: []
+      }
+      learner_stats: {
+        Row: {
+          user_id: string
+          total_xp: number
+          current_streak: number
+          longest_streak: number
+          last_activity_date: string | null
+          lessons_completed: number
+          quizzes_completed: number
+          flashcard_sessions_completed: number
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          total_xp?: number
+          current_streak?: number
+          longest_streak?: number
+          last_activity_date?: string | null
+          lessons_completed?: number
+          quizzes_completed?: number
+          flashcard_sessions_completed?: number
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          total_xp?: number
+          current_streak?: number
+          longest_streak?: number
+          last_activity_date?: string | null
+          lessons_completed?: number
+          quizzes_completed?: number
+          flashcard_sessions_completed?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      badge_definitions: {
+        Row: {
+          id: string
+          code: string
+          name: string
+          description: string
+          icon_url: string | null
+          category: BadgeCategory
+          criteria_json: Json
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          name: string
+          description: string
+          icon_url?: string | null
+          category: BadgeCategory
+          criteria_json?: Json
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          name?: string
+          description?: string
+          icon_url?: string | null
+          category?: BadgeCategory
+          criteria_json?: Json
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      learner_badges: {
+        Row: {
+          id: string
+          user_id: string
+          badge_id: string
+          earned_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          badge_id: string
+          earned_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          badge_id?: string
+          earned_at?: string
+        }
+        Relationships: []
+      }
+      course_xp_summary: {
+        Row: {
+          id: string
+          user_id: string
+          course_id: string
+          total_xp: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          course_id: string
+          total_xp?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          course_id?: string
+          total_xp?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       public_courses_preview: {
@@ -877,6 +1033,76 @@ export type Quiz = Database['public']['Tables']['quizzes']['Row']
 export type QuizQuestion = Database['public']['Tables']['quiz_questions']['Row']
 export type QuizAttempt = Database['public']['Tables']['quiz_attempts']['Row']
 export type LessonGenerationJob = Database['public']['Tables']['lesson_generation_jobs']['Row']
+export type LearnerXPTransaction = Database['public']['Tables']['learner_xp_transactions']['Row']
+export type LearnerStats = Database['public']['Tables']['learner_stats']['Row']
+export type BadgeDefinition = Database['public']['Tables']['badge_definitions']['Row']
+export type LearnerBadge = Database['public']['Tables']['learner_badges']['Row']
+export type CourseXPSummary = Database['public']['Tables']['course_xp_summary']['Row']
 
 // View types
 export type PublicCoursePreview = Database['public']['Views']['public_courses_preview']['Row']
+
+// Gamification service interfaces
+// These extend the database types with additional computed fields for the service layer
+
+/** Badge with full definition details, used when fetching learner badges */
+export interface LearnerBadgeWithDetails {
+  id: string;
+  userId: string;
+  badgeId: string;
+  earnedAt: string;
+  badge: {
+    id: string;
+    code: string;
+    name: string;
+    description: string;
+    iconUrl: string | null;
+    category: BadgeCategory;
+  };
+}
+
+/** Leaderboard entry for course rankings */
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  courseXp: number;
+}
+
+/** Public profile data visible to other users */
+export interface PublicProfileData {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  totalXp: number;
+  currentStreak: number;
+  badges: LearnerBadgeWithDetails[];
+}
+
+/** Course XP breakdown with weekly stats */
+export interface CourseXPBreakdown {
+  courseId: string;
+  courseTitle: string;
+  totalXp: number;
+  weeklyXp: number;
+}
+
+/** XP transaction with course info for display */
+export interface XPTransactionWithCourse {
+  id: string;
+  userId: string;
+  courseId: string;
+  courseTitle: string;
+  activityType: ActivityType;
+  xpAmount: number;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+/** Badge criteria JSON structure */
+export interface BadgeCriteria {
+  type: 'streak_days' | 'total_xp' | 'perfect_scores' | 'courses_completed' | 'manual';
+  value?: number;
+  description?: string;
+}
