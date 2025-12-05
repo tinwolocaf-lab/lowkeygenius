@@ -116,7 +116,7 @@ export function PublicHeader() {
       </div>
 
       {showMenu && (
-        <div className="md:hidden absolute left-0 right-0 top-20 bg-neutral-bg border-t-2 border-neutral-border shadow-soft overflow-hidden z-50">
+        <div className="md:hidden absolute left-0 right-0 top-20 bg-neutral-bg border-t-2 border-neutral-border shadow-soft z-50">
           <div className="px-4 py-6 space-y-4">
             {navLinks.map((link, index) => (
               <button
@@ -139,7 +139,7 @@ export function PublicHeader() {
               </button>
             ))}
             <div
-              className={`pt-4 border-t-2 border-neutral-border space-y-2 transition-all duration-300 ease-out ${
+              className={`relative z-[60] pt-4 border-t-2 border-neutral-border transition-all duration-300 ease-out ${
                 visibleItems.includes(4)
                   ? 'opacity-100 translate-y-0'
                   : 'opacity-0 -translate-y-4'
@@ -149,35 +149,37 @@ export function PublicHeader() {
                 <ThemeSelector />
               </div>
             </div>
-            <div
-              className={`transition-all duration-300 ease-out ${
-                visibleItems.includes(5)
-                  ? 'opacity-100 translate-y-0'
-                  : 'opacity-0 -translate-y-4'
-              }`}
-            >
-              <Button
-                variant="secondary"
-                className="w-full"
-                onClick={() => navigate('/login')}
+            <div className="relative z-10 space-y-4">
+              <div
+                className={`transition-all duration-300 ease-out ${
+                  visibleItems.includes(5)
+                    ? 'opacity-100 translate-y-0'
+                    : 'opacity-0 -translate-y-4'
+                }`}
               >
-                Log In
-              </Button>
-            </div>
-            <div
-              className={`transition-all duration-300 ease-out ${
-                visibleItems.includes(6)
-                  ? 'opacity-100 translate-y-0'
-                  : 'opacity-0 -translate-y-4'
-              }`}
-            >
-              <Button
-                variant="primary"
-                className="w-full"
-                onClick={() => navigate('/signup')}
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => navigate('/login')}
+                >
+                  Log In
+                </Button>
+              </div>
+              <div
+                className={`transition-all duration-300 ease-out ${
+                  visibleItems.includes(6)
+                    ? 'opacity-100 translate-y-0'
+                    : 'opacity-0 -translate-y-4'
+                }`}
               >
-                Sign Up
-              </Button>
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  onClick={() => navigate('/signup')}
+                >
+                  Sign Up
+                </Button>
+              </div>
             </div>
           </div>
         </div>
