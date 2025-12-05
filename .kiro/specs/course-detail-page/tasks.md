@@ -1,0 +1,113 @@
+# Implementation Plan
+
+- [x] 1. Set up routing and page structure
+  - [x] 1.1 Add new routes for course detail and lesson detail pages
+    - Add `/marketplace/:courseId` route to App.tsx
+    - Add `/marketplace/:courseId/lesson/:lessonId` route to App.tsx
+    - Both routes should be protected (require authentication)
+    - _Requirements: 4.3_
+  - [x] 1.2 Create CourseDetailPage component skeleton
+    - Create `src/pages/CourseDetailPage.tsx` with basic structure
+    - Add loading state and error handling
+    - Fetch course data from Supabase
+    - _Requirements: 1.1, 1.2_
+  - [x] 1.3 Create LessonDetailPage component skeleton
+    - Create `src/pages/LessonDetailPage.tsx` with basic structure
+    - Add loading state and error handling
+    - Fetch lesson data from Supabase
+    - _Requirements: 6.1_
+
+- [x] 2. Implement CourseDetailPage core functionality
+  - [x] 2.1 Implement course header section
+    - Display course title, description, level, topic, duration
+    - Display creator information and enrollment count
+    - Display thumbnail image with fallback placeholder
+    - _Requirements: 1.1, 1.3, 1.4_
+  - [ ]* 2.2 Write property test for course detail field rendering
+    - **Property 1: Course detail displays all required fields**
+    - **Validates: Requirements 1.1**
+  - [ ]* 2.3 Write property test for thumbnail conditional rendering
+    - **Property 3: Thumbnail conditional rendering**
+    - **Validates: Requirements 1.3**
+  - [x] 2.4 Implement enrollment status and action buttons
+    - Show "Enroll" button for non-enrolled users
+    - Show "Continue Learning" button for enrolled users
+    - Show "View Course" button for course owner
+    - Integrate with existing EnrollmentModal
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [x] 3. Implement CurriculumList component
+  - [x] 3.1 Create CurriculumList component
+    - Create `src/components/CurriculumList.tsx`
+    - Display modules with expandable lesson lists
+    - Show lesson titles and audio indicators
+    - _Requirements: 1.2_
+  - [ ]* 3.2 Write property test for curriculum completeness
+    - **Property 2: Curriculum displays all modules and lessons**
+    - **Validates: Requirements 1.2**
+  - [x] 3.3 Implement free preview lesson marking
+    - Mark first lesson (module_index=0, lesson_index=0) as "Free Preview"
+    - Add visual indicator for preview lesson
+    - _Requirements: 2.1_
+  - [ ]* 3.4 Write property test for free preview marking
+    - **Property 4: First lesson marked as free preview**
+    - **Validates: Requirements 2.1**
+  - [x] 3.5 Implement lesson access control
+    - Allow click on free preview lesson for all authenticated users
+    - Show lock icon and enrollment message for non-preview lessons when not enrolled
+    - Allow click on all lessons for enrolled users and course owner
+    - _Requirements: 2.2, 2.3, 2.4_
+  - [ ]* 3.6 Write property test for non-enrolled access control
+    - **Property 5: Non-enrolled users cannot access non-preview lessons**
+    - **Validates: Requirements 2.3**
+  - [ ]* 3.7 Write property test for enrolled user access
+    - **Property 6: Enrolled users can access all lessons**
+    - **Validates: Requirements 2.4**
+
+- [ ] 4. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 5. Implement LessonDetailPage functionality
+  - [x] 5.1 Implement lesson content display
+    - Display lesson title, objectives, and markdown content
+    - Use existing MarkdownRenderer component
+    - _Requirements: 6.1_
+  - [ ]* 5.2 Write property test for lesson detail field rendering
+    - **Property 7: Lesson detail displays required content**
+    - **Validates: Requirements 6.1**
+  - [x] 5.3 Implement audio playback option
+    - Show audio player button when lesson has audio_url
+    - Integrate with existing audio player components
+    - _Requirements: 6.2_
+  - [ ]* 5.4 Write property test for audio option conditional rendering
+    - **Property 8: Audio option conditional rendering**
+    - **Validates: Requirements 6.2**
+  - [x] 5.5 Implement lesson navigation
+    - Add previous/next lesson navigation
+    - Add "Back to Course" navigation to course detail page
+    - Add mark as complete functionality
+    - _Requirements: 5.1, 5.2, 6.3, 6.4_
+  - [x] 5.6 Implement access control for lesson page
+    - Verify user can access the lesson (enrolled, owner, or free preview)
+    - Redirect to course detail page if access denied
+    - _Requirements: 2.2, 2.3, 2.4_
+
+- [x] 6. Update MarketplaceCourseCard component
+  - [x] 6.1 Make entire card clickable
+    - Wrap card content in clickable container
+    - Navigate to course detail page on click
+    - _Requirements: 4.1_
+  - [x] 6.2 Remove direct enrollment button
+    - Remove "Enroll" button from card
+    - Keep "Continue Learning" for enrolled users (navigates to course detail)
+    - Keep "View Your Course" for owners (navigates to course detail)
+    - _Requirements: 4.2_
+
+- [x] 7. Update Marketplace page
+  - [x] 7.1 Update course card click handling
+    - Remove enrollment modal trigger from marketplace
+    - Update navigation to use course detail page
+    - _Requirements: 4.1, 4.2_
+
+- [x] 8. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.

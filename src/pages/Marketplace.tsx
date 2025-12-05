@@ -5,7 +5,6 @@ import { supabase } from '../lib/supabase';
 import { Card } from '../components/Card';
 import { Input } from '../components/Input';
 import { MarketplaceCourseCard } from '../components/MarketplaceCourseCard';
-import { EnrollmentModal } from '../components/EnrollmentModal';
 import { useEnrollment } from '../hooks/useEnrollment';
 import type { CourseLevel } from '../types/database';
 
@@ -45,8 +44,6 @@ export function Marketplace() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState<CourseLevel | ''>('');
-  const [selectedCourse, setSelectedCourse] = useState<PublicCourse | null>(null);
-  const [showEnrollModal, setShowEnrollModal] = useState(false);
 
 
   const loadPublicCourses = useCallback(async () => {
@@ -119,20 +116,7 @@ export function Marketplace() {
     setFilteredCourses(filtered);
   }, [courses, searchQuery, levelFilter]);
 
-  const handleEnrollClick = async (course: PublicCourse) => {
-    setSelectedCourse(course);
-    setShowEnrollModal(true);
-  };
 
-  const handleEnrollmentComplete = () => {
-    setShowEnrollModal(false);
-    setSelectedCourse(null);
-    loadPublicCourses();
-  };
-
-  const handleContinueLearning = (courseId: string) => {
-    window.location.href = `/courses/${courseId}`;
-  };
 
   if (loading) {
     return (
@@ -219,24 +203,11 @@ export function Marketplace() {
               course={course}
               isEnrolled={enrollmentStatuses[course.id] || false}
               isOwner={user?.id === course.owner_id}
-              onEnroll={() => handleEnrollClick(course)}
-              onContinueLearning={() => handleContinueLearning(course.id)}
             />
           ))}
         </div>
       )}
 
-      {selectedCourse && (
-        <EnrollmentModal
-          isOpen={showEnrollModal}
-          onClose={() => {
-            setShowEnrollModal(false);
-            setSelectedCourse(null);
-          }}
-          course={selectedCourse}
-          onEnrollmentComplete={handleEnrollmentComplete}
-        />
-      )}
     </div>
   );
 }

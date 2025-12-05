@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock, Users, User, ImageIcon } from 'lucide-react';
 import { Card } from './Card';
 import { Button } from './Button';
@@ -21,8 +22,6 @@ interface MarketplaceCourseCardProps {
   course: PublicCourse;
   isEnrolled: boolean;
   isOwner: boolean;
-  onEnroll: () => void;
-  onContinueLearning: () => void;
 }
 
 const LEVEL_COLORS: Record<CourseLevel, string> = {
@@ -36,16 +35,27 @@ export function MarketplaceCourseCard({
   course,
   isEnrolled,
   isOwner,
-  onEnroll,
-  onContinueLearning,
 }: MarketplaceCourseCardProps) {
+  const navigate = useNavigate();
   const levelColor = LEVEL_COLORS[course.level] || LEVEL_COLORS.beginner;
 
   const [thumbnailLoading, setThumbnailLoading] = useState(true);
   const [thumbnailError, setThumbnailError] = useState(false);
 
+  const handleCardClick = () => {
+    navigate(`/marketplace/${course.id}`);
+  };
+
+  const handleButtonClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/marketplace/${course.id}`);
+  };
+
   return (
-    <Card className="flex flex-col h-full overflow-hidden">
+    <Card 
+      className="flex flex-col h-full overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+      onClick={handleCardClick}
+    >
       {/* Course Thumbnail - Requirements 3.1, 3.2 */}
       <div className="relative -mx-6 -mt-6 mb-4 h-40 overflow-hidden">
         {course.thumbnail_url && !thumbnailError ? (
@@ -117,22 +127,15 @@ export function MarketplaceCourseCard({
         </div>
       </div>
 
-      {/* Action Button (Requirement 3.6) */}
+      {/* Action Button - Requirements 4.1, 4.2 */}
       <div className="mt-auto">
-        {isOwner || isEnrolled ? (
+        {(isOwner || isEnrolled) && (
           <Button
             variant="secondary"
-            onClick={onContinueLearning}
+            onClick={handleButtonClick}
             className="w-full"
           >
             {isOwner ? 'View Your Course' : 'Continue Learning'}
-          </Button>
-        ) : (
-          <Button
-            onClick={onEnroll}
-            className="w-full"
-          >
-            Enroll
           </Button>
         )}
       </div>

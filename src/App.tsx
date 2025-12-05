@@ -33,6 +33,8 @@ import { AuthCallback } from './pages/AuthCallback';
 import { UserProfileOnboarding } from './pages/UserProfileOnboarding';
 import { Analytics } from './pages/Analytics';
 import { PublicProfile } from './pages/PublicProfile';
+import { CourseDetailPage } from './pages/CourseDetailPage';
+import { LessonDetailPage } from './pages/LessonDetailPage';
 
 function PricingWrapper() {
   const { user } = useAuth();
@@ -124,6 +126,22 @@ function App() {
             </ProtectedRoute>
           }>
             <Route index element={<Marketplace />} />
+          </Route>
+
+          <Route path="/marketplace/:courseId" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<CourseDetailPage />} />
+          </Route>
+
+          <Route path="/marketplace/:courseId/lesson/:lessonId" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<LessonDetailPage />} />
           </Route>
 
           <Route path="/analytics" element={
