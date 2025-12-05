@@ -401,8 +401,9 @@ export type Database = {
         Row: {
           id: string
           user_id: string
-          course_id: string
-          lesson_id: string
+          course_id: string | null
+          lesson_id: string | null
+          title: string | null
           snippet_markdown: string
           created_at: string
           updated_at: string
@@ -410,8 +411,9 @@ export type Database = {
         Insert: {
           id?: string
           user_id: string
-          course_id: string
-          lesson_id: string
+          course_id?: string | null
+          lesson_id?: string | null
+          title?: string | null
           snippet_markdown: string
           created_at?: string
           updated_at?: string
@@ -419,8 +421,9 @@ export type Database = {
         Update: {
           id?: string
           user_id?: string
-          course_id?: string
-          lesson_id?: string
+          course_id?: string | null
+          lesson_id?: string | null
+          title?: string | null
           snippet_markdown?: string
           created_at?: string
           updated_at?: string

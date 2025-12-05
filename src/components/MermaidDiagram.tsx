@@ -89,14 +89,23 @@ export function MermaidDiagram({ code, className = '' }: MermaidDiagramProps) {
     setPan({ x: 0, y: 0 });
   }, []);
 
-  // Handle mouse wheel zoom
-  const handleWheel = useCallback((e: React.WheelEvent) => {
+  // Handle mouse wheel zoom (non-passive to allow preventDefault)
+  const handleWheel = useCallback((e: WheelEvent) => {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
       const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
       setZoom(prev => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta)));
     }
   }, []);
+
+  // Attach wheel listener with passive: false to allow preventDefault
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [handleWheel]);
 
   // Handle pan (drag)
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -337,7 +346,6 @@ export function MermaidDiagram({ code, className = '' }: MermaidDiagramProps) {
         <div
           ref={containerRef}
           className="flex-1 overflow-hidden flex items-center justify-center"
-          onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -364,7 +372,6 @@ export function MermaidDiagram({ code, className = '' }: MermaidDiagramProps) {
       <div
         ref={containerRef}
         className="mermaid-diagram-container overflow-auto p-4 min-h-[200px] max-h-[600px]"
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}

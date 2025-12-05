@@ -64,7 +64,6 @@ export function LessonDetailPage() {
 
   const isOwner = user?.id === course?.owner_id;
   const isFreePreview = lesson?.module_index === 0 && lesson?.lesson_index === 0;
-  const canAccess = isOwner || isEnrolled || isFreePreview;
 
   // Find current lesson index in the all lessons array
   const currentLessonIndex = allLessons.findIndex(l => l.id === lessonId);
@@ -396,7 +395,8 @@ export function LessonDetailPage() {
             </Button>
 
             {/* Mark Complete Button - Requirements: 6.4 */}
-            {canAccess && !isComplete && (
+            {/* Only show for enrolled users or owners, not for free preview visitors */}
+            {(isOwner || isEnrolled) && !isComplete && (
               <Button
                 variant="secondary"
                 onClick={handleMarkComplete}
@@ -412,7 +412,7 @@ export function LessonDetailPage() {
               </Button>
             )}
 
-            {isComplete && (
+            {(isOwner || isEnrolled) && isComplete && (
               <span className="flex items-center gap-2 text-accent-green font-body font-semibold">
                 <CheckCircle className="w-5 h-5" />
                 Completed
