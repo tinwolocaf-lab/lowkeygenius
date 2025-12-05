@@ -124,17 +124,22 @@ export function useSubscription(): SubscriptionData {
     fetchCourseUsage();
   }, [user, isBillingCycleLimit, subscriptionPeriodStart]);
 
-  const coursesUsed = publishedCount + enrolledCount; // Published + subscribed courses consume the plan quota
-  const totalActive = coursesUsed + inProgressCount;
+  // Only published + enrolled courses count against the plan quota
+  // In-progress courses don't consume quota but block new generation (one active slot)
+  const coursesUsed = publishedCount + enrolledCount;
+  const hasInProgressCourse = inProgressCount > 0;
 
   let canCreateCourse = true;
   let blockingReason: 'limit_reached' | 'active_generation' | undefined;
 
   if (coursesLimit !== Infinity) {
     if (coursesUsed >= coursesLimit) {
+      // User has reached their published + enrolled course limit
       canCreateCourse = false;
       blockingReason = 'limit_reached';
-    } else if (totalActive >= coursesLimit) {
+    } else if (hasInProgressCourse) {
+      // User has an in-progress course - must complete or delete it first
+      // This ensures users can only work on one course at a time
       canCreateCourse = false;
       blockingReason = 'active_generation';
     }

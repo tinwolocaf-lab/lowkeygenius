@@ -11,10 +11,11 @@ export const PLAN_LIMITS: Record<PlanType, { courses: number; isBillingCycle: bo
 
 export interface QuotaValidationResult {
   allowed: boolean;
-  currentCount: number;
+  coursesUsed: number;  // Published + enrolled courses (what counts against limit)
   limit: number;
   planType: PlanType;
   inProgressCount?: number;
+  activeGenerationId?: string;  // ID of in-progress course when blocking
   reason?: 'limit_reached' | 'active_generation';
   error?: string;
 }
@@ -45,7 +46,7 @@ export async function validateUserQuota(
   if (profileError || !profile) {
     return {
       allowed: false,
-      currentCount: 0,
+      coursesUsed: 0,
       limit: 0,
       planType: 'FREE',
       error: 'Failed to fetch user profile',
@@ -61,7 +62,7 @@ export async function validateUserQuota(
   if (planType === 'PRO_MAX') {
     return {
       allowed: true,
-      currentCount: 0,
+      coursesUsed: 0,
       limit: Infinity,
       planType,
     };
@@ -88,7 +89,7 @@ export async function validateUserQuota(
   if (publishedError) {
     return {
       allowed: false,
-      currentCount: 0,
+      coursesUsed: 0,
       limit,
       planType,
       error: 'Failed to fetch course count',
@@ -111,25 +112,39 @@ export async function validateUserQuota(
   }
 
   // Track active (not yet published) courses to help the frontend guide users to continue generation
-  const { count: inProgressCount } = await supabase
+  // Also fetch the ID of the most recent in-progress course for navigation
+  const { data: inProgressCourses, count: inProgressCount } = await supabase
     .from('courses')
-    .select('id', { count: 'exact', head: true })
+    .select('id', { count: 'exact' })
     .eq('owner_id', userId)
-    .neq('status', 'published');
+    .neq('status', 'published')
+    .order('updated_at', { ascending: false })
+    .limit(1);
 
-  const currentCount = (publishedCount || 0) + (enrolledCount || 0);
-  const totalActive = currentCount + (inProgressCount || 0);
+  const coursesUsed = (publishedCount || 0) + (enrolledCount || 0);
+  const hasInProgress = (inProgressCount || 0) > 0;
 
-  const limitReached = limit !== Infinity && currentCount >= limit;
-  const activeBlock = !limitReached && limit !== Infinity && totalActive > limit;
+  // Quota is reached when published + enrolled courses >= limit
+  const limitReached = limit !== Infinity && coursesUsed >= limit;
+  
+  // Block new generation if user has ANY in-progress course (one active slot at a time)
+  // This ensures users complete or delete existing courses before starting new ones
+  const activeBlock = !limitReached && hasInProgress;
+  
   const allowed = !limitReached && !activeBlock;
+
+  // Get the ID of the in-progress course for navigation when blocking
+  const activeGenerationId = hasInProgress && inProgressCourses?.[0]?.id 
+    ? inProgressCourses[0].id 
+    : undefined;
 
   return {
     allowed,
-    currentCount,
+    coursesUsed,
     limit,
     planType,
     inProgressCount: inProgressCount || 0,
+    activeGenerationId,
     reason: limitReached ? 'limit_reached' : (activeBlock ? 'active_generation' : undefined),
     error: allowed
       ? undefined

@@ -13,7 +13,7 @@ import { supabase } from '../lib/supabase';
 import { generateCourseOutline } from '../lib/api';
 import toast from 'react-hot-toast';
 import type { Message, OnboardingData, Attachment } from '../types/onboarding';
-import type { ExtractedContext, Course } from '../types/database';
+import type { ExtractedContext } from '../types/database';
 
 type OnboardingStep =
   | 'welcome'
@@ -288,61 +288,35 @@ export function Onboarding() {
           content: att.content,
         }));
 
-      const { data: course, error: courseError } = await supabase
-        .from('courses')
-        .insert({
-          owner_id: user.id,
-          title: `${data.topic}`,
-          description: `A ${data.level} level course on ${data.topic}`,
-          topic: data.topic,
-          level: data.level!,
-          intensity: data.intensity!,
-          status: 'draft_outline',
-          materials_json: materialsForStorage.length > 0 ? materialsForStorage : null,
-        })
-        .select()
-        .single()
-        .returns<Course>();
-
-      if (courseError || !course) {
-        throw courseError || new Error('Failed to create course');
-      }
-
       // Send content summary for outline generation (up to 10k chars per material)
       const materials = data.attachments.map(att => ({
         title: att.title,
         summary: att.content?.substring(0, 10000),
       }));
 
-      // Pass profile context if available (Requirements 6.3)
-      const outline = await generateCourseOutline({
+      // Backend now creates the course record after quota validation passes
+      // This prevents orphaned courses when quota check fails (Requirements 2.1, 2.2, 2.3)
+      const result = await generateCourseOutline({
         topic: data.topic,
         level: data.level!,
         intensity: data.intensity!,
         background: data.background,
         materials: materials.length > 0 ? materials : undefined,
+        materialsForStorage: materialsForStorage.length > 0 ? materialsForStorage : undefined,
         profileContext: profileContextRef.current || undefined,
       });
 
-      const { error: updateError } = await supabase
-        .from('courses')
-        .update({
-          title: outline.title || course.title,
-          description: outline.description || course.description,
-          outline_json: outline,
-          estimated_duration_hours: outline.estimatedDurationHours,
-          status: 'ready',
-        })
-        .eq('id', course.id);
+      // The API now returns courseId along with the outline
+      const courseId = result.courseId;
 
-      if (updateError) {
-        throw updateError;
+      if (!courseId) {
+        throw new Error('Course creation failed - no course ID returned. Please try again.');
       }
 
       addAssistantMessage("Perfect! Your course outline is ready. Let's review it!");
 
       setTimeout(() => {
-        navigate(`/courses/${course.id}/outline`);
+        navigate(`/courses/${courseId}/outline`);
       }, 1500);
     } catch (error) {
       console.error('Error generating course:', error);

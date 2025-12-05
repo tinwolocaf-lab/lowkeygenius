@@ -31,6 +31,11 @@ interface OutlineRequest {
     title: string;
     summary?: string;
   }>;
+  // Full materials content for storage (separate from summary for AI)
+  materialsForStorage?: Array<{
+    title: string;
+    content?: string;
+  }>;
   // Profile data passed from frontend when available
   profileContext?: ExtractedContext;
 }
@@ -88,10 +93,11 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           error: quotaResult.error || 'Course limit reached. Please upgrade your plan.',
-          currentCount: quotaResult.currentCount,
+          coursesUsed: quotaResult.coursesUsed,
           limit: quotaResult.limit,
           planType: quotaResult.planType,
           inProgressCount: quotaResult.inProgressCount,
+          activeGenerationId: quotaResult.activeGenerationId,
           reason: quotaResult.reason,
         }),
         {
@@ -105,7 +111,31 @@ Deno.serve(async (req: Request) => {
     }
 
     const requestData: OutlineRequest = await req.json();
-    const { topic, level, intensity, background, materials, profileContext } = requestData;
+    const { topic, level, intensity, background, materials, materialsForStorage, profileContext } = requestData;
+
+    // Create course record AFTER quota validation passes (Requirements 2.1, 2.2, 2.3)
+    // This ensures no orphaned courses are created if quota check fails
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .insert({
+        owner_id: user.id,
+        title: topic, // Will be updated with AI-generated title
+        description: `A ${level} level course on ${topic}`,
+        topic,
+        level,
+        intensity,
+        status: 'draft_outline',
+        materials_json: materialsForStorage && materialsForStorage.length > 0 ? materialsForStorage : null,
+      })
+      .select('id')
+      .single();
+
+    if (courseError || !course) {
+      console.error('Failed to create course:', courseError);
+      throw new Error('Failed to create course record');
+    }
+
+    const courseId = course.id;
 
     // Fetch user profile from database if not provided in request (Requirements 6.3)
     let userProfileContext: ExtractedContext | null = profileContext || null;
@@ -271,11 +301,35 @@ Make the course comprehensive, practical, and tailored to the learner's backgrou
       outline = JSON.parse(cleanedText);
     } catch {
       console.error('Failed to parse Gemini response:', generatedText);
+      // Clean up the course record if outline parsing fails
+      await supabase.from('courses').delete().eq('id', courseId);
       throw new Error('Failed to parse course outline from AI response');
     }
 
+    // Update the course with the generated outline
+    const { error: updateError } = await supabase
+      .from('courses')
+      .update({
+        title: outline.title || topic,
+        description: outline.description || `A ${level} level course on ${topic}`,
+        outline_json: outline,
+        estimated_duration_hours: outline.estimatedDurationHours,
+        status: 'ready',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', courseId);
+
+    if (updateError) {
+      console.error('Failed to update course with outline:', updateError);
+      // Don't delete the course here - it exists and can be retried
+      throw new Error('Failed to save course outline');
+    }
+
     return new Response(
-      JSON.stringify(outline),
+      JSON.stringify({
+        courseId,
+        ...outline,
+      }),
       {
         headers: {
           ...corsHeaders,

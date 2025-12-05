@@ -22,8 +22,23 @@ export async function generateCourseOutline(data: {
     interests?: string;
   };
   materials?: Array<{ title: string; summary?: string }>;
+  materialsForStorage?: Array<{ title: string; content?: string }>;
   profileContext?: ExtractedContext;
-}) {
+}): Promise<{
+  courseId: string;
+  title: string;
+  description: string;
+  modules: Array<{
+    title: string;
+    description: string;
+    lessons: Array<{
+      title: string;
+      objectives: string[];
+    }>;
+  }>;
+  estimatedDurationHours: number;
+  estimatedLessonsCount: number;
+}> {
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session) {
