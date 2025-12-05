@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Headphones, ArrowRight, CheckCircle2, Target, Brain, Layers, Share2, Star, Skull } from 'lucide-react';
 import { PublicHeader } from '../components/PublicHeader';
 import { Button } from '../components/Button';
@@ -8,6 +8,7 @@ import { AnimatedCourseDemo } from '../components/AnimatedCourseDemo';
 import { HeroScrollGrid } from '../components/HeroScrollGrid';
 import { useHorrorTheme } from '../hooks/useHorrorTheme';
 import { HorrorDecorations } from '../components/horror';
+import { PublicFooter } from '../components/PublicFooter';
 
 export function Homepage() {
   const navigate = useNavigate();
@@ -512,51 +513,7 @@ export function Homepage() {
         </div>
       </section>
 
-      <footer className="bg-neutral-bg border-t border-neutral-border py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-1">
-                  <img src="/logo.png" alt="Progent" className="w-8 h-8 object-contain" />
-                </div>
-                <span className="font-display text-xl font-bold text-neutral-text">Progent</span>
-              </div>
-              <p className="font-body text-neutral-text-muted text-sm">
-                Personalized AI-powered learning for everyone.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-display font-bold mb-4 text-neutral-text">Product</h4>
-              <ul className="space-y-2 font-body text-sm text-neutral-text-muted">
-                <li><button onClick={() => scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-neutral-text transition-colors">Features</button></li>
-                <li><button onClick={() => navigate('/pricing')} className="hover:text-neutral-text transition-colors">Pricing</button></li>
-                <li><button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-neutral-text transition-colors">How It Works</button></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-display font-bold mb-4 text-neutral-text">Support</h4>
-              <ul className="space-y-2 font-body text-sm text-neutral-text-muted">
-                <li><button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-neutral-text transition-colors">FAQ</button></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-display font-bold mb-4 text-neutral-text">Legal</h4>
-              <ul className="space-y-2 font-body text-sm text-neutral-text-muted">
-                <li><Link to="/privacy" className="hover:text-neutral-text transition-colors">Privacy Policy</Link></li>
-                <li><Link to="/terms" className="hover:text-neutral-text transition-colors">Terms of Service</Link></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-neutral-border pt-8 text-center font-body text-sm text-neutral-text-muted">
-            <p>&copy; {new Date().getFullYear()} Progent. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

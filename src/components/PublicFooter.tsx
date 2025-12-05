@@ -6,9 +6,9 @@ export function PublicFooter() {
   return (
     <footer className="bg-neutral-surface border-t border-neutral-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 text-center md:text-left justify-items-center md:justify-items-start">
           <div className="space-y-3">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+            <div className="flex items-center gap-2 cursor-pointer justify-center md:justify-start" onClick={() => navigate('/')}>
               <HorrorLogo showText={true} size="lg" />
             </div>
             <p className="font-body text-sm text-neutral-text-muted">
