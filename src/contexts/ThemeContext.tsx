@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
 
-export type Theme = 'pink-light' | 'blue-light' | 'pink-dark' | 'blue-dark' | 'horror';
+export type Theme = 'horror';
 
 interface ThemeContextType {
   theme: Theme;
@@ -16,22 +16,14 @@ const THEME_STORAGE_KEY = 'theme-preference';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { user, profile } = useAuth();
-  const [theme, setThemeState] = useState<Theme>('blue-light');
+  const [theme, setThemeState] = useState<Theme>('horror');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initializeTheme = async () => {
       try {
-        let initialTheme: Theme = 'blue-light';
-
-        if (user && profile?.theme_preference) {
-          initialTheme = profile.theme_preference as Theme;
-        } else {
-          const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-          if (savedTheme && isValidTheme(savedTheme)) {
-            initialTheme = savedTheme as Theme;
-          }
-        }
+        // Horror is the only theme, always use it
+        const initialTheme: Theme = 'horror';
 
         setThemeState(initialTheme);
         applyThemeToDOM(initialTheme);
@@ -46,13 +38,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [user, profile?.theme_preference]);
 
   useEffect(() => {
-    if (!user && profile === null) {
-      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-      if (savedTheme && isValidTheme(savedTheme)) {
-        setThemeState(savedTheme as Theme);
-        applyThemeToDOM(savedTheme as Theme);
-      }
-    }
+    // Always apply horror theme
+    applyThemeToDOM('horror');
   }, [user, profile]);
 
   const setTheme = async (newTheme: Theme) => {
@@ -95,22 +82,16 @@ export function useTheme() {
 }
 
 function isValidTheme(theme: string): boolean {
-  return ['pink-light', 'blue-light', 'pink-dark', 'blue-dark', 'horror'].includes(theme);
+  return theme === 'horror';
 }
 
-function applyThemeToDOM(theme: Theme) {
+function applyThemeToDOM(_theme: Theme) {
   const root = document.documentElement;
 
-  root.classList.remove('theme-pink-light', 'theme-blue-light', 'theme-pink-dark', 'theme-blue-dark', 'theme-horror');
-
-  if (theme !== 'blue-light') {
-    root.classList.add(`theme-${theme}`);
-  }
+  // Remove any old theme classes and apply horror
+  root.classList.remove('theme-horror');
+  root.classList.add('theme-horror');
 
   // Horror theme is always dark
-  if (theme.includes('dark') || theme === 'horror') {
-    root.classList.add('dark');
-  } else {
-    root.classList.remove('dark');
-  }
+  root.classList.add('dark');
 }
