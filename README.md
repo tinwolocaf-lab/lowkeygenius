@@ -180,7 +180,7 @@ Themes are managed via CSS custom properties and React context, allowing seamles
 
 ## 📄 License
 
-This project is private and proprietary.
+This project is public and can be used by others.
 
 ## 🤝 Contributing
 
